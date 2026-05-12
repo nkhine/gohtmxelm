@@ -360,6 +360,47 @@ templ Page() {
 					font-size: 0.78rem;
 				}
 
+				/* ── Island docs card ──────────────────────────────────── */
+				.island-docs {
+					margin: 0 0.75rem 0.75rem;
+					border-top: 2px dashed var(--elm-border);
+					padding-top: 0.75rem;
+					font-size: 0.8rem;
+					color: #374151;
+					line-height: 1.55;
+				}
+				.island-docs h3 {
+					margin: 0 0 0.35rem 0;
+					font-size: 0.72rem;
+					font-weight: 700;
+					text-transform: uppercase;
+					letter-spacing: 0.06em;
+					color: var(--elm-purple);
+				}
+				.island-docs p {
+					margin: 0 0 0.65rem 0;
+				}
+				.island-docs ul {
+					margin: 0 0 0.65rem 0;
+					padding-left: 1.1rem;
+				}
+				.island-docs li {
+					margin-bottom: 0.25rem;
+				}
+				.island-docs .flow-tag {
+					display: inline-block;
+					font-family: monospace;
+					font-size: 0.72rem;
+					padding: 0.05rem 0.35rem;
+					border-radius: 3px;
+					font-weight: 600;
+					margin-right: 0.2rem;
+				}
+				.island-docs .flow-elm  { background: #ede9fe; color: var(--elm-dark); }
+				.island-docs .flow-go   { background: #e0f7fb; color: var(--go-dark); }
+				.island-docs .flow-htmx { background: #f1f5f9; color: var(--htmx-gray); }
+				.island-docs .flow-sse  { background: #d1fae5; color: #065f46; }
+
 				/* ── Misc ───────────────────────────────────────────────── */
 				.field-row {
 					display: flex;
@@ -474,6 +515,74 @@ templ Page() {
 								data-props="{}">
 							</div>
 						</div>
+					</div>
+
+					<div class="island-docs">
+						<h3>What is this?</h3>
+						<p>
+							Each panel above is an independent <strong>Elm island</strong> — a
+							<code>Browser.element</code> app compiled to JavaScript and mounted
+							into a server-rendered page by <code>broker.js</code>.
+							Islands share no global state and never call each other directly;
+							all communication crosses a typed message bus (the broker).
+						</p>
+
+						<h3>How the bridge works</h3>
+						<p>
+							Every Elm app exposes two ports — <code>brokerOut</code> to send
+							events and <code>brokerIn</code> to receive them.
+							<code>broker.js</code> sits between all islands and the server,
+							normalising, routing, and stamping each message with a source ID
+							before delivery.
+						</p>
+
+						<h3>What it demonstrates</h3>
+						<ul>
+							<li>
+								<span class="flow-tag flow-elm">Elm &#8594; Elm</span>
+								Direct island-to-island messaging and broadcast — App&nbsp;A can
+								target App&nbsp;B and vice versa without a server round-trip.
+							</li>
+							<li>
+								<span class="flow-tag flow-elm">Elm</span>
+								<span class="flow-tag flow-go">&#8594; Go</span>
+								A <em>STATE_SET</em> event from either island is posted to the Go
+								KV store via <code>POST /api/store</code> with optimistic-lock
+								versioning (HTTP&nbsp;409 on conflict).
+							</li>
+							<li>
+								<span class="flow-tag flow-go">Go</span>
+								<span class="flow-tag flow-sse">SSE</span>
+								<span class="flow-tag flow-elm">&#8594; Elm</span>
+								Store writes are broadcast to all connected browsers over
+								Server-Sent Events and forwarded into every island as a
+								<em>STORE_CHANGE</em> event — the table in each island updates
+								automatically.
+							</li>
+							<li>
+								<span class="flow-tag flow-elm">Elm &#8594; HTMX</span>
+								App&nbsp;A&#39;s <em>Refresh via HTMX</em> button emits an
+								<em>HTMX_SWAP</em> event; broker.js calls
+								<code>htmx.ajax()</code> to swap a server fragment into the DOM
+								without Elm ever touching the network directly.
+							</li>
+							<li>
+								<span class="flow-tag flow-htmx">HTMX &#8594; Elm</span>
+								Every HTMX swap fires <code>htmx:afterSwap</code>, which
+								broker.js converts into an <em>HTMX_AFTER_SWAP</em> broadcast —
+								both islands observe the swap target and URL, demonstrating
+								passive reactivity to server-driven DOM changes.
+							</li>
+						</ul>
+
+						<h3>Try it</h3>
+						<ul>
+							<li>Click <strong>Send to App B</strong> in App&nbsp;A — watch the <em>Received</em> field update only in App&nbsp;B.</li>
+							<li>Click <strong>Broadcast</strong> — both islands update simultaneously.</li>
+							<li>Type a key/value into the store form and click <strong>Set</strong> — the store table flashes and both islands&#39; snapshots update via SSE.</li>
+							<li>Click <strong>Refresh via HTMX</strong> in App&nbsp;A — the server fragment swaps in the left zone and both islands log the swap target in <em>Last HTMX swap</em>.</li>
+							<li>Watch the event log in the Server Zone to trace every cross-boundary event in real time.</li>
+						</ul>
 					</div>
 				</div>
 			</div>
