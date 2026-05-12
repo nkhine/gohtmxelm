@@ -25,6 +25,31 @@ templ Page() {
 					cursor: pointer;
 					padding: 0.5rem 0.75rem;
 				}
+				table {
+					border-collapse: collapse;
+					width: 100%;
+				}
+				th, td {
+					text-align: left;
+					padding: 0.4rem 0.75rem;
+					border-bottom: 1px solid #eee;
+				}
+				th {
+					font-weight: 600;
+				}
+				.store-form {
+					display: flex;
+					gap: 0.5rem;
+					margin-top: 1rem;
+					flex-wrap: wrap;
+				}
+				.store-form input {
+					padding: 0.4rem 0.6rem;
+					border: 1px solid #ccc;
+					border-radius: 4px;
+					flex: 1;
+					min-width: 8rem;
+				}
 			</style>
 		</head>
 		<body>
@@ -38,6 +63,24 @@ templ Page() {
 					Load server message
 				</button>
 				<div id="server-message"></div>
+			</section>
+			<section class="card">
+				<h2>Go KV Store</h2>
+				<div
+					id="store-entries"
+					hx-get="/api/store/fragment"
+					hx-trigger="load, store-refresh"
+					hx-swap="innerHTML">
+					<p>Loading&hellip;</p>
+				</div>
+				<form
+					class="store-form"
+					hx-post="/api/store"
+					hx-swap="none">
+					<input type="text" name="key" placeholder="key" required/>
+					<input type="text" name="value" placeholder="value" required/>
+					<button type="submit">Set</button>
+				</form>
 			</section>
 			<section class="card">
 				<h2>Elm App A</h2>
@@ -65,4 +108,27 @@ templ Page() {
 
 templ ServerMessage(message string) {
 	<p>{ message }</p>
+}
+
+templ StoreEntries(entries map[string]string) {
+	if len(entries) == 0 {
+		<p>Store is empty.</p>
+	} else {
+		<table>
+			<thead>
+				<tr>
+					<th>Key</th>
+					<th>Value</th>
+				</tr>
+			</thead>
+			<tbody>
+				for k, v := range entries {
+					<tr>
+						<td>{ k }</td>
+						<td>{ v }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
 }
