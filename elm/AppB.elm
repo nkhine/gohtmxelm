@@ -2,7 +2,8 @@ port module AppB exposing (main)
 
 import BrokerPort exposing (Inbound, Model, decodeInbound, initialModel, ready, sendStateSet)
 import Browser
-import Html exposing (Html, button, div, p, strong, text)
+import Dict
+import Html exposing (Html, button, div, h3, p, strong, table, tbody, td, text, th, thead, tr)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -59,6 +60,7 @@ update msg model =
                     ( { model
                         | received = inbound.message
                         , brokerReady = inbound.brokerReady || model.brokerReady
+                        , storeState = inbound.storeState
                       }
                     , Cmd.none
                     )
@@ -95,4 +97,34 @@ view model =
         , button [ onClick SendToA ] [ text "Send to App A" ]
         , text " "
         , button [ onClick Broadcast ] [ text "Broadcast" ]
+        , viewStoreState model.storeState
         ]
+
+
+viewStoreState : Dict.Dict String String -> Html Msg
+viewStoreState state =
+    if Dict.isEmpty state then
+        p [] [ text "Store: (empty)" ]
+
+    else
+        div []
+            [ h3 [] [ text "Store state" ]
+            , table []
+                [ thead []
+                    [ tr []
+                        [ th [] [ text "Key" ]
+                        , th [] [ text "Value" ]
+                        ]
+                    ]
+                , tbody []
+                    (List.map
+                        (\( k, v ) ->
+                            tr []
+                                [ td [] [ text k ]
+                                , td [] [ text v ]
+                                ]
+                        )
+                        (Dict.toList state)
+                    )
+                ]
+            ]

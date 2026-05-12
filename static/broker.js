@@ -6,6 +6,7 @@ class ElmIslandBroker {
     this.failedNodes = new WeakSet();
     this.state = {};
     this.observeRemovals();
+    this.connectStore();
   }
 
   mountAll(root = document) {
@@ -139,7 +140,57 @@ class ElmIslandBroker {
       ...this.state,
       [key]: value,
     };
+    this.syncToStore(key, value);
     return true;
+  }
+
+  // Mirror a STATE_SET change to the Go KV store so all browser tabs and
+  // the HTMX fragment stay in sync via the SSE stream.
+  syncToStore(key, value) {
+    const storeValue =
+      typeof value === "string" ? value : JSON.stringify(value);
+    fetch("/api/store", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value: storeValue }),
+    }).catch((err) => console.warn("store sync failed", err));
+  }
+
+  // Open an SSE connection to /api/events and translate incoming store-change
+  // events into broker state updates + STORE_CHANGE messages to all islands.
+  connectStore() {
+    const source = new EventSource("/api/events");
+
+    source.addEventListener("store-change", (e) => {
+      let parsed;
+      try {
+        parsed = JSON.parse(e.data);
+      } catch (err) {
+        console.warn("store-change parse error", err);
+        return;
+      }
+      const { key, value } = parsed;
+      this.state = { ...this.state, [key]: value };
+
+      this.broadcast({
+        version: this.version,
+        type: "STORE_CHANGE",
+        source: "broker",
+        target: "broadcast",
+        payload: { key, value },
+      });
+
+      // Refresh the HTMX store fragment whenever the store changes.
+      const storeEl = document.getElementById("store-entries");
+      if (storeEl && window.htmx) {
+        window.htmx.trigger(storeEl, "store-refresh");
+      }
+    });
+
+    source.onerror = () => {
+      source.close();
+      setTimeout(() => this.connectStore(), 3000);
+    };
   }
 
   reduceStatePatch(event) {
