@@ -1,5 +1,6 @@
 port module AppB exposing (main)
 
+import BrokerPort exposing (Inbound, Model, decodeInbound, initialModel, ready, sendStateSet)
 import Browser
 import Html exposing (Html, button, div, p, strong, text)
 import Html.Events exposing (onClick)
@@ -11,13 +12,6 @@ port brokerOut : Encode.Value -> Cmd msg
 
 
 port brokerIn : (Decode.Value -> msg) -> Sub msg
-
-
-type alias Model =
-    { islandId : String
-    , received : String
-    , brokerReady : Bool
-    }
 
 
 type Msg
@@ -43,41 +37,7 @@ init flags =
             Decode.decodeValue (Decode.field "islandId" Decode.string) flags
                 |> Result.withDefault "app-b"
     in
-    ( { islandId = islandId
-      , received = "Nothing yet"
-      , brokerReady = False
-      }
-    , ready
-    )
-
-
-ready : Cmd Msg
-ready =
-    brokerOut
-        (Encode.object
-            [ ( "version", Encode.int 1 )
-            , ( "type", Encode.string "READY" )
-            , ( "target", Encode.string "broker" )
-            , ( "payload", Encode.object [] )
-            ]
-        )
-
-
-sendStateSet : String -> String -> String -> Cmd Msg
-sendStateSet target key value =
-    brokerOut
-        (Encode.object
-            [ ( "version", Encode.int 1 )
-            , ( "type", Encode.string "STATE_SET" )
-            , ( "target", Encode.string target )
-            , ( "payload"
-              , Encode.object
-                    [ ( "key", Encode.string key )
-                    , ( "value", Encode.string value )
-                    ]
-              )
-            ]
-        )
+    ( initialModel islandId, ready brokerOut )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -85,12 +45,12 @@ update msg model =
     case msg of
         SendToA ->
             ( model
-            , sendStateSet "app-a" "message" "Hello from App B to App A"
+            , sendStateSet brokerOut "app-a" "message" (Encode.string "Hello from App B to App A")
             )
 
         Broadcast ->
             ( model
-            , sendStateSet "broadcast" "message" "Hello from App B to everyone"
+            , sendStateSet brokerOut "broadcast" "message" (Encode.string "Hello from App B to everyone")
             )
 
         BrokerIn value ->
@@ -103,39 +63,12 @@ update msg model =
                     , Cmd.none
                     )
 
-                Err _ ->
+                Err err ->
+                    let
+                        _ =
+                            Debug.log "AppB BrokerIn decode error" (Decode.errorToString err)
+                    in
                     ( model, Cmd.none )
-
-
-type alias Inbound =
-    { message : String
-    , brokerReady : Bool
-    }
-
-
-decodeInbound : Decode.Value -> Result Decode.Error Inbound
-decodeInbound =
-    Decode.decodeValue
-        (Decode.map2 Inbound
-            (Decode.oneOf
-                [ Decode.field "brokerState" (Decode.field "message" Decode.string)
-                , Decode.succeed "No message in broker state"
-                ]
-            )
-            (Decode.oneOf
-                [ Decode.field "type" Decode.string
-                    |> Decode.andThen
-                        (\eventType ->
-                            if eventType == "BROKER_READY" then
-                                Decode.succeed True
-
-                            else
-                                Decode.succeed False
-                        )
-                , Decode.succeed False
-                ]
-            )
-        )
 
 
 view : Model -> Html Msg
