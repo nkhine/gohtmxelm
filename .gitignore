@@ -5,6 +5,9 @@ elm-htmx-templ-demo
 static/app-a.js
 static/app-b.js
 
+# Vendored third-party JS (downloaded by make)
+static/vendor/
+
 # Generated templ Go code
 templates/page_templ.go
 
@@ -13,6 +16,3 @@ elm-stuff/
 
 # macOS
 .DS_Store
-
-# Empty source directory
-src/

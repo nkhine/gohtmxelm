@@ -122,6 +122,8 @@ class ElmIslandBroker {
         return this.reduceStateSet(event);
       case "STATE_PATCH":
         return this.reduceStatePatch(event);
+      case "SEND":
+        return true;
       default:
         return true;
     }
@@ -194,6 +196,9 @@ class ElmIslandBroker {
   }
 
   observeRemovals() {
+    if (!document.body) {
+      return;
+    }
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const removedNode of mutation.removedNodes) {

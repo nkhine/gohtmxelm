@@ -1,29 +1,42 @@
-BINARY  := elm-htmx-templ-demo
-ELM_OUT := static/app-a.js static/app-b.js
+BINARY    := elm-htmx-templ-demo
+ELM_OUT   := static/app-a.js static/app-b.js
 TEMPL_OUT := templates/page_templ.go
+HTMX_JS   := static/vendor/htmx.js
+GO_SRCS   := $(shell find . -name '*.go' -not -path './.git/*')
 
-.PHONY: local build clean
+.PHONY: local clean test dev
 
 ## local: build everything then start the server
-local: build
+local: $(BINARY) $(HTMX_JS)
 	./$(BINARY)
 
-## build: compile Elm, generate templ, then build the Go binary
-build: go.sum $(ELM_OUT) $(TEMPL_OUT)
-	go build -o $(BINARY) .
+$(BINARY): go.sum $(ELM_OUT) $(TEMPL_OUT) $(GO_SRCS)
+	go build -o $@ .
 
 go.sum: go.mod
 	go mod tidy
 
-static/app-a.js: elm/AppA.elm
-	elm make $< --output=$@
+$(HTMX_JS):
+	mkdir -p static/vendor
+	curl -fsSL https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js -o $@
 
-static/app-b.js: elm/AppB.elm
-	elm make $< --output=$@
+static/app-a.js: elm/AppA.elm elm/BrokerPort.elm
+	elm make elm/AppA.elm --output=$@
+
+static/app-b.js: elm/AppB.elm elm/BrokerPort.elm
+	elm make elm/AppB.elm --output=$@
 
 $(TEMPL_OUT): templates/page.templ
-	templ generate -f templates/page.templ
+	templ generate
+
+## test: run Go tests
+test:
+	go test ./...
+
+## dev: build generated files and run without compiling a binary
+dev: go.sum $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS)
+	go run .
 
 ## clean: remove all build artefacts
 clean:
-	rm -f $(BINARY) $(ELM_OUT) $(TEMPL_OUT)
+	rm -f $(BINARY) $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS)
