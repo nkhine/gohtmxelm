@@ -61,6 +61,14 @@ update msg model =
                         | received = inbound.message
                         , brokerReady = inbound.brokerReady || model.brokerReady
                         , storeState = inbound.storeState
+                        , lastHtmxSwap =
+                            -- Gap 2: passive observer — sees every swap that AppA (or HTMX) triggers
+                            case inbound.htmxSwapTarget of
+                                Just _ ->
+                                    inbound.htmxSwapTarget
+
+                                Nothing ->
+                                    model.lastHtmxSwap
                       }
                     , Cmd.none
                     )
@@ -97,7 +105,16 @@ view model =
         , button [ onClick SendToA ] [ text "Send to App A" ]
         , text " "
         , button [ onClick Broadcast ] [ text "Broadcast" ]
+        , viewLastSwap model.lastHtmxSwap
         , viewStoreState model.storeState
+        ]
+
+
+viewLastSwap : Maybe String -> Html Msg
+viewLastSwap lastSwap =
+    p []
+        [ strong [] [ text "Last HTMX swap: " ]
+        , text (Maybe.withDefault "none yet" lastSwap)
         ]
 
 

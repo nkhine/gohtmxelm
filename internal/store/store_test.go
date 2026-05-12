@@ -42,6 +42,97 @@ func TestAllReturnsSnapshot(t *testing.T) {
 	}
 }
 
+func TestVersionIncrements(t *testing.T) {
+	s := New()
+	s.Set("k", "v1")
+	v1 := s.Version("k")
+	s.Set("k", "v2")
+	v2 := s.Version("k")
+	if v1 == 0 || v2 == 0 || v2 <= v1 {
+		t.Fatalf("version should increment: v1=%d v2=%d", v1, v2)
+	}
+}
+
+func TestVersionMissingKeyIsZero(t *testing.T) {
+	s := New()
+	if v := s.Version("missing"); v != 0 {
+		t.Fatalf("expected version 0 for absent key, got %d", v)
+	}
+}
+
+func TestSetIfSucceedsWithMatchingVersion(t *testing.T) {
+	s := New()
+	s.Set("k", "v1")
+	ver := s.Version("k")
+
+	newVer, ok := s.SetIf("k", "v2", ver)
+	if !ok {
+		t.Fatal("SetIf should succeed when version matches")
+	}
+	if newVer <= ver {
+		t.Fatalf("new version %d should be greater than %d", newVer, ver)
+	}
+	v, _ := s.Get("k")
+	if v != "v2" {
+		t.Fatalf("expected v2, got %q", v)
+	}
+}
+
+func TestSetIfFailsOnVersionConflict(t *testing.T) {
+	s := New()
+	s.Set("k", "v1")
+	ver := s.Version("k")
+	s.Set("k", "v2") // bumps version
+
+	cur, ok := s.SetIf("k", "v3", ver) // stale version
+	if ok {
+		t.Fatal("SetIf should fail when version does not match")
+	}
+	if cur <= ver {
+		t.Fatalf("returned version %d should be > stale version %d", cur, ver)
+	}
+	v, _ := s.Get("k")
+	if v != "v2" {
+		t.Fatalf("value should be unchanged (v2), got %q", v)
+	}
+}
+
+func TestSetIfWithZeroVersionAlwaysWrites(t *testing.T) {
+	s := New()
+	s.Set("k", "v1")
+	_, ok := s.SetIf("k", "v2", 0)
+	if !ok {
+		t.Fatal("SetIf with version=0 should always succeed")
+	}
+}
+
+func TestAllStatesIncludesVersion(t *testing.T) {
+	s := New()
+	s.Set("a", "1")
+	states := s.AllStates()
+	if len(states) != 1 {
+		t.Fatalf("expected 1 state, got %d", len(states))
+	}
+	if states[0].Key != "a" || states[0].Value != "1" || states[0].Version == 0 {
+		t.Fatalf("unexpected state: %+v", states[0])
+	}
+}
+
+func TestSeqIsMonotonic(t *testing.T) {
+	s := New()
+	ch := s.Subscribe()
+	defer s.Unsubscribe(ch)
+
+	s.Set("a", "1")
+	s.Set("b", "2")
+
+	e1 := <-ch
+	e2 := <-ch
+	if e1.Seq >= e2.Seq {
+		t.Fatalf("seq must be monotonic: %d >= %d", e1.Seq, e2.Seq)
+	}
+}
+
 func TestSubscribeReceivesEvent(t *testing.T) {
 	s := New()
 	ch := s.Subscribe()
