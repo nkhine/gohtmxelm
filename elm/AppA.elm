@@ -3,7 +3,8 @@ port module AppA exposing (main)
 import BrokerPort exposing (Inbound, Model, decodeInbound, initialModel, ready, sendHtmxSwap, sendStateSet)
 import Browser
 import Dict
-import Html exposing (Html, button, div, h3, p, strong, table, tbody, td, text, th, thead, tr)
+import Html exposing (Html, button, div, h3, p, span, strong, table, tbody, td, text, th, thead, tr)
+import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -91,50 +92,58 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ p []
-            [ strong [] [ text "Island ID: " ]
-            , text model.islandId
+        [ div [ class "field-row" ]
+            [ span [ class "field-label" ] [ text "Island ID" ]
+            , span [ class "field-value" ] [ text model.islandId ]
             ]
-        , p []
-            [ strong [] [ text "Broker ready: " ]
-            , text
-                (if model.brokerReady then
-                    "yes"
+        , div [ class "field-row" ]
+            [ span [ class "field-label" ] [ text "Broker" ]
+            , if model.brokerReady then
+                span [ class "badge-ready" ] [ text "ready" ]
 
-                 else
-                    "no"
-                )
+              else
+                span [ class "badge-waiting" ] [ text "waiting" ]
             ]
-        , p []
-            [ strong [] [ text "Received: " ]
-            , text model.received
+        , div [ class "field-row" ]
+            [ span [ class "field-label" ] [ text "Received" ]
+            , span [ class "field-value" ] [ text (nonempty model.received "(none)") ]
             ]
-        , button [ onClick SendToB ] [ text "Send to App B" ]
-        , text " "
-        , button [ onClick Broadcast ] [ text "Broadcast" ]
-        , text " "
-        , button [ onClick RefreshServerMessage ] [ text "Refresh server message (Elm\u{2192}HTMX)" ]
-        , viewLastSwap model.lastHtmxSwap
+        , div [ class "field-row" ]
+            [ span [ class "field-label" ] [ text "Last HTMX swap" ]
+            , case model.lastHtmxSwap of
+                Just target ->
+                    span [ class "htmx-swap-tag" ] [ text target ]
+
+                Nothing ->
+                    span [ class "field-value" ] [ text "none yet" ]
+            ]
+        , div [ class "btn-group" ]
+            [ button [ onClick SendToB ] [ text "Send to App B" ]
+            , button [ onClick Broadcast ] [ text "Broadcast" ]
+            , button [ onClick RefreshServerMessage, class "btn-htmx-trigger" ]
+                [ text "Refresh via HTMX" ]
+            ]
         , viewStoreState model.storeState
         ]
 
 
-viewLastSwap : Maybe String -> Html Msg
-viewLastSwap lastSwap =
-    p []
-        [ strong [] [ text "Last HTMX swap: " ]
-        , text (Maybe.withDefault "none yet" lastSwap)
-        ]
+nonempty : String -> String -> String
+nonempty s fallback =
+    if String.isEmpty s then
+        fallback
+
+    else
+        s
 
 
 viewStoreState : Dict.Dict String String -> Html Msg
 viewStoreState state =
     if Dict.isEmpty state then
-        p [] [ text "Store: (empty)" ]
+        p [ class "field-row" ] [ text "Store: (empty)" ]
 
     else
         div []
-            [ h3 [] [ text "Store state" ]
+            [ h3 [ class "field-label" ] [ text "Store snapshot" ]
             , table []
                 [ thead []
                     [ tr []
