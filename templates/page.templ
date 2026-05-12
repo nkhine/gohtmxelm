@@ -1,0 +1,68 @@
+package main
+
+templ Page() {
+	<!doctype html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<title>Go + templ + HTMX + Elm Islands</title>
+			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+			<script src="/static/app-a.js"></script>
+			<script src="/static/app-b.js"></script>
+			<script defer src="/static/broker.js"></script>
+			<style>
+				body {
+					font-family: system-ui, sans-serif;
+					margin: 2rem;
+				}
+				.card {
+					border: 1px solid #ddd;
+					border-radius: 8px;
+					padding: 1rem;
+					margin-bottom: 1rem;
+				}
+				button {
+					cursor: pointer;
+					padding: 0.5rem 0.75rem;
+				}
+			</style>
+		</head>
+		<body>
+			<h1>Go + templ + HTMX + Elm Islands</h1>
+			<section class="card">
+				<h2>HTMX server fragment</h2>
+				<button
+					hx-get="/message"
+					hx-target="#server-message"
+					hx-swap="innerHTML">
+					Load server message
+				</button>
+				<div id="server-message"></div>
+			</section>
+			<section class="card">
+				<h2>Elm App A</h2>
+				<div
+					id="app-a"
+					class="elm-island"
+					data-elm-module="AppA"
+					data-island-id="app-a"
+					data-props='{}'>
+				</div>
+			</section>
+			<section class="card">
+				<h2>Elm App B</h2>
+				<div
+					id="app-b"
+					class="elm-island"
+					data-elm-module="AppB"
+					data-island-id="app-b"
+					data-props='{}'>
+				</div>
+			</section>
+		</body>
+	</html>
+}
+
+templ ServerMessage(message string) {
+	<p>{ message }</p>
+}
