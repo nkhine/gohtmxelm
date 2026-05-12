@@ -5,6 +5,11 @@ class ElmIslandBroker {
     this.nodes = new WeakMap();
     this.failedNodes = new WeakSet();
     this.state = {};
+    // Gap 3: track the highest store sequence seen so stale SSE deltas are
+    // discarded, and per-key versions so optimistic-lock POSTs carry the
+    // correct expected version.
+    this.storeSeq = 0;
+    this.storeVersions = new Map();
     this.observeRemovals();
     this.connectStore();
   }
@@ -81,6 +86,11 @@ class ElmIslandBroker {
       });
       return;
     }
+    // Gap 1: Elm triggers an HTMX swap without a server round-trip.
+    if (event.type === "HTMX_SWAP") {
+      this.executeHtmxSwap(event.payload);
+      return;
+    }
     if (!this.reduce(event)) {
       return;
     }
@@ -144,53 +154,26 @@ class ElmIslandBroker {
     return true;
   }
 
-  // Mirror a STATE_SET change to the Go KV store so all browser tabs and
-  // the HTMX fragment stay in sync via the SSE stream.
+  // Gap 3: carry the known version for optimistic locking; handle 409 by
+  // logging — the SSE stream will deliver the winning value automatically.
   syncToStore(key, value) {
     const storeValue =
       typeof value === "string" ? value : JSON.stringify(value);
+    const version = this.storeVersions.get(key) || 0;
     fetch("/api/store", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, value: storeValue }),
-    }).catch((err) => console.warn("store sync failed", err));
-  }
-
-  // Open an SSE connection to /api/events and translate incoming store-change
-  // events into broker state updates + STORE_CHANGE messages to all islands.
-  connectStore() {
-    const source = new EventSource("/api/events");
-
-    source.addEventListener("store-change", (e) => {
-      let parsed;
-      try {
-        parsed = JSON.parse(e.data);
-      } catch (err) {
-        console.warn("store-change parse error", err);
-        return;
-      }
-      const { key, value } = parsed;
-      this.state = { ...this.state, [key]: value };
-
-      this.broadcast({
-        version: this.version,
-        type: "STORE_CHANGE",
-        source: "broker",
-        target: "broadcast",
-        payload: { key, value },
-      });
-
-      // Refresh the HTMX store fragment whenever the store changes.
-      const storeEl = document.getElementById("store-entries");
-      if (storeEl && window.htmx) {
-        window.htmx.trigger(storeEl, "store-refresh");
-      }
-    });
-
-    source.onerror = () => {
-      source.close();
-      setTimeout(() => this.connectStore(), 3000);
-    };
+      body: JSON.stringify({ key, value: storeValue, version }),
+    })
+      .then((res) => {
+        if (res.status === 409) {
+          console.warn(
+            `store conflict on key "${key}" (expected version ${version}); ` +
+              "value will be corrected by the next SSE event"
+          );
+        }
+      })
+      .catch((err) => console.warn("store sync failed", err));
   }
 
   reduceStatePatch(event) {
@@ -244,6 +227,81 @@ class ElmIslandBroker {
         brokerState: structuredClone(this.state),
       });
     });
+  }
+
+  // Gap 1: execute an htmx.ajax call requested by an Elm island, targeting a
+  // CSS selector in the existing server-rendered DOM.
+  executeHtmxSwap(payload) {
+    const { selector, url } = payload;
+    if (!selector || !url) {
+      console.warn("HTMX_SWAP missing selector or url", payload);
+      return;
+    }
+    const el = document.querySelector(selector);
+    if (!el) {
+      console.warn("HTMX_SWAP target element not found:", selector);
+      return;
+    }
+    if (!window.htmx) {
+      console.warn("htmx not available, cannot execute swap");
+      return;
+    }
+    window.htmx.ajax("GET", url, { target: el, swap: "innerHTML" });
+  }
+
+  // Gap 3: open an EventSource to /api/events.
+  // store-hydrate events are applied unconditionally (they carry the full
+  // current state on every reconnect).
+  // store-change deltas are discarded when seq <= storeSeq to protect against
+  // stale redelivery on flaky connections.
+  connectStore() {
+    const source = new EventSource("/api/events");
+
+    source.addEventListener("store-hydrate", (e) => {
+      this.applyStoreEvent(e, false);
+    });
+
+    source.addEventListener("store-change", (e) => {
+      this.applyStoreEvent(e, true);
+    });
+
+    source.onerror = () => {
+      source.close();
+      setTimeout(() => this.connectStore(), 3000);
+    };
+  }
+
+  applyStoreEvent(e, checkSeq) {
+    let parsed;
+    try {
+      parsed = JSON.parse(e.data);
+    } catch (err) {
+      console.warn("store event parse error", err);
+      return;
+    }
+    const { key, value, version, seq } = parsed;
+
+    // Gap 3: discard stale deltas; hydration events bypass the check.
+    if (checkSeq && seq !== undefined && seq <= this.storeSeq) {
+      return;
+    }
+    if (seq !== undefined) this.storeSeq = Math.max(this.storeSeq, seq);
+    if (version !== undefined) this.storeVersions.set(key, version);
+
+    this.state = { ...this.state, [key]: value };
+
+    this.broadcast({
+      version: this.version,
+      type: "STORE_CHANGE",
+      source: "broker",
+      target: "broadcast",
+      payload: { key, value },
+    });
+
+    const storeEl = document.getElementById("store-entries");
+    if (storeEl && window.htmx) {
+      window.htmx.trigger(storeEl, "store-refresh");
+    }
   }
 
   observeRemovals() {
@@ -308,3 +366,21 @@ document.addEventListener("DOMContentLoaded", () => {
 document.body.addEventListener("htmx:afterSettle", () => {
   window.ElmIslandBroker.mountAll(document);
 });
+
+// Gap 2: forward htmx:afterSwap into the broker so Elm islands can react to
+// server-rendered fragment changes without polling.
+document.body.addEventListener("htmx:afterSwap", (e) => {
+  window.ElmIslandBroker.handleHtmxAfterSwap(e);
+});
+
+ElmIslandBroker.prototype.handleHtmxAfterSwap = function (e) {
+  const targetId = e.target?.id || null;
+  const url = e.detail?.requestConfig?.path || null;
+  this.broadcast({
+    version: this.version,
+    type: "HTMX_AFTER_SWAP",
+    source: "broker",
+    target: "broadcast",
+    payload: { targetId, url },
+  });
+};

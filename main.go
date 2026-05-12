@@ -54,28 +54,37 @@ func main() {
 		}
 	})
 
-	// Store fragment — rendered by HTMX on load and on every store-refresh event.
+	// Store fragment rendered by HTMX on load and on every store-refresh trigger.
 	r.Get("/api/store/fragment", func(w http.ResponseWriter, r *http.Request) {
 		if err := templates.StoreEntries(kv.All()).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
-	// Set a key/value — accepts application/x-www-form-urlencoded (HTMX form)
-	// or application/json (broker.js sync).
+	// Set a key/value.
+	// Accepts application/x-www-form-urlencoded (HTMX form, no version check) or
+	// application/json (broker.js, optional version for optimistic locking).
+	// Returns 409 Conflict when a versioned write fails.
 	r.Post("/api/store", func(w http.ResponseWriter, r *http.Request) {
-		key, value, err := parseStoreBody(r)
+		key, value, version, err := parseStoreBody(r)
 		if err != nil || key == "" {
 			http.Error(w, "key required", http.StatusBadRequest)
 			return
 		}
-		kv.Set(key, value)
+		if _, ok := kv.SetIf(key, value, version); !ok {
+			http.Error(w, "version conflict", http.StatusConflict)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	// SSE stream — pushes store-change events to every connected browser tab.
-	// WriteTimeout is disabled on the server so long-lived SSE connections are
-	// not killed mid-stream; context cancellation handles client disconnects.
+	// SSE stream.
+	// On connect: emits one store-hydrate event per key so the client can
+	// initialise storeVersions before processing deltas.
+	// Ongoing: emits store-change events carrying seq and version so clients
+	// can detect and discard out-of-order / stale deliveries.
+	// WriteTimeout is disabled on the server for long-lived SSE connections;
+	// context cancellation handles client disconnects.
 	r.Get("/api/events", func(w http.ResponseWriter, r *http.Request) {
 		flusher, ok := w.(http.Flusher)
 		if !ok {
@@ -91,9 +100,10 @@ func main() {
 		ch := kv.Subscribe()
 		defer kv.Unsubscribe(ch)
 
-		// Hydrate the client with the full current state before streaming deltas.
-		for k, v := range kv.All() {
-			writeSSE(w, "store-change", map[string]string{"key": k, "value": v})
+		// Hydrate client with full current state under a distinct event name so
+		// broker.js applies it unconditionally (regardless of storeSeq).
+		for _, state := range kv.AllStates() {
+			writeSSE(w, "store-hydrate", state)
 		}
 		flusher.Flush()
 
@@ -103,7 +113,7 @@ func main() {
 				if !ok {
 					return
 				}
-				writeSSE(w, "store-change", map[string]string{"key": e.Key, "value": e.Value})
+				writeSSE(w, "store-change", e)
 				flusher.Flush()
 			case <-r.Context().Done():
 				return
@@ -143,17 +153,19 @@ func main() {
 	logger.Info("server stopped")
 }
 
-// parseStoreBody reads key/value from either a JSON body or form data.
-func parseStoreBody(r *http.Request) (key, value string, err error) {
+// parseStoreBody reads key, value, and optional version from either a JSON body
+// or form data. Form submissions always use version=0 (no optimistic locking).
+func parseStoreBody(r *http.Request) (key, value string, version uint64, err error) {
 	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		var body struct {
-			Key   string `json:"key"`
-			Value string `json:"value"`
+			Key     string `json:"key"`
+			Value   string `json:"value"`
+			Version uint64 `json:"version"`
 		}
 		err = json.NewDecoder(r.Body).Decode(&body)
-		return body.Key, body.Value, err
+		return body.Key, body.Value, body.Version, err
 	}
-	return r.FormValue("key"), r.FormValue("value"), nil
+	return r.FormValue("key"), r.FormValue("value"), 0, nil
 }
 
 func writeSSE(w http.ResponseWriter, event string, data any) {
