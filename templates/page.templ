@@ -11,108 +11,477 @@ templ Page() {
 			<script src="/static/app-b.js"></script>
 			<script defer src="/static/broker.js"></script>
 			<style>
-				body {
-					font-family: system-ui, sans-serif;
-					margin: 2rem;
+				*, *::before, *::after { box-sizing: border-box; }
+
+				:root {
+					--go-blue:    #00ACD7;
+					--go-dark:    #007d9c;
+					--elm-purple: #7C3AED;
+					--elm-dark:   #5b21b6;
+					--htmx-gray:  #374151;
+					--sse-green:  #10B981;
+					--sse-red:    #EF4444;
+
+					--server-bg:  #EFF8FB;
+					--server-border: #bae6f7;
+					--elm-bg:     #F5F0FF;
+					--elm-border: #d8b4fe;
+
+					--log-bg:     #0f172a;
+					--log-text:   #94a3b8;
+					--log-entry-htmx: #38bdf8;
+					--log-entry-elm:  #a78bfa;
+					--log-entry-sse:  #34d399;
+					--log-entry-go:   #fb923c;
+
+					--radius: 8px;
+					--shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
 				}
-				.card {
-					border: 1px solid #ddd;
-					border-radius: 8px;
-					padding: 1rem;
+
+				body {
+					font-family: system-ui, -apple-system, sans-serif;
+					margin: 0;
+					padding: 1.5rem;
+					background: #f8fafc;
+					color: #1e293b;
+					font-size: 0.9rem;
+				}
+
+				/* ── Header ────────────────────────────────────────────── */
+				.page-header {
+					margin-bottom: 1.5rem;
+				}
+				.page-header h1 {
+					margin: 0 0 0.75rem 0;
+					font-size: 1.4rem;
+					font-weight: 700;
+					color: #0f172a;
+				}
+				.header-meta {
+					display: flex;
+					align-items: center;
+					gap: 0.5rem;
+					flex-wrap: wrap;
+				}
+
+				/* Tech stack badges */
+				.badge {
+					display: inline-flex;
+					align-items: center;
+					gap: 0.3rem;
+					padding: 0.2rem 0.6rem;
+					border-radius: 999px;
+					font-size: 0.75rem;
+					font-weight: 600;
+					letter-spacing: 0.02em;
+				}
+				.badge-go    { background: var(--go-blue);    color: #fff; }
+				.badge-htmx  { background: var(--htmx-gray);  color: #fff; }
+				.badge-elm   { background: var(--elm-purple);  color: #fff; }
+				.badge-sse   { background: var(--sse-green);   color: #fff; }
+
+				/* SSE status pill */
+				.sse-status {
+					margin-left: auto;
+					display: inline-flex;
+					align-items: center;
+					gap: 0.35rem;
+					padding: 0.2rem 0.7rem;
+					border-radius: 999px;
+					font-size: 0.75rem;
+					font-weight: 600;
+					border: 1px solid transparent;
+				}
+				.sse-status.connected {
+					background: #dcfce7;
+					border-color: #86efac;
+					color: #166534;
+				}
+				.sse-status.disconnected {
+					background: #fee2e2;
+					border-color: #fca5a5;
+					color: #991b1b;
+				}
+				.sse-dot {
+					width: 7px;
+					height: 7px;
+					border-radius: 50%;
+					background: currentColor;
+				}
+				.sse-status.connected .sse-dot {
+					animation: pulse 2s infinite;
+				}
+				@keyframes pulse {
+					0%, 100% { opacity: 1; }
+					50%       { opacity: 0.4; }
+				}
+
+				/* ── Two-column zone layout ────────────────────────────── */
+				.zones {
+					display: grid;
+					grid-template-columns: 1fr 1fr;
+					gap: 1rem;
 					margin-bottom: 1rem;
 				}
-				button {
-					cursor: pointer;
-					padding: 0.5rem 0.75rem;
+				@media (max-width: 800px) {
+					.zones { grid-template-columns: 1fr; }
 				}
+
+				.zone {
+					border-radius: var(--radius);
+					border: 2px solid;
+					overflow: hidden;
+					box-shadow: var(--shadow);
+				}
+				.zone-server {
+					border-color: var(--server-border);
+					background: var(--server-bg);
+				}
+				.zone-elm {
+					border-color: var(--elm-border);
+					background: var(--elm-bg);
+				}
+
+				.zone-header {
+					display: flex;
+					align-items: center;
+					gap: 0.5rem;
+					padding: 0.5rem 0.85rem;
+					font-weight: 700;
+					font-size: 0.8rem;
+					letter-spacing: 0.04em;
+					text-transform: uppercase;
+				}
+				.zone-server .zone-header {
+					background: var(--go-blue);
+					color: #fff;
+				}
+				.zone-elm .zone-header {
+					background: var(--elm-purple);
+					color: #fff;
+				}
+
+				/* ── Cards ─────────────────────────────────────────────── */
+				.card {
+					background: #fff;
+					border: 1px solid #e2e8f0;
+					border-radius: var(--radius);
+					padding: 0.85rem 1rem;
+					margin: 0.75rem;
+					box-shadow: var(--shadow);
+				}
+				.card h2 {
+					margin: 0 0 0.6rem 0;
+					font-size: 0.85rem;
+					font-weight: 700;
+					text-transform: uppercase;
+					letter-spacing: 0.05em;
+					color: #64748b;
+				}
+
+				/* ── Elm island section ─────────────────────────────────── */
+				.elm-island-label {
+					font-size: 0.7rem;
+					font-weight: 600;
+					text-transform: uppercase;
+					letter-spacing: 0.06em;
+					color: var(--elm-purple);
+					margin-bottom: 0.4rem;
+					display: flex;
+					align-items: center;
+					gap: 0.3rem;
+				}
+
+				/* ── Buttons ────────────────────────────────────────────── */
+				button, .btn {
+					cursor: pointer;
+					padding: 0.4rem 0.75rem;
+					border: none;
+					border-radius: 5px;
+					font-size: 0.8rem;
+					font-weight: 600;
+					transition: opacity 0.15s, transform 0.1s;
+				}
+				button:active { transform: scale(0.97); }
+
+				/* default (HTMX zone) */
+				.zone-server button, .zone-server .btn {
+					background: var(--go-blue);
+					color: #fff;
+				}
+				.zone-server button:hover { opacity: 0.85; }
+
+				/* Elm island buttons get their colours via CSS targeting */
+				.elm-island button {
+					background: var(--elm-purple);
+					color: #fff;
+					margin-right: 0.35rem;
+					margin-top: 0.5rem;
+				}
+				.elm-island button:hover { opacity: 0.85; }
+
+				/* HTMX-trigger button inside Elm island gets Go colour */
+				.elm-island .btn-htmx-trigger {
+					background: var(--go-blue);
+				}
+
+				/* ── Status badges rendered by Elm ─────────────────────── */
+				.badge-ready {
+					display: inline-block;
+					background: #dcfce7;
+					color: #166534;
+					border: 1px solid #86efac;
+					border-radius: 999px;
+					padding: 0.1rem 0.5rem;
+					font-size: 0.7rem;
+					font-weight: 700;
+				}
+				.badge-waiting {
+					display: inline-block;
+					background: #fef9c3;
+					color: #854d0e;
+					border: 1px solid #fde047;
+					border-radius: 999px;
+					padding: 0.1rem 0.5rem;
+					font-size: 0.7rem;
+					font-weight: 700;
+				}
+
+				/* ── Table / store ─────────────────────────────────────── */
 				table {
 					border-collapse: collapse;
 					width: 100%;
+					font-size: 0.85rem;
 				}
 				th, td {
 					text-align: left;
-					padding: 0.4rem 0.75rem;
-					border-bottom: 1px solid #eee;
+					padding: 0.4rem 0.6rem;
+					border-bottom: 1px solid #f1f5f9;
 				}
 				th {
 					font-weight: 600;
+					color: #64748b;
+					font-size: 0.75rem;
+					text-transform: uppercase;
+					letter-spacing: 0.04em;
+					border-bottom: 2px solid #e2e8f0;
 				}
+				tr:last-child td { border-bottom: none; }
+
+				/* flash animation when SSE updates a row */
+				@keyframes flash-update {
+					0%   { background: #fef08a; }
+					100% { background: transparent; }
+				}
+				.store-row-flash {
+					animation: flash-update 0.9s ease-out;
+				}
+
+				/* ── Store form ─────────────────────────────────────────── */
 				.store-form {
 					display: flex;
-					gap: 0.5rem;
-					margin-top: 1rem;
+					gap: 0.4rem;
+					margin-top: 0.75rem;
 					flex-wrap: wrap;
 				}
 				.store-form input {
-					padding: 0.4rem 0.6rem;
-					border: 1px solid #ccc;
-					border-radius: 4px;
+					padding: 0.35rem 0.6rem;
+					border: 1px solid #cbd5e1;
+					border-radius: 5px;
+					font-size: 0.82rem;
 					flex: 1;
-					min-width: 8rem;
+					min-width: 7rem;
+					background: #fff;
+				}
+				.store-form input:focus {
+					outline: 2px solid var(--go-blue);
+					outline-offset: 1px;
+				}
+
+				/* ── Activity log ───────────────────────────────────────── */
+				.activity-log {
+					background: var(--log-bg);
+					border-radius: var(--radius);
+					padding: 0.85rem 1rem;
+					box-shadow: var(--shadow);
+					margin-bottom: 1rem;
+				}
+				.activity-log h2 {
+					margin: 0 0 0.5rem 0;
+					font-size: 0.75rem;
+					font-weight: 700;
+					text-transform: uppercase;
+					letter-spacing: 0.06em;
+					color: #475569;
+				}
+				#activity-entries {
+					font-family: 'Menlo', 'Consolas', monospace;
+					font-size: 0.72rem;
+					color: var(--log-text);
+					max-height: 160px;
+					overflow-y: auto;
+					display: flex;
+					flex-direction: column-reverse;
+				}
+				.log-entry {
+					padding: 0.15rem 0;
+					border-bottom: 1px solid #1e293b;
+					display: grid;
+					grid-template-columns: 5.5rem 1fr;
+					gap: 0.5rem;
+					animation: slide-in 0.2s ease-out;
+				}
+				@keyframes slide-in {
+					from { opacity: 0; transform: translateY(-4px); }
+					to   { opacity: 1; transform: translateY(0); }
+				}
+				.log-time { color: #475569; }
+				.log-msg  { color: var(--log-text); }
+
+				.log-from-elm   { color: var(--log-entry-elm);  }
+				.log-from-htmx  { color: var(--log-entry-htmx); }
+				.log-from-sse   { color: var(--log-entry-sse);  }
+				.log-from-go    { color: var(--log-entry-go);   }
+
+				/* ── Last-swap tag in Elm ───────────────────────────────── */
+				.htmx-swap-tag {
+					display: inline-block;
+					background: #e0f2fe;
+					color: #0369a1;
+					border: 1px solid #7dd3fc;
+					border-radius: 4px;
+					padding: 0.1rem 0.45rem;
+					font-family: monospace;
+					font-size: 0.78rem;
+				}
+
+				/* ── Misc ───────────────────────────────────────────────── */
+				.field-row {
+					display: flex;
+					align-items: baseline;
+					gap: 0.4rem;
+					margin-bottom: 0.3rem;
+				}
+				.field-label {
+					font-weight: 600;
+					color: #64748b;
+					font-size: 0.75rem;
+					min-width: 7rem;
+				}
+				.field-value { color: #1e293b; }
+
+				.divider {
+					border: none;
+					border-top: 1px solid #e2e8f0;
+					margin: 0.6rem 0;
 				}
 			</style>
 		</head>
 		<body>
-			<h1>Go + templ + HTMX + Elm Islands</h1>
-			<section class="card">
-				<h2>HTMX server fragment</h2>
-				<button
-					hx-get="/message"
-					hx-target="#server-message"
-					hx-swap="innerHTML">
-					Load server message
-				</button>
-				<div id="server-message"></div>
-			</section>
-			<section class="card">
-				<h2>Go KV Store</h2>
-				<div
-					id="store-entries"
-					hx-get="/api/store/fragment"
-					hx-trigger="load, store-refresh"
-					hx-swap="innerHTML">
-					<p>Loading&hellip;</p>
+			<header class="page-header">
+				<h1>Go + templ + HTMX + Elm Islands</h1>
+				<div class="header-meta">
+					<span class="badge badge-go">Go</span>
+					<span class="badge badge-htmx">HTMX</span>
+					<span class="badge badge-elm">Elm</span>
+					<span class="badge badge-sse">SSE Bridge</span>
+					<span id="sse-status" class="sse-status disconnected">
+						<span class="sse-dot"></span>
+						<span id="sse-status-text">SSE disconnected</span>
+					</span>
 				</div>
-				<form
-					class="store-form"
-					hx-post="/api/store"
-					hx-swap="none">
-					<input type="text" name="key" placeholder="key" required/>
-					<input type="text" name="value" placeholder="value" required/>
-					<button type="submit">Set</button>
-				</form>
-			</section>
-			<section class="card">
-				<h2>Elm App A</h2>
-				<div
-					id="app-a"
-					class="elm-island"
-					data-elm-module="AppA"
-					data-island-id="app-a"
-					data-props='{}'>
+			</header>
+
+			<div class="zones">
+				<!-- ── Server Zone ── -->
+				<div class="zone zone-server">
+					<div class="zone-header">
+						&#9679; Server Zone &mdash; Go / HTMX
+					</div>
+
+					<div class="card">
+						<h2>HTMX fragment</h2>
+						<button
+							hx-get="/message"
+							hx-target="#server-message"
+							hx-swap="innerHTML">
+							Load server message
+						</button>
+						<div id="server-message" style="margin-top:0.5rem;"></div>
+					</div>
+
+					<div class="card">
+						<h2>Go KV Store</h2>
+						<div
+							id="store-entries"
+							hx-get="/api/store/fragment"
+							hx-trigger="load, store-refresh"
+							hx-swap="innerHTML">
+							<p style="color:#94a3b8;font-size:0.82rem;">Loading&hellip;</p>
+						</div>
+						<hr class="divider"/>
+						<form
+							class="store-form"
+							hx-post="/api/store"
+							hx-swap="none">
+							<input type="text" name="key" placeholder="key" required/>
+							<input type="text" name="value" placeholder="value" required/>
+							<button type="submit">Set</button>
+						</form>
+					</div>
 				</div>
-			</section>
-			<section class="card">
-				<h2>Elm App B</h2>
-				<div
-					id="app-b"
-					class="elm-island"
-					data-elm-module="AppB"
-					data-island-id="app-b"
-					data-props='{}'>
+
+				<!-- ── Elm Islands Zone ── -->
+				<div class="zone zone-elm">
+					<div class="zone-header">
+						&#9679; Elm Islands
+					</div>
+
+					<div class="card">
+						<div class="elm-island-label">&#9670; App A</div>
+						<div
+							id="app-a"
+							class="elm-island"
+							data-elm-module="AppA"
+							data-island-id="app-a"
+							data-props="{}">
+						</div>
+					</div>
+
+					<div class="card">
+						<div class="elm-island-label">&#9670; App B</div>
+						<div
+							id="app-b"
+							class="elm-island"
+							data-elm-module="AppB"
+							data-island-id="app-b"
+							data-props="{}">
+						</div>
+					</div>
 				</div>
-			</section>
+			</div>
+
+			<!-- ── Activity Log ── -->
+			<div class="activity-log">
+				<h2>&#9654; Cross-boundary event log</h2>
+				<div id="activity-entries">
+					<div class="log-entry">
+						<span class="log-time">--:--:--</span>
+						<span class="log-msg">Waiting for events&hellip;</span>
+					</div>
+				</div>
+			</div>
 		</body>
 	</html>
 }
 
 templ ServerMessage(message string) {
-	<p>{ message }</p>
+	<p style="margin:0.4rem 0; color:#0f172a;">{ message }</p>
 }
 
 templ StoreEntries(entries map[string]string) {
 	if len(entries) == 0 {
-		<p>Store is empty.</p>
+		<p style="color:#94a3b8; font-size:0.82rem; margin:0;">Store is empty.</p>
 	} else {
 		<table>
 			<thead>
@@ -123,7 +492,7 @@ templ StoreEntries(entries map[string]string) {
 			</thead>
 			<tbody>
 				for k, v := range entries {
-					<tr>
+					<tr data-store-key={ k }>
 						<td>{ k }</td>
 						<td>{ v }</td>
 					</tr>

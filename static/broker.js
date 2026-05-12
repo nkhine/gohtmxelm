@@ -57,6 +57,7 @@ class ElmIslandBroker {
     this.apps.set(islandId, { app, node });
     this.nodes.set(node, islandId);
     this.wirePorts(islandId, app);
+    this.addActivityEntry("broker", islandId, `mounted island`);
   }
 
   wirePorts(islandId, app) {
@@ -88,6 +89,7 @@ class ElmIslandBroker {
     }
     // Gap 1: Elm triggers an HTMX swap without a server round-trip.
     if (event.type === "HTMX_SWAP") {
+      this.addActivityEntry("elm", "htmx", `HTMX_SWAP → ${event.payload.url} into ${event.payload.selector}`);
       this.executeHtmxSwap(event.payload);
       return;
     }
@@ -150,6 +152,7 @@ class ElmIslandBroker {
       ...this.state,
       [key]: value,
     };
+    this.addActivityEntry("elm", "go", `STATE_SET ${key} from ${event.source}`);
     this.syncToStore(key, value);
     return true;
   }
@@ -171,6 +174,7 @@ class ElmIslandBroker {
             `store conflict on key "${key}" (expected version ${version}); ` +
               "value will be corrected by the next SSE event"
           );
+          this.addActivityEntry("go", "broker", `409 conflict on key "${key}" — SSE will correct`);
         }
       })
       .catch((err) => console.warn("store sync failed", err));
@@ -265,7 +269,14 @@ class ElmIslandBroker {
       this.applyStoreEvent(e, true);
     });
 
+    source.onopen = () => {
+      this.updateSseStatus(true);
+      this.addActivityEntry("sse", "broker", "EventSource connected");
+    };
+
     source.onerror = () => {
+      this.updateSseStatus(false);
+      this.addActivityEntry("sse", "broker", "EventSource error — reconnecting in 3s");
       source.close();
       setTimeout(() => this.connectStore(), 3000);
     };
@@ -289,6 +300,13 @@ class ElmIslandBroker {
     if (version !== undefined) this.storeVersions.set(key, version);
 
     this.state = { ...this.state, [key]: value };
+
+    if (checkSeq) {
+      this.addActivityEntry("sse", "elm", `STORE_CHANGE key="${key}"`);
+      this.flashStoreRow(key);
+    } else {
+      this.addActivityEntry("sse", "broker", `hydrate key="${key}"`);
+    }
 
     this.broadcast({
       version: this.version,
@@ -355,6 +373,66 @@ class ElmIslandBroker {
     node.dataset.elmMountFailed = reason;
     this.failedNodes.add(node);
   }
+
+  // ── Visual helpers ────────────────────────────────────────────────────────
+
+  updateSseStatus(connected) {
+    const el = document.getElementById("sse-status");
+    const txt = document.getElementById("sse-status-text");
+    if (!el || !txt) return;
+    el.className = `sse-status ${connected ? "connected" : "disconnected"}`;
+    txt.textContent = connected ? "SSE live" : "SSE disconnected";
+  }
+
+  addActivityEntry(from, to, description) {
+    const container = document.getElementById("activity-entries");
+    if (!container) return;
+
+    // Remove the placeholder entry on first real event.
+    const placeholder = container.querySelector(".log-entry:only-child");
+    if (placeholder && placeholder.querySelector(".log-time")?.textContent === "--:--:--") {
+      placeholder.remove();
+    }
+
+    const now = new Date();
+    const time = [now.getHours(), now.getMinutes(), now.getSeconds()]
+      .map((n) => String(n).padStart(2, "0"))
+      .join(":");
+
+    const fromClass = {
+      elm: "log-from-elm",
+      htmx: "log-from-htmx",
+      sse: "log-from-sse",
+      go: "log-from-go",
+      broker: "log-from-sse",
+    }[from] || "";
+
+    const entry = document.createElement("div");
+    entry.className = "log-entry";
+    entry.innerHTML =
+      `<span class="log-time">${time}</span>` +
+      `<span class="log-msg"><span class="${fromClass}">[${from}→${to}]</span> ${description}</span>`;
+
+    container.prepend(entry);
+
+    // Cap at 50 entries to avoid unbounded growth.
+    while (container.children.length > 50) {
+      container.removeChild(container.lastChild);
+    }
+  }
+
+  // Flash the store table row for the given key after the DOM refreshes.
+  flashStoreRow(key) {
+    // The store-refresh HTMX swap happens shortly after; wait for it to settle.
+    setTimeout(() => {
+      const row = document.querySelector(`[data-store-key="${CSS.escape(key)}"]`);
+      if (!row) return;
+      row.classList.remove("store-row-flash");
+      // Force reflow to restart the animation if it's already running.
+      void row.offsetWidth;
+      row.classList.add("store-row-flash");
+    }, 120);
+  }
 }
 
 window.ElmIslandBroker = new ElmIslandBroker();
@@ -376,6 +454,7 @@ document.body.addEventListener("htmx:afterSwap", (e) => {
 ElmIslandBroker.prototype.handleHtmxAfterSwap = function (e) {
   const targetId = e.target?.id || null;
   const url = e.detail?.requestConfig?.path || null;
+  this.addActivityEntry("htmx", "elm", `afterSwap → #${targetId} from ${url}`);
   this.broadcast({
     version: this.version,
     type: "HTMX_AFTER_SWAP",
