@@ -7,6 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+	"elm-htmx-templ-demo/templates"
 )
 
 func main() {
@@ -20,13 +22,13 @@ func main() {
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		if err := Page().Render(r.Context(), w); err != nil {
+		if err := templates.Page().Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	r.Get("/message", func(w http.ResponseWriter, r *http.Request) {
-		if err := ServerMessage("Hello from Go via HTMX").Render(r.Context(), w); err != nil {
+		if err := templates.ServerMessage("Hello from Go via HTMX").Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})

@@ -1,0 +1,18 @@
+# Binary
+elm-htmx-templ-demo
+
+# Generated Elm bundles
+static/app-a.js
+static/app-b.js
+
+# Generated templ Go code
+templates/page_templ.go
+
+# Elm build cache
+elm-stuff/
+
+# macOS
+.DS_Store
+
+# Empty source directory
+src/

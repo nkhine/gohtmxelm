@@ -22,7 +22,7 @@ static/app-b.js: elm/AppB.elm
 	elm make $< --output=$@
 
 $(TEMPL_OUT): templates/page.templ
-	templ generate
+	templ generate -f templates/page.templ
 
 ## clean: remove all build artefacts
 clean:
