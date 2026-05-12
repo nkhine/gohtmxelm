@@ -4,6 +4,7 @@ module BrokerPort exposing
     , decodeInbound
     , initialModel
     , ready
+    , sendHtmxSwap
     , sendMessage
     , sendStateSet
     )
@@ -18,6 +19,7 @@ type alias Model =
     , received : String
     , brokerReady : Bool
     , storeState : Dict String String
+    , lastHtmxSwap : Maybe String
     }
 
 
@@ -27,6 +29,7 @@ initialModel islandId =
     , received = "Nothing yet"
     , brokerReady = False
     , storeState = Dict.empty
+    , lastHtmxSwap = Nothing
     }
 
 
@@ -34,6 +37,7 @@ type alias Inbound =
     { message : String
     , brokerReady : Bool
     , storeState : Dict String String
+    , htmxSwapTarget : Maybe String
     }
 
 
@@ -84,26 +88,67 @@ sendMessage out target payload =
         )
 
 
+{-| Gap 1: ask broker.js to perform an htmx.ajax GET swap on a DOM element,
+without any Elm→server round-trip.
+selector is a CSS selector (e.g. "#server-message").
+url is the HTMX fragment endpoint (e.g. "/message").
+-}
+sendHtmxSwap : (Encode.Value -> Cmd msg) -> String -> String -> Cmd msg
+sendHtmxSwap out selector url =
+    out
+        (Encode.object
+            [ ( "version", Encode.int 1 )
+            , ( "type", Encode.string "HTMX_SWAP" )
+            , ( "target", Encode.string "broker" )
+            , ( "payload"
+              , Encode.object
+                    [ ( "selector", Encode.string selector )
+                    , ( "url", Encode.string url )
+                    ]
+              )
+            ]
+        )
+
+
 decodeInbound : Decode.Value -> Result Decode.Error Inbound
 decodeInbound =
     Decode.decodeValue
-        (Decode.map3 Inbound
+        (Decode.map4 Inbound
+            -- message: read from shared broker state
             (Decode.oneOf
                 [ Decode.field "brokerState" (Decode.field "message" Decode.string)
                 , Decode.succeed "No message in broker state"
                 ]
             )
+            -- brokerReady: true only on the BROKER_READY handshake event
             (Decode.oneOf
                 [ Decode.field "type" Decode.string
                     |> Decode.andThen (\t -> Decode.succeed (t == "BROKER_READY"))
                 , Decode.succeed False
                 ]
             )
-            -- brokerState is kept in sync with the Go KV store by broker.js;
-            -- fall back to empty dict if the field is absent or contains non-string values.
+            -- storeState: full broker state dict; falls back to empty if any
+            -- value is non-string (shouldn't happen in this app)
             (Decode.oneOf
                 [ Decode.field "brokerState" (Decode.dict Decode.string)
                 , Decode.succeed Dict.empty
+                ]
+            )
+            -- htmxSwapTarget: Gap 2 — present only on HTMX_AFTER_SWAP events
+            (Decode.oneOf
+                [ Decode.field "type" Decode.string
+                    |> Decode.andThen
+                        (\t ->
+                            if t == "HTMX_AFTER_SWAP" then
+                                Decode.oneOf
+                                    [ Decode.at [ "payload", "targetId" ] (Decode.nullable Decode.string)
+                                    , Decode.succeed Nothing
+                                    ]
+
+                            else
+                                Decode.succeed Nothing
+                        )
+                , Decode.succeed Nothing
                 ]
             )
         )

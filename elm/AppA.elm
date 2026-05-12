@@ -1,6 +1,6 @@
 port module AppA exposing (main)
 
-import BrokerPort exposing (Inbound, Model, decodeInbound, initialModel, ready, sendStateSet)
+import BrokerPort exposing (Inbound, Model, decodeInbound, initialModel, ready, sendHtmxSwap, sendStateSet)
 import Browser
 import Dict
 import Html exposing (Html, button, div, h3, p, strong, table, tbody, td, text, th, thead, tr)
@@ -18,6 +18,7 @@ port brokerIn : (Decode.Value -> msg) -> Sub msg
 type Msg
     = SendToB
     | Broadcast
+    | RefreshServerMessage -- Gap 1: Elm triggers an HTMX swap
     | BrokerIn Decode.Value
 
 
@@ -54,6 +55,12 @@ update msg model =
             , sendStateSet brokerOut "broadcast" "message" (Encode.string "Hello from App A to everyone")
             )
 
+        RefreshServerMessage ->
+            -- Gap 1: tells broker.js to call htmx.ajax — no Go round-trip from Elm.
+            ( model
+            , sendHtmxSwap brokerOut "#server-message" "/message"
+            )
+
         BrokerIn value ->
             case decodeInbound value of
                 Ok inbound ->
@@ -61,6 +68,14 @@ update msg model =
                         | received = inbound.message
                         , brokerReady = inbound.brokerReady || model.brokerReady
                         , storeState = inbound.storeState
+                        , lastHtmxSwap =
+                            -- Gap 2: preserve the last swap target seen
+                            case inbound.htmxSwapTarget of
+                                Just _ ->
+                                    inbound.htmxSwapTarget
+
+                                Nothing ->
+                                    model.lastHtmxSwap
                       }
                     , Cmd.none
                     )
@@ -97,7 +112,18 @@ view model =
         , button [ onClick SendToB ] [ text "Send to App B" ]
         , text " "
         , button [ onClick Broadcast ] [ text "Broadcast" ]
+        , text " "
+        , button [ onClick RefreshServerMessage ] [ text "Refresh server message (Elm\u{2192}HTMX)" ]
+        , viewLastSwap model.lastHtmxSwap
         , viewStoreState model.storeState
+        ]
+
+
+viewLastSwap : Maybe String -> Html Msg
+viewLastSwap lastSwap =
+    p []
+        [ strong [] [ text "Last HTMX swap: " ]
+        , text (Maybe.withDefault "none yet" lastSwap)
         ]
 
 
