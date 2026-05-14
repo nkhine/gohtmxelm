@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Payee Onboarding</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      margin: 0;
+      padding: 2rem 1rem;
+      font-size: 15px;
+    }
+
+    .app-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #2d3748;
+      text-align: center;
+      margin: 0 0 0.25rem;
+    }
+    .app-subtitle {
+      text-align: center;
+      color: #718096;
+      font-size: 0.9rem;
+      margin: 0 0 2rem;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    /* ── Stepper ─────────────────────────────────────────────── */
+    .stepper {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+    .stepper::before {
+      content: '';
+      position: absolute;
+      top: 18px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: #e2e8f0;
+      z-index: 0;
+    }
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+      z-index: 1;
+      cursor: default;
+      user-select: none;
+    }
+    .step-item.done { cursor: pointer; }
+    .step-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e0;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #a0aec0;
+      margin-bottom: 0.4rem;
+      transition: all 0.2s;
+    }
+    .step-item.done .step-circle {
+      background: #48bb78;
+      border-color: #48bb78;
+      color: #fff;
+    }
+    .step-item.active .step-circle {
+      background: #4299e1;
+      border-color: #4299e1;
+      color: #fff;
+      box-shadow: 0 0 0 4px rgba(66,153,225,0.2);
+    }
+    .step-label {
+      font-size: 0.68rem;
+      color: #a0aec0;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-align: center;
+    }
+    .step-item.done .step-label { color: #48bb78; }
+    .step-item.active .step-label { color: #4299e1; }
+
+    /* ── Card ────────────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+    }
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin: 0 0 0.25rem;
+    }
+    .card-subtitle {
+      color: #718096;
+      margin: 0 0 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    /* ── Form ────────────────────────────────────────────────── */
+    .form-group { margin-bottom: 1rem; }
+    .form-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 0.35rem;
+    }
+    .form-input {
+      width: 100%;
+      padding: 0.55rem 0.85rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      color: #2d3748;
+      background: #fff;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #4299e1;
+      box-shadow: 0 0 0 3px rgba(66,153,225,0.15);
+    }
+    select.form-input { cursor: pointer; }
+    .form-error {
+      color: #e53e3e;
+      font-size: 0.78rem;
+      margin-top: 0.3rem;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .form-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .section-divider {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 1.25rem 0;
+    }
+
+    /* ── Notices ─────────────────────────────────────────────── */
+    .error-box {
+      background: #fff5f5;
+      border: 1px solid #feb2b2;
+      border-radius: 7px;
+      padding: 0.6rem 0.85rem;
+      color: #c53030;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .error-box p { margin: 0.15rem 0; }
+    .info-box {
+      background: #ebf8ff;
+      border: 1px solid #bee3f8;
+      border-radius: 7px;
+      padding: 0.6rem 0.85rem;
+      color: #2b6cb0;
+      font-size: 0.82rem;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      padding: 0.55rem 1.25rem;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.87rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary { background: #4299e1; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #3182ce; }
+    .btn-secondary { background: #e2e8f0; color: #4a5568; }
+    .btn-secondary:hover:not(:disabled) { background: #cbd5e0; }
+    .btn-success { background: #48bb78; color: #fff; }
+    .btn-danger { background: #fc8181; color: #fff; }
+    .btn-danger:hover:not(:disabled) { background: #f56565; }
+    .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.78rem; }
+    .btn-ghost {
+      background: none;
+      border: 1.5px solid #e2e8f0;
+      color: #718096;
+    }
+    .btn-ghost:hover:not(:disabled) { background: #f7fafc; }
+
+    /* ── OTP section ─────────────────────────────────────────── */
+    .otp-section {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .otp-section h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin: 0 0 0.75rem;
+      color: #4a5568;
+    }
+    .otp-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-end;
+    }
+    .otp-row .form-group { flex: 1; margin: 0; }
+    .verified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: #f0fff4;
+      color: #276749;
+      border: 1px solid #9ae6b4;
+      border-radius: 6px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    /* ── Documents ───────────────────────────────────────────── */
+    .doc-list { margin-bottom: 0.75rem; }
+    .doc-row {
+      display: grid;
+      grid-template-columns: 1fr 160px 100px auto;
+      gap: 0.5rem;
+      align-items: start;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid #f7fafc;
+    }
+    .doc-row:last-child { border-bottom: none; }
+    .doc-filename {
+      font-size: 0.75rem;
+      color: #718096;
+      margin-top: 0.25rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .upload-done {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #48bb78;
+      padding-top: 0.55rem;
+    }
+
+    /* ── Confirmation ─────────────────────────────────────────── */
+    .confirm-section {
+      margin-bottom: 1.25rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .confirm-section:last-of-type { border-bottom: none; margin-bottom: 0; }
+    .confirm-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .confirm-header h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin: 0;
+    }
+    .confirm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.5rem 1.5rem;
+    }
+    .confirm-field label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #a0aec0;
+      font-weight: 600;
+      margin-bottom: 0.1rem;
+    }
+    .confirm-field span {
+      font-size: 0.88rem;
+      color: #2d3748;
+      font-weight: 500;
+    }
+    .confirm-doc-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .confirm-doc-list li {
+      font-size: 0.85rem;
+      color: #4a5568;
+      padding: 0.2rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .doc-badge {
+      font-size: 0.72rem;
+      background: #ebf8ff;
+      color: #2b6cb0;
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      font-weight: 600;
+    }
+
+    /* ── Complete screen ─────────────────────────────────────── */
+    .complete-card {
+      text-align: center;
+      padding: 3.5rem 2rem;
+    }
+    .complete-icon {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: #48bb78;
+      color: #fff;
+      font-size: 2.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+    .complete-card h2 {
+      font-size: 1.6rem;
+      color: #2d3748;
+      margin: 0 0 0.6rem;
+    }
+    .complete-card p {
+      color: #718096;
+      max-width: 380px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ── Editing banner ──────────────────────────────────────── */
+    .editing-banner {
+      background: #fffbeb;
+      border: 1px solid #f6e05e;
+      border-radius: 7px;
+      padding: 0.5rem 0.85rem;
+      color: #744210;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="main.js"></script>
+  <script>
+    var app = Elm.Main.init({ node: document.getElementById('app') });
+  </script>
+</body>
+</html>

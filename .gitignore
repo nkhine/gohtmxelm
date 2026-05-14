@@ -13,6 +13,10 @@ templates/page_templ.go
 
 # Elm build cache
 elm-stuff/
+onboarding/elm-stuff/
+
+# Onboarding app compiled output
+onboarding/main.js
 
 # macOS
 .DS_Store

@@ -1,10 +1,11 @@
-BINARY    := elm-htmx-templ-demo
-ELM_OUT   := static/app-a.js static/app-b.js
-TEMPL_OUT := templates/page_templ.go
-HTMX_JS   := static/vendor/htmx.js
-GO_SRCS   := $(shell find . -name '*.go' -not -path './.git/*')
+BINARY         := elm-htmx-templ-demo
+ELM_OUT        := static/app-a.js static/app-b.js
+TEMPL_OUT      := templates/page_templ.go
+HTMX_JS        := static/vendor/htmx.js
+ONBOARDING_JS  := onboarding/main.js
+GO_SRCS        := $(shell find . -name '*.go' -not -path './.git/*')
 
-.PHONY: local clean test dev
+.PHONY: local clean test dev onboarding
 
 ## local: build everything then start the server
 local: $(BINARY) $(HTMX_JS)
@@ -37,6 +38,12 @@ test:
 dev: go.sum $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS)
 	go run .
 
+## onboarding: build the standalone payee onboarding Elm app
+onboarding: $(ONBOARDING_JS)
+
+$(ONBOARDING_JS): onboarding/src/Main.elm onboarding/elm.json
+	cd onboarding && elm make src/Main.elm --output=main.js
+
 ## clean: remove all build artefacts
 clean:
-	rm -f $(BINARY) $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS)
+	rm -f $(BINARY) $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(ONBOARDING_JS)
