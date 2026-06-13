@@ -207,4 +207,9 @@ through one truth.**"
   ownership, one convergence channel.** The three frameworks are proof of its
   robustness, not the point of it.
 
+"Convergence is a side effect of shared truth" is a claim, not a hope — and it
+is testable. [Chapter 9](./09-testing-the-contract.md) shows how convergence is
+verified deterministically under a hostile network, and why it depends on
+reconnect-and-rehydrate rather than on the (deliberately lossy) stream.
+
 Next: [the contrast case — React and the cost of putting the truth in the browser →](./07-react-and-the-spa-tax.md)
