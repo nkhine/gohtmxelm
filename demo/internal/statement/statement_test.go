@@ -14,34 +14,54 @@ func newFixed() *Statement {
 	return New(fixedNow)
 }
 
-func TestDefaultRangeIs24h(t *testing.T) {
+func TestDefaultRangeIsOneDay(t *testing.T) {
 	s := newFixed()
 	r := s.Range()
 	if got := r.To.Sub(r.From); got != 24*time.Hour {
 		t.Fatalf("default window = %v, want 24h", got)
 	}
-	if r.Label != "Last 24 hours" {
+	if r.Label != "Last 1 day" {
 		t.Fatalf("default label = %q", r.Label)
 	}
 }
 
-func TestApplyPresetResolvesWindow(t *testing.T) {
-	s := newFixed()
-	r, err := s.ApplyPreset("15m")
-	if err != nil {
-		t.Fatal(err)
+func TestApplyRelativeResolvesWindowAndLabel(t *testing.T) {
+	cases := []struct {
+		value int
+		unit  string
+		want  time.Duration
+		label string
+	}{
+		{15, "minutes", 15 * time.Minute, "Last 15 minutes"},
+		{1, "hours", time.Hour, "Last 1 hour"},
+		{12, "hours", 12 * time.Hour, "Last 12 hours"},
+		{6, "days", 6 * 24 * time.Hour, "Last 6 days"},
+		{2, "weeks", 14 * 24 * time.Hour, "Last 2 weeks"},
 	}
-	if got := r.To.Sub(r.From); got != 15*time.Minute {
-		t.Fatalf("15m window = %v", got)
-	}
-	if r.To != fixedNow() {
-		t.Fatalf("preset should end at now, got %v", r.To)
+	for _, c := range cases {
+		s := newFixed()
+		r, err := s.ApplyRelative(c.value, c.unit)
+		if err != nil {
+			t.Fatalf("%d %s: %v", c.value, c.unit, err)
+		}
+		if got := r.To.Sub(r.From); got != c.want {
+			t.Fatalf("%d %s window = %v, want %v", c.value, c.unit, got, c.want)
+		}
+		if r.To != fixedNow() {
+			t.Fatalf("relative range should end at now, got %v", r.To)
+		}
+		if r.Label != c.label {
+			t.Fatalf("label = %q, want %q", r.Label, c.label)
+		}
 	}
 }
 
-func TestApplyUnknownPresetErrors(t *testing.T) {
-	if _, err := newFixed().ApplyPreset("nope"); err == nil {
-		t.Fatal("expected error for unknown preset")
+func TestApplyRelativeRejectsBadInput(t *testing.T) {
+	if _, err := newFixed().ApplyRelative(1, "fortnights"); err == nil {
+		t.Fatal("expected error for unknown unit")
+	}
+	if _, err := newFixed().ApplyRelative(0, "hours"); err == nil {
+		t.Fatal("expected error for non-positive value")
 	}
 }
 
@@ -60,7 +80,7 @@ func TestApplyCustomValidatesOrder(t *testing.T) {
 
 func TestSeedCoversTightPresets(t *testing.T) {
 	s := newFixed()
-	r, _ := s.ApplyPreset("15m")
+	r, _ := s.ApplyRelative(15, "minutes")
 	if len(s.Transfers(r)) == 0 {
 		t.Fatal("expected at least one transfer in the last 15 minutes")
 	}
@@ -68,8 +88,8 @@ func TestSeedCoversTightPresets(t *testing.T) {
 
 func TestWiderPresetIncludesMoreOrEqual(t *testing.T) {
 	s := newFixed()
-	r15, _ := s.ApplyPreset("15m")
-	r3mo, _ := s.ApplyPreset("3mo")
+	r15, _ := s.ApplyRelative(15, "minutes")
+	r3mo, _ := s.ApplyRelative(12, "weeks")
 	if len(s.Transfers(r3mo)) < len(s.Transfers(r15)) {
 		t.Fatal("3-month window must include at least as many transfers as 15-min")
 	}
@@ -77,7 +97,7 @@ func TestWiderPresetIncludesMoreOrEqual(t *testing.T) {
 
 func TestSummaryBalancesAreConsistent(t *testing.T) {
 	s := newFixed()
-	r, _ := s.ApplyPreset("3mo")
+	r, _ := s.ApplyRelative(12, "weeks")
 	sum := s.Summary(r)
 	if sum.ClosingMinor != sum.OpeningMinor+sum.CreditsMinor-sum.DebitsMinor {
 		t.Fatalf("closing != opening + credits - debits: %+v", sum)
@@ -89,7 +109,7 @@ func TestSummaryBalancesAreConsistent(t *testing.T) {
 
 func TestRunningBalanceEndsAtClosing(t *testing.T) {
 	s := newFixed()
-	r, _ := s.ApplyPreset("3mo")
+	r, _ := s.ApplyRelative(12, "weeks")
 	transfers := s.Transfers(r) // newest-first
 	sum := s.Summary(r)
 	balances := RunningBalance(sum.OpeningMinor, transfers)
@@ -123,7 +143,7 @@ func TestRangeChangePublishes(t *testing.T) {
 	ch := s.Events().Subscribe()
 	defer s.Events().Unsubscribe(ch)
 
-	if _, err := s.ApplyPreset("1h"); err != nil {
+	if _, err := s.ApplyRelative(1, "hours"); err != nil {
 		t.Fatal(err)
 	}
 	select {

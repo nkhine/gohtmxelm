@@ -42,7 +42,8 @@
     } catch (err) {
       return console.warn("invalid statementRange payload", value, err);
     }
-    log("elm", "go", `range → ${payload.preset || payload.from + ".." + payload.to}`);
+    const desc = payload.relUnit ? `last ${payload.relValue} ${payload.relUnit}` : `${payload.from}..${payload.to}`;
+    log("elm", "go", `range → ${desc}`);
     fetch("/api/statement/range", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -227,23 +227,34 @@ templ Shell(title string, active string, nav []ExampleNav, content templpkg.Comp
 				.log-from-sse { color: #34d399; } .log-from-go { color: #fb923c; }
 				.log-from-datastar { color: #fdba74; }
 				.statement-card { background: linear-gradient(135deg, #f8fafc, #ecfdf5 60%, #eff6ff); }
-				.statement-picker, .statement-summary-panel { margin: 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; padding: .85rem; }
-				.statement-picker h3, .statement-summary-panel h3 { margin: 0 0 .65rem; font-size: .78rem; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+				.statement-summary-panel { margin: 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; padding: .85rem; }
+				.statement-summary-panel h3 { margin: 0 0 .65rem; font-size: .78rem; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 
-				/* Range picker */
+				/* Range picker bar (CloudWatch-style) */
+				.range-island { min-height: 2rem; }
 				.range-picker { font-size: .82rem; }
-				.range-head { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; margin-bottom: .6rem; padding-bottom: .55rem; border-bottom: 1px solid #eef2f7; }
-				.range-current { font-weight: 850; color: #0f172a; font-size: .95rem; }
-				.range-current-count { color: var(--muted); }
-				.range-head .badge-ready, .range-head .badge-waiting { margin-left: auto; }
-				.range-body { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start; }
-				.range-cals { display: flex; gap: 1rem; flex-wrap: wrap; }
-				.range-presets-col { display: flex; flex-direction: column; gap: .3rem; min-width: 8.5rem; margin-left: auto; }
-				.range-presets-col .range-preset { text-align: left; }
-				.range-preset { background: #eef2ff; color: var(--elm-dark); border: 1px solid #ddd6fe; padding: .35rem .6rem; }
-				.range-preset.active { background: var(--elm-purple); color: #fff; border-color: var(--elm-dark); }
-				@media (max-width: 760px) { .range-presets-col { flex-direction: row; flex-wrap: wrap; margin-left: 0; } }
+				.range-bar { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; padding-bottom: .85rem; margin-bottom: .85rem; border-bottom: 1px solid #e7ecf3; }
+				.range-quick, .range-custom-btn { background: #fff; color: #475569; border: 1px solid #cbd5e1; border-radius: 7px; padding: .42rem 1rem; font-weight: 750; transition: background .12s, border-color .12s, color .12s; }
+				.range-quick:hover, .range-custom-btn:hover { background: #faf5ff; border-color: var(--elm-purple); color: var(--elm-dark); }
+				.range-quick.active { background: var(--elm-purple); color: #fff; border-color: var(--elm-dark); }
+				.range-custom-btn.active { background: #ede9fe; color: var(--elm-dark); border-color: #c4b5fd; }
 
+				.range-custom-panel { border: 1px solid #ddd6fe; border-radius: var(--radius); background: #fdfbff; box-shadow: var(--shadow); padding: .9rem; margin-bottom: .85rem; }
+				.range-tabs { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 7px; overflow: hidden; margin-bottom: .9rem; }
+				.range-tab { background: #fff; color: #475569; border: 0; border-radius: 0; padding: .42rem 1.2rem; font-weight: 750; }
+				.range-tab + .range-tab { border-left: 1px solid #cbd5e1; }
+				.range-tab.active { background: var(--elm-purple); color: #fff; }
+
+				.range-rel { display: grid; gap: .9rem; }
+				.rel-group { display: grid; grid-template-columns: 4.5rem 1fr; align-items: center; gap: .65rem; }
+				.rel-label { color: var(--muted); font-size: .7rem; font-weight: 850; text-transform: uppercase; letter-spacing: .03em; }
+				.rel-btns { display: flex; flex-wrap: wrap; gap: .4rem; }
+				.rel-btn { background: #fff; color: var(--elm-dark); border: 1px solid #ddd6fe; border-radius: 7px; padding: .35rem 0; width: 2.5rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: 750; transition: background .12s, border-color .12s, color .12s; }
+				.rel-btn:hover { background: #faf5ff; border-color: var(--elm-purple); }
+				.rel-btn.active { background: var(--elm-purple); color: #fff; border-color: var(--elm-dark); }
+
+				.summary-chip.period { border-color: #c4b5fd; background: #f5f3ff; color: var(--elm-dark); }
+				.range-cals { display: flex; gap: 1.25rem; flex-wrap: wrap; }
 				.cal { width: 15rem; }
 				.cal-loading { color: var(--muted); padding: 1rem; }
 				.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }

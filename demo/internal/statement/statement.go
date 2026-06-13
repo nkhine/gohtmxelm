@@ -71,49 +71,32 @@ type RangeEvent struct {
 	Summary Summary
 }
 
-// presets maps a preset key to its window duration, newest-relative.
-var presets = []struct {
-	Key      string
-	Label    string
-	Duration time.Duration
-}{
-	{"15m", "Last 15 min", 15 * time.Minute},
-	{"30m", "Last 30 min", 30 * time.Minute},
-	{"1h", "Last 1 hour", time.Hour},
-	{"3h", "Last 3 hours", 3 * time.Hour},
-	{"24h", "Last 24 hours", 24 * time.Hour},
-	{"2d", "Last 2 days", 48 * time.Hour},
-	{"2w", "Last 2 weeks", 14 * 24 * time.Hour},
-	{"1mo", "Last 1 month", 30 * 24 * time.Hour},
-	{"3mo", "Last 3 months", 90 * 24 * time.Hour},
-}
-
-func presetByKey(key string) (time.Duration, string, bool) {
-	for _, p := range presets {
-		if p.Key == key {
-			return p.Duration, p.Label, true
-		}
+// relativeRange resolves a "last N <unit>" window ending at now, with a
+// human-readable label. unit is one of minutes, hours, days, weeks.
+func relativeRange(now time.Time, value int, unit string) (Range, error) {
+	if value <= 0 {
+		return Range{}, errors.New("value must be positive")
 	}
-	return 0, "", false
-}
-
-// Presets exposes the (key, label) pairs for rendering the picker server-side
-// if desired; the Elm picker carries its own copy.
-func Presets() []struct {
-	Key   string
-	Label string
-} {
-	out := make([]struct {
-		Key   string
-		Label string
-	}, 0, len(presets))
-	for _, p := range presets {
-		out = append(out, struct {
-			Key   string
-			Label string
-		}{p.Key, p.Label})
+	var (
+		d    time.Duration
+		noun string
+	)
+	switch unit {
+	case "minutes":
+		d, noun = time.Duration(value)*time.Minute, "minute"
+	case "hours":
+		d, noun = time.Duration(value)*time.Hour, "hour"
+	case "days":
+		d, noun = time.Duration(value)*24*time.Hour, "day"
+	case "weeks":
+		d, noun = time.Duration(value)*7*24*time.Hour, "week"
+	default:
+		return Range{}, fmt.Errorf("unknown unit %q", unit)
 	}
-	return out
+	if value != 1 {
+		noun += "s"
+	}
+	return Range{From: now.Add(-d), To: now, Label: fmt.Sprintf("Last %d %s", value, noun)}, nil
 }
 
 // Statement holds the seeded transfers (immutable after construction) and the
@@ -137,9 +120,7 @@ func New(now func() time.Time) *Statement {
 		events:    gohtmxelm.NewBroadcaster[RangeEvent](16),
 		now:       now,
 	}
-	d, label, _ := presetByKey("24h")
-	t := now()
-	s.rng = Range{From: t.Add(-d), To: t, Label: label}
+	s.rng, _ = relativeRange(now(), 1, "days")
 	return s
 }
 
@@ -153,14 +134,13 @@ func (s *Statement) Range() Range {
 	return s.rng
 }
 
-// ApplyPreset selects a preset window ending at now.
-func (s *Statement) ApplyPreset(key string) (Range, error) {
-	d, label, ok := presetByKey(key)
-	if !ok {
-		return Range{}, fmt.Errorf("unknown preset %q", key)
+// ApplyRelative selects a "last N <unit>" window ending at now.
+func (s *Statement) ApplyRelative(value int, unit string) (Range, error) {
+	r, err := relativeRange(s.now(), value, unit)
+	if err != nil {
+		return Range{}, err
 	}
-	now := s.now()
-	return s.setRange(Range{From: now.Add(-d), To: now, Label: label}), nil
+	return s.setRange(r), nil
 }
 
 // ApplyCustom selects a custom window from two datetime-local strings.
