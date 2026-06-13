@@ -4,6 +4,7 @@ elm-htmx-templ-demo
 # Generated Elm bundles
 static/app-a.js
 static/app-b.js
+static/lap-stats.js
 
 # Vendored third-party JS (downloaded by make)
 static/vendor/
@@ -14,6 +15,9 @@ templates/page_templ.go
 # Elm build cache
 elm-stuff/
 onboarding/elm-stuff/
+
+# Air live-reload build directory
+.air/
 
 # Onboarding app compiled output
 onboarding/main.js

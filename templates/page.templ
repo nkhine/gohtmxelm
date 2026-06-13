@@ -16,6 +16,7 @@ templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 			<script type="module" src="/static/vendor/datastar.js"></script>
 			<script src="/static/app-a.js"></script>
 			<script src="/static/app-b.js"></script>
+			<script src="/static/lap-stats.js"></script>
 			<script defer src="/static/broker.js"></script>
 			<style>
 				*, *::before, *::after { box-sizing: border-box; }
@@ -384,7 +385,7 @@ templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 				}
 				.stopwatch-live {
 					display: grid;
-					grid-template-columns: 15rem minmax(0, 1fr);
+					grid-template-columns: 17rem minmax(0, 1fr);
 					align-items: center;
 					gap: 1rem;
 					border: 1px solid #fdba74;
@@ -393,46 +394,86 @@ templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 					background: #fff7ed;
 				}
 				@media (max-width: 720px) {
-					.stopwatch-live { grid-template-columns: 1fr; }
+					.stopwatch-live { grid-template-columns: 1fr; justify-items: center; }
 				}
-				.stopwatch-face {
-					--progress: 0deg;
+
+				/* ── Matrix dial ─────────────────────────────────────────────
+				   Four concentric rings. Each is a conic-gradient disk whose
+				   inner part is covered by the next (smaller) ring, leaving only
+				   a band visible. The band width = the child ring's inset.
+				   Registered custom properties let the fill angle animate
+				   smoothly between the 100ms server updates.                    */
+				@property --d-sub  { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+				@property --d-sec  { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+				@property --d-min  { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+				@property --d-hour { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+
+				#stopwatch-readout { display: grid; place-items: center; }
+				.dial {
+					--matrix: #00ff66;
+					--track: #06281a;
 					position: relative;
-					display: grid;
-					place-items: center;
-					width: 15rem;
+					width: 16rem;
 					aspect-ratio: 1;
 					border-radius: 50%;
-					background:
-						radial-gradient(circle at 50% 50%, #ffffff 0 48%, transparent 49%),
-						conic-gradient(from -90deg, #7c3aed var(--progress), #e2e8f0 0);
-					box-shadow: inset 0 0 0 1px #c4b5fd, 0 18px 45px rgba(49,46,129,.18);
+					background: #000;
+					box-shadow:
+						0 0 0 1px #0a3d22,
+						0 0 28px rgba(0, 255, 102, 0.28),
+						inset 0 0 36px rgba(0, 255, 102, 0.10);
+					/* slower rings ease between updates; the fast sub ring steps
+					   (so it resets cleanly each second without a reverse sweep) */
+					transition:
+						--d-sec  0.12s linear,
+						--d-min  0.3s  linear,
+						--d-hour 0.5s  linear;
 				}
-				.stopwatch-face::after {
-					content: "";
+				.ring {
 					position: absolute;
-					inset: 1.05rem;
 					border-radius: 50%;
-					border: 1px solid #ddd6fe;
 				}
+				/* outer → inner; each child's inset sets the PARENT ring's band
+				   width, so the four bands are 1.1 / 0.9 / 0.8 / 1.4rem wide.
+				   The dial-center is nested in ring-sub and leaves a 3.8rem
+				   black hub for the readout. */
+				.ring-hour { inset: 0;       background: conic-gradient(from -90deg, #00a83e var(--d-hour), var(--track) 0); }
+				.ring-min  { inset: 1.1rem;  background: conic-gradient(from -90deg, #00c853 var(--d-min),  var(--track) 0); }
+				.ring-sec  { inset: 0.9rem;  background: conic-gradient(from -90deg, #00e676 var(--d-sec),  var(--track) 0); }
+				.ring-sub  { inset: 0.8rem;  background: conic-gradient(from -90deg, var(--matrix) var(--d-sub), var(--track) 0); }
+				.dial-center {
+					position: absolute;
+					inset: 1.4rem;
+					border-radius: 50%;
+					background: radial-gradient(circle at 50% 50%, #021006 0 70%, #000 100%);
+					display: grid;
+					place-items: center;
+					gap: 0.3rem;
+					box-shadow: inset 0 0 0 1px #0a3d22;
+				}
+				.dial.paused .ring-hour,
+				.dial.paused .ring-min,
+				.dial.paused .ring-sec,
+				.dial.paused .ring-sub { filter: saturate(0.5) brightness(0.7); }
 				.stopwatch-time {
-					position: relative;
-					z-index: 1;
-					font-family: Menlo, Consolas, monospace;
-					font-size: 2.15rem;
-					font-weight: 850;
-					color: #1f2937;
+					font-family: "SF Mono", Menlo, Consolas, monospace;
+					font-size: 0.92rem;
+					font-weight: 800;
+					letter-spacing: -0.01em;
+					color: var(--matrix);
+					text-shadow: 0 0 8px rgba(0, 255, 102, 0.75), 0 0 18px rgba(0, 255, 102, 0.35);
+					font-variant-numeric: tabular-nums;
 				}
+				.dial.paused .stopwatch-time { color: #2fae5a; text-shadow: 0 0 6px rgba(0, 255, 102, 0.3); }
 				.stopwatch-state {
-					position: relative;
-					z-index: 1;
-					margin-top: 3.4rem;
-					color: var(--muted);
-					font-size: 0.72rem;
-					font-weight: 850;
+					font-family: "SF Mono", Menlo, Consolas, monospace;
+					font-size: 0.62rem;
+					font-weight: 800;
 					text-transform: uppercase;
-					letter-spacing: 0.08em;
+					letter-spacing: 0.28em;
+					color: #1f8a4c;
+					padding-left: 0.28em;
 				}
+				.dial:not(.paused) .stopwatch-state { color: var(--matrix); text-shadow: 0 0 8px rgba(0, 255, 102, 0.6); }
 				.stopwatch-live-status {
 					display: inline-flex;
 					width: fit-content;
@@ -468,6 +509,38 @@ templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 				.lap-index {
 					color: var(--muted);
 					font-weight: 850;
+				}
+
+				.stopwatch-elm {
+					padding: 1rem;
+					border-top: 1px solid var(--border);
+				}
+				.lap-stats-grid {
+					display: grid;
+					grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+					gap: 0.5rem;
+				}
+				.lap-stat {
+					border: 1px solid #ddd6fe;
+					border-radius: var(--radius);
+					background: #faf5ff;
+					padding: 0.55rem 0.65rem;
+				}
+				.lap-stat-label {
+					display: block;
+					color: var(--elm-dark);
+					font-size: 0.68rem;
+					font-weight: 850;
+					text-transform: uppercase;
+					letter-spacing: 0.04em;
+				}
+				.lap-stat-value {
+					display: block;
+					margin-top: 0.2rem;
+					font-family: Menlo, Consolas, monospace;
+					font-size: 1.05rem;
+					font-weight: 850;
+					color: #1f2937;
 				}
 
 				.row-actions { text-align: right; }
@@ -801,19 +874,29 @@ templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 							<span>&rarr;</span>
 							<span class="flow-tag flow-go">Go timer</span>
 							<span>&rarr;</span>
-							<span class="flow-tag flow-sse">SSE ticks</span>
+							<span class="flow-tag flow-sse">SSE</span>
 							<span>&rarr;</span>
-							<span class="flow-tag flow-datastar">Datastar</span>
+							<span class="flow-tag flow-datastar">Datastar readout</span>
+							<span>+</span>
+							<span class="flow-tag flow-elm">Elm analytics</span>
 						</div>
 					</div>
 					<div class="stopwatch-grid">
 						<div class="stopwatch-panel">
 							<h3>HTMX start / stop / reset</h3>
-							@StopwatchControls(stopwatchRunning, stopwatchCanLap)
+							<div
+								id="stopwatch-controls"
+								class="stopwatch-controls"
+								hx-get="/api/stopwatch/controls"
+								hx-trigger="stopwatch-state-change from:body"
+								hx-swap="innerHTML">
+								@StopwatchControls(stopwatchRunning, stopwatchCanLap)
+							</div>
 							<p class="control-note" style="margin-top:0.75rem;">
 								These buttons are ordinary <code>hx-post</code> controls. Go
-								owns the timer and lap history; HTMX only swaps this controls
-								fragment.
+								owns the timer; when any tab acts, an SSE event re-triggers
+								this fragment in every other tab so the controls never go
+								stale.
 							</p>
 						</div>
 
@@ -821,12 +904,24 @@ templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 							class="stopwatch-panel"
 							data-init="@get('/api/stopwatch/stream')">
 							<h3>Datastar live elapsed + laps</h3>
-							<div id="stopwatch-live" class="stopwatch-live">
-								<div class="stopwatch-face">
-									<div class="stopwatch-time">00:00.0</div>
-									<div class="stopwatch-state">paused</div>
+							<div class="stopwatch-live">
+								<div id="stopwatch-readout">
+									<div class="dial paused" style="--d-sub:0deg;--d-sec:0deg;--d-min:0deg;--d-hour:0deg">
+										<div class="ring ring-hour">
+											<div class="ring ring-min">
+												<div class="ring ring-sec">
+													<div class="ring ring-sub">
+														<div class="dial-center">
+															<div class="stopwatch-time">00:00:00:000</div>
+															<div class="stopwatch-state">paused</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
 								</div>
-								<div>
+								<div id="stopwatch-laps">
 									<div class="lap-list">
 										<p class="muted">No laps yet. Use the HTMX Lap button once the timer has started.</p>
 									</div>
@@ -834,10 +929,26 @@ templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 								</div>
 							</div>
 							<p class="control-note" style="margin-top:0.75rem;">
-								Go pushes <code>datastar-patch-elements</code> every tick while
-								the timer is running and after each lap/reset.
+								Go pushes the readout every tick, but the lap list only on
+								state changes — the 10/sec stream stays small.
 							</p>
 						</div>
+					</div>
+
+					<div class="stopwatch-elm">
+						<div class="elm-island-label">Elm lap analytics &middot; typed derivation</div>
+						<div
+							id="lap-stats"
+							class="elm-island"
+							data-elm-module="LapStats"
+							data-island-id="lap-stats"
+							data-props="{}">
+						</div>
+						<p class="control-note" style="margin-top:0.5rem;">
+							This Elm island subscribes to the same stopwatch SSE state and
+							derives fastest / slowest / average / delta laps as a typed
+							state machine — no Go, HTMX, or Datastar computes these.
+						</p>
 					</div>
 				</section>
 
@@ -873,44 +984,45 @@ templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 	</html>
 }
 
+// StopwatchControls renders only the buttons. The page wraps them in a
+// self-refreshing #stopwatch-controls element, and every action swaps this
+// fragment back into that wrapper's innerHTML.
 templ StopwatchControls(running bool, canLap bool) {
-	<div id="stopwatch-controls" class="stopwatch-controls">
-		if running {
-			<button
-				class="btn-stop"
-				hx-post="/api/stopwatch/stop"
-				hx-target="#stopwatch-controls"
-				hx-swap="outerHTML">
-				Stop
-			</button>
-		} else {
-			<button
-				hx-post="/api/stopwatch/start"
-				hx-target="#stopwatch-controls"
-				hx-swap="outerHTML">
-				Start
-			</button>
-		}
-		if canLap {
-			<button
-				hx-post="/api/stopwatch/lap"
-				hx-target="#stopwatch-controls"
-				hx-swap="outerHTML">
-				Lap
-			</button>
-		} else {
-			<button disabled>
-				Lap
-			</button>
-		}
+	if running {
 		<button
-			class="btn-reset"
-			hx-post="/api/stopwatch/reset"
+			class="btn-stop"
+			hx-post="/api/stopwatch/stop"
 			hx-target="#stopwatch-controls"
-			hx-swap="outerHTML">
-			Reset
+			hx-swap="innerHTML">
+			Stop
 		</button>
-	</div>
+	} else {
+		<button
+			hx-post="/api/stopwatch/start"
+			hx-target="#stopwatch-controls"
+			hx-swap="innerHTML">
+			Start
+		</button>
+	}
+	if canLap {
+		<button
+			hx-post="/api/stopwatch/lap"
+			hx-target="#stopwatch-controls"
+			hx-swap="innerHTML">
+			Lap
+		</button>
+	} else {
+		<button disabled>
+			Lap
+		</button>
+	}
+	<button
+		class="btn-reset"
+		hx-post="/api/stopwatch/reset"
+		hx-target="#stopwatch-controls"
+		hx-swap="innerHTML">
+		Reset
+	</button>
 }
 
 templ ServerMessage(message string) {

@@ -10,8 +10,12 @@ class ElmIslandBroker {
     // correct expected version.
     this.storeSeq = 0;
     this.storeVersions = new Map();
+    // Last stopwatch snapshot seen over SSE, replayed to islands that mount
+    // late so the Elm lap analyzer is correct even while the timer is idle.
+    this.lastStopwatch = null;
     this.observeRemovals();
     this.connectStore();
+    this.connectStopwatch();
   }
 
   mountAll(root = document) {
@@ -85,6 +89,17 @@ class ElmIslandBroker {
           islandId: sourceId,
         },
       });
+      // Replay the latest stopwatch snapshot to this island so analytics are
+      // populated immediately, without waiting for the next state change.
+      if (this.lastStopwatch) {
+        this.sendTo(sourceId, {
+          version: this.version,
+          type: "STOPWATCH_SNAPSHOT",
+          source: "broker",
+          target: sourceId,
+          payload: this.lastStopwatch,
+        });
+      }
       return;
     }
     // Gap 1: Elm triggers an HTMX swap without a server round-trip.
@@ -328,6 +343,61 @@ class ElmIslandBroker {
     const storeEl = document.getElementById("store-entries");
     if (storeEl && window.htmx) {
       window.htmx.trigger(storeEl, "store-refresh");
+    }
+  }
+
+  // Stopwatch JSON stream: emits only on discrete state changes. Each event
+  // is forwarded to Elm islands (the lap analyzer) and re-triggers the HTMX
+  // controls fragment so every tab converges on the same control state.
+  connectStopwatch() {
+    const source = new EventSource("/api/stopwatch/events");
+
+    source.addEventListener("stopwatch-state", (e) => {
+      this.applyStopwatchEvent(e);
+    });
+
+    source.onerror = () => {
+      this.addActivityEntry("sse", "broker", "stopwatch stream error — reconnecting in 3s");
+      source.close();
+      setTimeout(() => this.connectStopwatch(), 3000);
+    };
+  }
+
+  applyStopwatchEvent(e) {
+    let snap;
+    try {
+      snap = JSON.parse(e.data);
+    } catch (err) {
+      console.warn("stopwatch event parse error", err);
+      return;
+    }
+
+    const payload = {
+      running: !!snap.running,
+      laps: Array.isArray(snap.laps) ? snap.laps : [],
+    };
+    this.lastStopwatch = payload;
+
+    this.addActivityEntry(
+      "sse",
+      "elm",
+      `STOPWATCH_SNAPSHOT running=${payload.running} laps=${payload.laps.length}`
+    );
+
+    // Feed the Elm lap analyzer.
+    this.broadcast({
+      version: this.version,
+      type: "STOPWATCH_SNAPSHOT",
+      source: "broker",
+      target: "broadcast",
+      payload,
+    });
+
+    // Re-render the HTMX controls in every tab. The tab that initiated the
+    // change already swapped via its POST response; this keeps the others
+    // in sync. HTMX processes the swapped-in buttons, so they stay wired.
+    if (window.htmx) {
+      window.htmx.trigger(document.body, "stopwatch-state-change");
     }
   }
 
