@@ -1,24 +1,34 @@
 # gohtmxelm
 
-`gohtmxelm` is a Go-first integration pattern for using HTMX, Datastar, Elm,
-and Server-Sent Events inside existing Go projects.
+`gohtmxelm` is a small Go-first integration library for combining HTMX,
+Datastar, Elm islands, and Server-Sent Events in existing Go applications.
 
-It gives you the reusable glue:
+The package does not impose an application framework. It provides the reusable
+bridge pieces: SSE response helpers, Datastar patch helpers, HTMX response
+helpers, Elm island HTML conventions, and an embedded browser broker runtime.
 
-- embedded browser broker for Elm islands
-- Go helpers for SSE, HTMX triggers, and Datastar patch events
-- a small CLI entrypoint for project setup checks
-- a demo app showing the ownership rules in practice
-
-## Use It In A Project
-
-Install the package:
+## Install
 
 ```sh
 go get github.com/nkhine/gohtmxelm/pkg
+go install github.com/nkhine/gohtmxelm/cmd/gohtmxelm@latest
 ```
 
-Mount the runtime assets:
+Check local tooling:
+
+```sh
+gohtmxelm doctor
+```
+
+Create a starter config:
+
+```sh
+gohtmxelm init
+```
+
+## Use In A Go App
+
+Mount the embedded browser runtime:
 
 ```go
 import gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
@@ -32,13 +42,13 @@ kit := gohtmxelm.New(gohtmxelm.Options{
 mux.Handle("/gohtmxelm/", http.StripPrefix("/gohtmxelm/", kit.Assets()))
 ```
 
-Add the broker script to pages that use Elm islands:
+Render the broker script on pages that mount Elm islands:
 
 ```go
 template.HTML(kit.BrowserScript())
 ```
 
-Mount an Elm island:
+Render an Elm island mount point:
 
 ```go
 html, err := gohtmxelm.ElmIsland("counter", "Counter", map[string]any{
@@ -46,7 +56,7 @@ html, err := gohtmxelm.ElmIsland("counter", "Counter", map[string]any{
 })
 ```
 
-Use the response helpers from your handlers:
+Use the server helpers from handlers:
 
 ```go
 gohtmxelm.PrepareSSE(w)
@@ -56,78 +66,79 @@ gohtmxelm.WriteDatastarPatchSignals(w, `{"count":1}`)
 gohtmxelm.Trigger(w, "store-refresh")
 ```
 
-Install the CLI while developing:
+## Architecture
 
-```sh
-go install github.com/nkhine/gohtmxelm/cmd/gohtmxelm@latest
-gohtmxelm doctor
-gohtmxelm init
-```
+The intended ownership model is:
 
-## Project Layout
+| Layer | Owns |
+| --- | --- |
+| Go | durable state, validation, commands, SSE fan-out |
+| HTMX | server-rendered request/response fragments |
+| Datastar | declarative local signals and server-pushed DOM/signal patches |
+| Elm | typed client-side islands and local state machines |
+
+Keep the DOM ownership boundaries physical:
+
+- HTMX should not swap inside an Elm root.
+- Datastar should not patch inside an Elm root.
+- Elm should not render inside a Datastar-owned region.
+- Go is the convergence point for shared state.
+
+## Repository Layout
 
 ```text
-cmd/gohtmxelm/          CLI for init/doctor workflows
-demo/                   runnable teaching app
+cmd/gohtmxelm/          CLI for init and doctor workflows
 pkg/                    public importable Go package
-pkg/runtime/            embedded browser broker assets
-demo/internal/ui/            demo shell and page composition
-demo/internal/ui/components/ demo templ components
-demo/internal/store/         demo state store
-demo/static/            demo browser assets
+pkg/runtime/            embedded browser broker runtime
+
+demo/                   reference app users can copy from
+demo/main.go            demo server and routes
 demo/elm/               demo Elm source and elm.json
+demo/static/            demo browser assets
+demo/internal/store/    demo state store
+demo/internal/ui/       demo templ shell/page composition
+demo/internal/ui/components/
+                        demo templ components
+
+docs/                   architecture notes and deeper rationale
 ```
 
-## Demo App
+## Reference Demo
 
-This repo also contains a teaching app for combining three frontend styles
-around one end-user workflow: update the shared `message` key and watch every
-surface converge. Every write is **attributed** — the Go store records which
-surface wrote (`htmx`, `datastar`, `app-a`, `app-b`, `go`) and every pane
-renders that same truth its own way.
+The `demo/` directory is a complete reference implementation that shows the
+library pattern in a real Go app. It includes:
 
-## Learn from it
+- a shared message workbench using HTMX, Datastar, Elm, Go, and SSE
+- a server-owned stopwatch using HTMX controls, Datastar live patches, and Elm
+  lap analytics
+- local Elm source under `demo/elm`
+- demo-only browser assets under `demo/static`
 
-The [`docs/`](./docs/README.md) directory is a guided, read-in-order tour that
-uses this codebase to teach the stack from the bottom up — TCP and chunked
-encoding, Server-Sent Events, Go's streaming backend, the philosophy of HTMX,
-Datastar, and Elm, the fusion pattern that lets them coexist, and an honest look
-at what large client-side frameworks cost. Start at
-[`docs/README.md`](./docs/README.md).
-
-## Run it
+Run it:
 
 ```sh
 make dev
 ```
 
-For a live rebuild/restart loop while editing Go, templ, Elm, or `broker.js`:
+Run with rebuild/restart while editing Go, templ, Elm, or browser assets:
 
 ```sh
 make watch
 ```
 
-`make watch` uses [Air](https://github.com/air-verse/air). Install it if needed:
+`make watch` uses [Air](https://github.com/air-verse/air):
 
 ```sh
 go install github.com/air-verse/air@latest
 ```
 
-## Example Lattice
-
-The demo examples are templ components under `demo/internal/ui/components/`.
-
 Routes:
 
 ```text
-/                   composed lattice with all examples
-/examples/message   shared message workbench only
-/examples/stopwatch stopwatch example only
+/                   all demo examples
+/examples/message   message workbench only
+/examples/stopwatch stopwatch only
 ```
-
-Both the index and individual routes render the same components, so adding a
-new example means adding one component and one registry entry in
-`demo/main.go`.
 
 The Makefile copies Datastar from:
 
@@ -141,71 +152,9 @@ Override that path if needed:
 make dev DATASTAR_SRC=/path/to/datastar/bundles/datastar.js
 ```
 
-## Ownership Rule
-
-The page is one fused workbench, but each library still owns a clear boundary:
-
-| Library | Owns | Strength on display |
-| --- | --- | --- |
-| HTMX | The server-rendered store table | hypermedia controls: each row carries a server-rendered `hx-delete` button; state transitions live in HTML, not JS |
-| Datastar | The live store patch region and signal-driven form | `datastar-patch-elements` re-renders its island and `datastar-patch-signals` drives the live write counter / last-writer chips with zero client JS |
-| Elm | The Elm island roots | App A is a typed draft editor — a `Draft = Empty \| TooLong \| Valid` state machine makes invalid writes unrepresentable; App B folds the SSE event stream into a typed, bounded history log |
-| Go | The shared KV store and SSE endpoints | single source of truth: versions, optimistic locking, write attribution, and fan-out to every surface |
-
-The important rule is: do not let HTMX or Datastar patch inside an Elm root, and
-do not let Elm render inside a Datastar-owned region. They fuse through Go state
-and browser events.
-
-## Teaching Flows
-
-1. HTMX writes `message` with a normal form post to `POST /api/store` (source defaults to `htmx`).
-2. HTMX deletes any key through a server-rendered `hx-delete` row control — hypermedia as the engine of application state.
-3. Datastar writes `message` with `data-bind`, `data-text`, and declarative `@post`; the server stamps the write as `datastar`.
-4. Elm App A validates a typed draft (empty / too long / valid) and only the `Valid` branch can emit a port write; broker.js attributes it to the island id.
-5. Go stores the winning value with its source and broadcasts it over SSE.
-6. HTMX refreshes the server-rendered table, now showing a "By" attribution chip per key.
-7. Datastar receives `datastar-patch-elements` for its DOM region **and** `datastar-patch-signals` updating `$writes` / `$lastWriter`.
-8. Elm receives the same change through the broker EventSource: App A shows "last write by", App B appends it to a typed event log.
-9. Elm can also ask the broker to perform an HTMX fragment swap, showing a cross-library command path.
-
-## Why use all three?
-
-Use HTMX where server-rendered HTML is the simplest contract. Use Datastar where
-the server should push small live DOM patches or signal updates and local
-`data-*` signals are enough. Use Elm where the UI has a real client-side state
-machine that benefits from types, ports, and explicit update logic. Fuse them
-through shared server state, not by letting multiple libraries mutate the same
-DOM subtree — and attribute every write so each pane can prove the convergence
-to the user.
-
-## Hello Stopwatch
-
-The stopwatch card is a compact four-way fusion around one server-owned timer:
-
-1. **Go** owns elapsed time and lap history. A single goroutine ticks only while
-   the timer runs (it parks itself when paused) and fans out on two streams.
-2. **HTMX** owns the start/stop/lap/reset buttons. Each action `hx-post`s and
-   swaps the controls fragment. Crucially, the controls are also a self-refreshing
-   element (`hx-trigger="stopwatch-state-change from:body"`): when any tab acts,
-   an SSE state event re-triggers the fragment in every *other* tab, so the
-   controls never go stale across clients.
-3. **Datastar** consumes `/api/stopwatch/stream` and patches the live readout
-   every tick, but the lap list only on state changes — the 10/sec stream stays
-   small because the readout (`#stopwatch-readout`) and laps (`#stopwatch-laps`)
-   are separately targetable.
-4. **Elm** (`LapStats`) subscribes to the same stopwatch state (relayed by
-   `broker.js` from the JSON `/api/stopwatch/events` stream) and derives typed
-   lap analytics — fastest / slowest / average / last split — as a state machine
-   that models the no-laps case explicitly. No other layer computes these.
-
-The two streams are deliberate: `/api/stopwatch/stream` carries HTML patches for
-Datastar (every tick), while `/api/stopwatch/events` carries JSON and fires only
-on discrete state changes, which is all the Elm analyzer and the cross-tab
-control sync need.
-
 ## CSP Note
 
 Datastar v1.0.2 compiles declarative expressions such as `data-signals`,
-`data-text`, and `@post(...)` in the browser. For this teaching demo the CSP
-therefore includes `script-src 'self' 'unsafe-eval'`. Without that, browsers
-block Datastar expression evaluation with a `GenerateExpression` error.
+`data-text`, and `@post(...)` in the browser. If you use those expressions,
+your CSP needs to allow that evaluation path. The reference demo currently uses
+`script-src 'self' 'unsafe-eval'` for this reason.

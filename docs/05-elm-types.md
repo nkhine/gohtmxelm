@@ -65,7 +65,7 @@ language, enforced by the compiler.
 
 ## 5.3 Making impossible states unrepresentable
 
-This is Elm's signature technique, and this app demonstrates it twice. The idea:
+This is Elm's signature technique, and the reference demo demonstrates it twice. The idea:
 **design your types so that invalid states cannot even be written down.** If a
 state is unrepresentable, no code — not even buggy code — can produce it, and you
 never need to handle it defensively.

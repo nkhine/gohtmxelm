@@ -1,6 +1,6 @@
 # 8. Svelte: the framework that compiles itself away
 
-> Svelte isn't used in this app, but its core idea is one of the most genuinely
+> Svelte isn't used in the reference demo, but its core idea is one of the most genuinely
 > interesting in front-end engineering and it connects directly to two tools we
 > *do* use. Where React ships a runtime that interprets your components in the
 > browser, **Svelte is a compiler**: it reads your components at build time and
@@ -186,7 +186,7 @@ and where does the truth live?*
 | **React** | Virtual DOM diff at run time | Browser runtime | Browser (+ server) |
 | **Svelte** | Compiled, direct DOM ops; signals (v5) | **Build-time compiler** | Browser (+ server) |
 | **Elm** | Virtual DOM, but compiled + pure | Build-time compiler (types) + runtime | Browser (`Model`), as islands here |
-| **Datastar** | Morph by id; signals in attributes | Browser, **server can push** | **Server** (in this app) |
+| **Datastar** | Morph by id; signals in attributes | Browser, **server can push** | **Server** (in the reference demo) |
 | **HTMX** | Swap server-rendered HTML fragments | **Server** | **Server** |
 
 Two independent axes are doing the work here, and Svelte is interesting precisely
@@ -195,7 +195,7 @@ because it sits at a distinctive corner:
 1. **Compile-time vs run-time** — Svelte and Elm compile; React and Datastar
    interpret in the browser; HTMX needs almost no client logic at all.
 2. **Truth in browser vs truth on server** — React, Svelte, and (locally) Elm lean
-   browser; HTMX and this app's Datastar usage lean server.
+   browser; HTMX and the reference demo's Datastar usage lean server.
 
 Svelte's "interesting technology" is its answer to axis 1 (compile the framework
 away). This project's architecture is mostly a strong opinion about axis 2 (keep

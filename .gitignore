@@ -15,13 +15,9 @@ demo/static/vendor/
 
 # Elm build cache
 demo/elm-stuff/
-onboarding/elm-stuff/
 
 # Air live-reload build directory
 .air/
-
-# Onboarding app compiled output
-onboarding/main.js
 
 # macOS
 .DS_Store

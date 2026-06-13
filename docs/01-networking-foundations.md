@@ -6,7 +6,7 @@
 
 This document builds up from the bottom: a TCP connection, then HTTP/1.1 framing
 on top of it, then *chunked transfer encoding*, then *Server-Sent Events*. Every
-real-time feature in this app rides on that stack, so we'll trace it concretely.
+real-time feature in the reference demo rides on that stack, so we'll trace it concretely.
 
 ---
 
@@ -114,7 +114,7 @@ the connection closes).
 In Go, you almost never write chunk headers by hand. When you write to an
 `http.ResponseWriter` without setting `Content-Length` and then call
 `Flusher.Flush()`, the standard library switches to chunked encoding and writes
-the framing for you. You'll see exactly that in [`main.go`](../main.go).
+the framing for you. You'll see exactly that in [`demo/main.go`](../demo/main.go).
 
 ---
 
@@ -145,13 +145,12 @@ Rules:
 - A blank line dispatches the event to the browser.
 - Lines beginning with `:` are comments (often used as keep-alive "pings").
 
-That's the entire protocol. You could implement an SSE server with `fmt.Fprintf`
-— and that is exactly what this app does. From [`main.go`](../main.go):
+That's the entire protocol. `gohtmxelm` wraps the formatting so handlers do not
+repeat it. From [`demo/main.go`](../demo/main.go):
 
 ```go
 func writeSSE(w http.ResponseWriter, event string, data any) {
-	b, _ := json.Marshal(data)
-	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, b)
+	_ = gohtmxelm.WriteSSE(w, event, data)
 }
 ```
 
@@ -167,7 +166,7 @@ source.addEventListener("store-hydrate", (e) => this.applyStoreEvent(e, false));
 ### Why SSE and not WebSockets?
 
 WebSockets give you a *bidirectional* channel. SSE gives you *server → client
-only*. For this app that's a perfect fit, and it's worth understanding why the
+only*. For the reference demo that's a perfect fit, and it's worth understanding why the
 weaker tool is the better choice:
 
 - **Our writes go up via ordinary HTTP requests** (form POSTs, `fetch`). We don't

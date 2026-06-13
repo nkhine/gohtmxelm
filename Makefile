@@ -6,10 +6,9 @@ TEMPL_OUT      := demo/internal/ui/page_templ.go demo/internal/ui/components/mes
 HTMX_JS        := demo/static/vendor/htmx.js
 DATASTAR_SRC   ?= /Users/nkhine/go/src/github.com/starfederation/datastar/bundles/datastar.js
 DATASTAR_JS    := demo/static/vendor/datastar.js
-ONBOARDING_JS  := onboarding/main.js
 GO_SRCS        := $(shell find . -name '*.go' -not -path './.git/*')
 
-.PHONY: local build clean test dev watch onboarding
+.PHONY: local build clean test dev watch
 
 ## local: build everything then start the server
 local: $(BINARY) $(HTMX_JS) $(DATASTAR_JS)
@@ -61,12 +60,6 @@ watch:
 	fi
 	PORT=$(PORT) air -c .air.toml
 
-## onboarding: build the standalone payee onboarding Elm app
-onboarding: $(ONBOARDING_JS)
-
-$(ONBOARDING_JS): onboarding/src/Main.elm onboarding/elm.json
-	cd onboarding && elm make src/Main.elm --output=main.js
-
 ## clean: remove all build artefacts
 clean:
-	rm -f $(BINARY) $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS) $(ONBOARDING_JS)
+	rm -f $(BINARY) $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS)

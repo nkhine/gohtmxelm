@@ -143,7 +143,7 @@ decodeInbound =
                 ]
             )
             -- storeState: full broker state dict; falls back to empty if any
-            -- value is non-string (shouldn't happen in this app)
+            -- value is non-string (shouldn't happen in the reference demo)
             (Decode.oneOf
                 [ Decode.field "brokerState" (Decode.dict Decode.string)
                 , Decode.succeed Dict.empty

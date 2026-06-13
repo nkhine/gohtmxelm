@@ -29,7 +29,7 @@ wire any of it.**
 
 ## 4.2 Signals, declared in markup
 
-Here's the Datastar write form from this app
+Here's the Datastar write form from the reference demo
 ([`demo/internal/ui/page.templ`](../demo/internal/ui/page.templ)):
 
 ```html
@@ -68,7 +68,7 @@ not a re-rendered component subtree that a diff then reconciles.
 
 This is the part that distinguishes Datastar from a pure client reactivity
 library. The server holds a long-lived SSE connection and pushes two event types.
-From [`main.go`](../main.go):
+From [`demo/main.go`](../demo/main.go):
 
 ```go
 func writeDatastarPatchElements(w http.ResponseWriter, elements string) {
@@ -150,7 +150,7 @@ optimization that a "re-render the component and diff it" model makes awkward.
 
 Datastar's declarative expressions (`data-text="..."`, `@post(...)`) are compiled
 **in the browser** at runtime. That is what makes them so terse — but it means the
-browser must be allowed to evaluate dynamically generated code. This app's Content
+browser must be allowed to evaluate dynamically generated code. The reference demo's Content
 Security Policy therefore includes `script-src 'self' 'unsafe-eval'`:
 
 ```go
@@ -178,7 +178,7 @@ different shapes:
 | Best for | Forms, navigation, server-rendered views | Live readouts, declarative local UI, server-pushed dashboards |
 | Custom JS | None | None |
 
-In this app HTMX owns request/response surfaces (the store table, the stopwatch
+In the reference demo HTMX owns request/response surfaces (the store table, the stopwatch
 buttons) and Datastar owns the *live, server-pushed* surfaces (the patched store
 region, the ticking readout, the write counter). Neither patches the other's DOM.
 They meet only through shared **server state** and the **SSE stream** — never by

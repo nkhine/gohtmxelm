@@ -1,7 +1,7 @@
 # 2. Go: the backend and the single source of truth
 
 > The front-end frameworks get the attention, but the most important design
-> decision in this app is on the server: **the server owns all the truth, and it
+> decision in the reference demo is on the server: **the server owns all the truth, and it
 > can hold thousands of streaming connections open cheaply.** Go makes both of
 > those natural rather than heroic.
 
@@ -201,7 +201,7 @@ by the next hydrate, so the stream is allowed to be lossy under pressure.
 
 ## 2.4 The stopwatch: a server-owned clock that does no idle work
 
-The stopwatch (in [`main.go`](../main.go)) is the app's other piece of live
+The stopwatch (in [`demo/main.go`](../demo/main.go)) is the app's other piece of live
 state. It teaches a few more server patterns.
 
 ### Inject the clock; never call `time.Now()` directly in logic
