@@ -8,16 +8,20 @@ import (
 
 func TestBrowserScript(t *testing.T) {
 	script := BrowserScript(Options{
-		AssetPath:   "/assets/fusion",
-		EventStream: "/events",
-		EventNames:  []string{"store-change", "timer"},
-		Debug:       true,
+		AssetPath: "/assets/fusion",
+		Sources: []Source{
+			{URL: "/events", Events: []string{"store-change", "timer"}},
+		},
+		Debug: true,
 	})
 
 	for _, want := range []string{
 		`src="/assets/fusion/gohtmxelm-broker.js"`,
-		`data-events="/events"`,
-		`data-event-names="store-change,timer"`,
+		// data-sources holds HTML-escaped JSON; check the escaped fragments.
+		`data-sources=`,
+		`/events`,
+		`store-change`,
+		`timer`,
 		`data-debug="true"`,
 	} {
 		if !strings.Contains(script, want) {

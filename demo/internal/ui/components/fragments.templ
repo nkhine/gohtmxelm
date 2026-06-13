@@ -1,0 +1,73 @@
+package components
+
+import (
+	"github.com/nkhine/gohtmxelm/demo/internal/store"
+	"github.com/nkhine/gohtmxelm/demo/internal/stopwatch"
+)
+
+// DatastarStore is the live store region Datastar morphs over SSE.
+templ DatastarStore(entries []store.Entry, note string) {
+	<div id="datastar-store" class="datastar-store">
+		<p class="datastar-note">{ note }</p>
+		if len(entries) == 0 {
+			<p class="muted">Store is empty.</p>
+		} else {
+			<table>
+				<thead><tr><th>Key</th><th>Value</th><th>By</th></tr></thead>
+				<tbody>
+					for _, e := range entries {
+						<tr data-datastar-key={ e.Key }>
+							<td>{ e.Key }</td>
+							<td>{ e.Value }</td>
+							<td><span class={ "source-chip", "source-" + e.Source }>{ e.Source }</span></td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	</div>
+}
+
+// StopwatchReadout is the clock face — pushed every tick. Four concentric
+// rings (hours, minutes, seconds, subseconds) each filled by how far through
+// its own unit the elapsed time currently is.
+templ StopwatchReadout(snap stopwatch.Snapshot) {
+	<div id="stopwatch-readout">
+		<div class={ "dial", statusText(snap) } style={ dialStyle(snap.ElapsedMs) }>
+			<div class="ring ring-hour">
+				<div class="ring ring-min">
+					<div class="ring ring-sec">
+						<div class="ring ring-sub">
+							<div class="dial-center">
+								<div class="stopwatch-time">{ stopwatch.FormatElapsed(snap.ElapsedMs) }</div>
+								<div class="stopwatch-state">{ statusText(snap) }</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+// StopwatchLaps is the lap list and live status — pushed only on state changes,
+// since ticks never alter laps.
+templ StopwatchLaps(snap stopwatch.Snapshot) {
+	<div id="stopwatch-laps">
+		<div class="lap-list">
+			if len(snap.Laps) == 0 {
+				<p class="muted">No laps yet. Use the HTMX Lap button once the timer has started.</p>
+			} else {
+				for _, lap := range snap.Laps {
+					<div class="lap-row"><span class="lap-index">{ lapIndex(lap.Number) }</span><span>{ stopwatch.FormatElapsed(lap.ElapsedMs) }</span></div>
+				}
+			}
+		</div>
+		<span class={ "stopwatch-live-status", statusText(snap) }>{ statusText(snap) + " via Datastar SSE" }</span>
+	</div>
+}
+
+// DatastarWriteResult is the inline feedback returned by a Datastar form write.
+templ DatastarWriteResult(message string, isError bool) {
+	<div id="datastar-write-result" class={ "datastar-result", templ.KV("error", isError) }>{ message }</div>
+}

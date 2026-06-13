@@ -1,0 +1,142 @@
+// demo-ui.js — the demo's own behaviour layered on top of the generic broker.
+//
+// The reusable broker (pkg/runtime/gohtmxelm-broker.js) knows nothing about
+// this app's store, optimistic locking, or teaching UI. It only emits
+// `gohtmxelm:*` DOM events. Everything app-specific lives here:
+//   • mirror Elm STATE_SET writes to the Go store with optimistic versioning
+//   • track per-key versions + the global seq from the store SSE stream
+//   • drive the HTMX store-refresh / stopwatch-controls re-renders
+//   • render the activity log, SSE status pill, and row-flash animation
+
+(function () {
+  const storeVersions = new Map();
+  let storeSeq = 0;
+
+  // ── Mirror Elm writes to the store (optimistic lock) ──────────────────────
+  document.addEventListener("gohtmxelm:state-set", (e) => {
+    const { key, value, source } = e.detail;
+    const body = typeof value === "string" ? value : JSON.stringify(value);
+    const version = storeVersions.get(key) || 0;
+    log("elm", "go", `STATE_SET ${key} from ${source}`);
+    fetch("/api/store", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value: body, source, version }),
+    })
+      .then((res) => {
+        if (res.status === 409) {
+          log("go", "broker", `409 conflict on "${key}" — SSE will correct`);
+        }
+      })
+      .catch((err) => console.warn("store sync failed", err));
+  });
+
+  // ── React to forwarded SSE ────────────────────────────────────────────────
+  document.addEventListener("gohtmxelm:sse", (e) => {
+    const { event, data } = e.detail;
+    if (event === "store-hydrate") return applyStore(data, false);
+    if (event === "store-change") return applyStore(data, true);
+    if (event === "stopwatch-state") return applyStopwatch(data);
+  });
+
+  function applyStore(data, isDelta) {
+    if (!data || typeof data !== "object") return;
+    const { key, source, deleted, version, seq } = data;
+    if (isDelta && seq !== undefined && seq <= storeSeq) return; // stale redelivery
+    if (seq !== undefined) storeSeq = Math.max(storeSeq, seq);
+    if (deleted) storeVersions.delete(key);
+    else if (version !== undefined) storeVersions.set(key, version);
+
+    if (isDelta) {
+      const verb = deleted ? "STORE_DELETE" : "STORE_CHANGE";
+      log("sse", "elm", `${verb} key="${key}" by=${source || "?"}`);
+      flashStoreRow(key);
+    } else {
+      log("sse", "broker", `hydrate key="${key}"`);
+    }
+
+    const storeEl = document.getElementById("store-entries");
+    if (storeEl && window.htmx) window.htmx.trigger(storeEl, "store-refresh");
+  }
+
+  function applyStopwatch(snap) {
+    const running = !!(snap && snap.running);
+    const laps = snap && Array.isArray(snap.laps) ? snap.laps : [];
+    log("sse", "elm", `STOPWATCH_SNAPSHOT running=${running} laps=${laps.length}`);
+    if (window.htmx) window.htmx.trigger(document.body, "stopwatch-state-change");
+  }
+
+  // ── Lifecycle + teaching UI ───────────────────────────────────────────────
+  document.addEventListener("gohtmxelm:mounted", (e) => log("broker", e.detail.islandId, "mounted island"));
+  document.addEventListener("gohtmxelm:source-open", () => setSseStatus(true));
+  document.addEventListener("gohtmxelm:source-error", () => {
+    setSseStatus(false);
+    log("sse", "broker", "stream error — reconnecting in 3s");
+  });
+  document.addEventListener("gohtmxelm:htmx-swap", (e) =>
+    log("elm", "htmx", `HTMX_SWAP → ${e.detail.url} into ${e.detail.selector}`)
+  );
+  document.addEventListener("gohtmxelm:htmx-after-swap", (e) =>
+    log("htmx", "elm", `afterSwap → #${e.detail.targetId} from ${e.detail.url}`)
+  );
+
+  // Datastar owns its own island; these only narrate its activity in the log.
+  document.addEventListener("datastar-fetch", (e) => {
+    const type = e.detail?.type || "unknown";
+    const tag = e.detail?.el?.tagName?.toLowerCase() || "element";
+    log("datastar", "go", `${type} from ${tag}`);
+  });
+  document.addEventListener("datastar-signal-patch", (e) => {
+    const keys = Object.keys(e.detail || {}).join(", ") || "signals";
+    log("datastar", "dom", `signal patch: ${keys}`);
+  });
+
+  // ── Visual helpers ────────────────────────────────────────────────────────
+  function setSseStatus(connected) {
+    const el = document.getElementById("sse-status");
+    const txt = document.getElementById("sse-status-text");
+    if (!el || !txt) return;
+    el.className = `sse-status ${connected ? "connected" : "disconnected"}`;
+    txt.textContent = connected ? "SSE live" : "SSE disconnected";
+  }
+
+  function flashStoreRow(key) {
+    // The store-refresh swap lands shortly after; wait for it to settle.
+    setTimeout(() => {
+      const row = document.querySelector(`[data-store-key="${CSS.escape(key)}"]`);
+      if (!row) return;
+      row.classList.remove("store-row-flash");
+      void row.offsetWidth; // restart the animation if mid-flight
+      row.classList.add("store-row-flash");
+    }, 120);
+  }
+
+  const FROM_CLASS = {
+    elm: "log-from-elm",
+    htmx: "log-from-htmx",
+    sse: "log-from-sse",
+    go: "log-from-go",
+    datastar: "log-from-datastar",
+    broker: "log-from-sse",
+  };
+
+  function log(from, to, description) {
+    const container = document.getElementById("activity-entries");
+    if (!container) return;
+    const placeholder = container.querySelector(".log-entry:only-child");
+    if (placeholder && placeholder.querySelector(".log-time")?.textContent === "--:--:--") {
+      placeholder.remove();
+    }
+    const now = new Date();
+    const time = [now.getHours(), now.getMinutes(), now.getSeconds()]
+      .map((n) => String(n).padStart(2, "0"))
+      .join(":");
+    const entry = document.createElement("div");
+    entry.className = "log-entry";
+    entry.innerHTML =
+      `<span class="log-time">${time}</span>` +
+      `<span class="log-msg"><span class="${FROM_CLASS[from] || ""}">[${from}→${to}]</span> ${description}</span>`;
+    container.prepend(entry);
+    while (container.children.length > 50) container.removeChild(container.lastChild);
+  }
+})();

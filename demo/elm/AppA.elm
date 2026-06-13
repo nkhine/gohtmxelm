@@ -1,7 +1,8 @@
 port module AppA exposing (main)
 
-import BrokerPort exposing (Model, decodeInbound, initialModel, ready, sendHtmxSwap, sendStateSet)
+import BrokerPort exposing (Inbound(..), Model, brokerState, decode, initialModel, ready, sendHtmxSwap, sendStateSet, storeChangeFromData)
 import Browser
+import Dict
 import Html exposing (Html, button, div, form, input, p, span, text)
 import Html.Attributes exposing (class, disabled, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
@@ -105,44 +106,48 @@ update msg model =
             )
 
         BrokerIn value ->
-            case decodeInbound value of
-                Ok inbound ->
-                    let
-                        shared =
-                            model.shared
-                    in
-                    ( { model
-                        | shared =
-                            { shared
-                                | received = inbound.message
-                                , brokerReady = inbound.brokerReady || shared.brokerReady
-                                , storeState = inbound.storeState
-                                , lastWrite =
-                                    case inbound.storeChange of
-                                        Just change ->
-                                            Just change
+            let
+                shared =
+                    model.shared
 
-                                        Nothing ->
-                                            shared.lastWrite
-                                , lastHtmxSwap =
-                                    -- Gap 2: preserve the last swap target seen
-                                    case inbound.htmxSwapTarget of
-                                        Just _ ->
-                                            inbound.htmxSwapTarget
+                state =
+                    brokerState value
 
-                                        Nothing ->
-                                            shared.lastHtmxSwap
-                            }
-                      }
-                    , Cmd.none
-                    )
+                base =
+                    { shared
+                        | storeState = state
+                        , received = Dict.get "message" state |> Maybe.withDefault shared.received
+                    }
+            in
+            case decode value of
+                BrokerReady ->
+                    ( { model | shared = { base | brokerReady = True } }, Cmd.none )
 
-                Err err ->
-                    let
-                        _ =
-                            Debug.log "AppA BrokerIn decode error" (Decode.errorToString err)
-                    in
-                    ( model, Cmd.none )
+                Sse name data ->
+                    if name == "store-change" || name == "store-hydrate" then
+                        ( { model | shared = { base | lastWrite = keepLatest (storeChangeFromData data) shared.lastWrite } }, Cmd.none )
+
+                    else
+                        ( { model | shared = base }, Cmd.none )
+
+                HtmxAfterSwap target ->
+                    -- Gap 2: preserve the last swap target seen.
+                    ( { model | shared = { base | lastHtmxSwap = keepLatest target shared.lastHtmxSwap } }, Cmd.none )
+
+                _ ->
+                    ( { model | shared = base }, Cmd.none )
+
+
+{-| Prefer a new value when present, otherwise keep the previous one.
+-}
+keepLatest : Maybe a -> Maybe a -> Maybe a
+keepLatest incoming previous =
+    case incoming of
+        Just _ ->
+            incoming
+
+        Nothing ->
+            previous
 
 
 view : AppModel -> Html Msg

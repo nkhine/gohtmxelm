@@ -37,7 +37,7 @@ into the page.
 
 ## 3.2 How HTMX works, on the wire
 
-HTMX adds a few HTML attributes. Here is the HTMX write form from this app
+HTMX adds a few HTML attributes. Here is the HTMX write form from the reference demo
 ([`demo/internal/ui/page.templ`](../demo/internal/ui/page.templ)):
 
 ```html
@@ -151,7 +151,7 @@ good at:
 - continuous local computation (a live-updating chart from a fast data feed),
 - anything where the *interesting logic is inherently client-side*.
 
-This app respects that boundary precisely. HTMX owns the **server-rendered store
+The reference demo respects that boundary precisely. HTMX owns the **server-rendered store
 table** and the **stopwatch control buttons** — request/response surfaces. It does
 *not* try to own the live-ticking readout (that's Datastar's push job) or the
 typed lap analytics (that's Elm's computation job). A tool with a clear boundary

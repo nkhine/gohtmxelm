@@ -3,6 +3,8 @@ package store
 import (
 	"sort"
 	"sync"
+
+	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
 )
 
 // Event is emitted to subscribers whenever a key is written or deleted.
@@ -31,19 +33,19 @@ type entry struct {
 
 // Store is a thread-safe in-memory key/value store with pub/sub change
 // notifications, per-key versioning, write attribution, and a global
-// sequence counter.
+// sequence counter. Fan-out is delegated to a generic Broadcaster.
 type Store struct {
-	mu          sync.RWMutex
-	data        map[string]entry
-	seq         uint64
-	subscribers map[chan Event]struct{}
+	mu     sync.RWMutex
+	data   map[string]entry
+	seq    uint64
+	events *gohtmxelm.Broadcaster[Event]
 }
 
 // New returns an initialised, empty Store.
 func New() *Store {
 	return &Store{
-		data:        make(map[string]entry),
-		subscribers: make(map[chan Event]struct{}),
+		data:   make(map[string]entry),
+		events: gohtmxelm.NewBroadcaster[Event](16),
 	}
 }
 
@@ -123,10 +125,9 @@ func (s *Store) SetIf(key, value, source string, wantVersion uint64) (uint64, bo
 	s.seq++
 	seq := s.seq
 	s.data[key] = entry{value: value, version: seq, source: source}
-	subs := s.subscriberList()
 	s.mu.Unlock()
 
-	s.notify(subs, Event{Key: key, Value: value, Source: source, Version: seq, Seq: seq})
+	s.events.Publish(Event{Key: key, Value: value, Source: source, Version: seq, Seq: seq})
 	return seq, true
 }
 
@@ -141,46 +142,25 @@ func (s *Store) Delete(key, source string) bool {
 	delete(s.data, key)
 	s.seq++
 	seq := s.seq
-	subs := s.subscriberList()
 	s.mu.Unlock()
 
-	s.notify(subs, Event{Key: key, Source: source, Deleted: true, Version: seq, Seq: seq})
+	s.events.Publish(Event{Key: key, Source: source, Deleted: true, Version: seq, Seq: seq})
 	return true
 }
 
-// subscriberList must be called with s.mu held.
-func (s *Store) subscriberList() []chan Event {
-	subs := make([]chan Event, 0, len(s.subscribers))
-	for ch := range s.subscribers {
-		subs = append(subs, ch)
-	}
-	return subs
+// Events exposes the broadcaster so SSE handlers can stream changes with
+// gohtmxelm.Serve.
+func (s *Store) Events() *gohtmxelm.Broadcaster[Event] {
+	return s.events
 }
 
-func (s *Store) notify(subs []chan Event, e Event) {
-	for _, ch := range subs {
-		select {
-		case ch <- e:
-		default:
-			// drop slow consumers; they resync on the next SSE reconnect
-		}
-	}
-}
-
-// Subscribe returns a buffered channel that receives every subsequent write event.
-// Call Unsubscribe when the subscriber is done.
+// Subscribe returns a buffered channel that receives every subsequent write
+// event. Call Unsubscribe when the subscriber is done.
 func (s *Store) Subscribe() chan Event {
-	ch := make(chan Event, 16)
-	s.mu.Lock()
-	s.subscribers[ch] = struct{}{}
-	s.mu.Unlock()
-	return ch
+	return s.events.Subscribe()
 }
 
 // Unsubscribe removes the channel and closes it.
 func (s *Store) Unsubscribe(ch chan Event) {
-	s.mu.Lock()
-	delete(s.subscribers, ch)
-	s.mu.Unlock()
-	close(ch)
+	s.events.Unsubscribe(ch)
 }
