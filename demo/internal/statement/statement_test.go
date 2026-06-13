@@ -78,16 +78,56 @@ func TestApplyCustomValidatesOrder(t *testing.T) {
 	}
 }
 
-func TestSeedCoversTightPresets(t *testing.T) {
+func TestNewStartsEmpty(t *testing.T) {
+	if got := newFixed().Count(); got != 0 {
+		t.Fatalf("a new statement should hold no transfers, got %d", got)
+	}
+}
+
+func TestSeedAddsTransfersInWindow(t *testing.T) {
 	s := newFixed()
+	if added := s.Seed(20, 15*time.Minute); added != 20 {
+		t.Fatalf("Seed returned %d, want 20", added)
+	}
+	if s.Count() != 20 {
+		t.Fatalf("count = %d, want 20 (table starts empty)", s.Count())
+	}
 	r, _ := s.ApplyRelative(15, "minutes")
-	if len(s.Transfers(r)) == 0 {
-		t.Fatal("expected at least one transfer in the last 15 minutes")
+	if got := len(s.Transfers(r)); got != 20 {
+		t.Fatalf("expected 20 transfers in the last 15 min after seeding, got %d", got)
+	}
+}
+
+func TestAllRangeListsEverything(t *testing.T) {
+	s := newFixed()
+	s.Seed(40, 90*24*time.Hour) // scattered over 90 days
+	r, err := s.ApplyRelative(1, "all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Label != "All transfers" {
+		t.Fatalf("all range label = %q", r.Label)
+	}
+	if len(s.Transfers(r)) != s.Count() {
+		t.Fatalf("'all' should list every transfer: got %d of %d", len(s.Transfers(r)), s.Count())
+	}
+}
+
+func TestSeedPublishes(t *testing.T) {
+	s := newFixed()
+	ch := s.Events().Subscribe()
+	defer s.Events().Unsubscribe(ch)
+	s.Seed(5, time.Hour)
+	select {
+	case <-ch:
+	case <-time.After(time.Second):
+		t.Fatal("Seed should publish a range event")
 	}
 }
 
 func TestWiderPresetIncludesMoreOrEqual(t *testing.T) {
 	s := newFixed()
+	s.Seed(200, 12*7*24*time.Hour)
 	r15, _ := s.ApplyRelative(15, "minutes")
 	r3mo, _ := s.ApplyRelative(12, "weeks")
 	if len(s.Transfers(r3mo)) < len(s.Transfers(r15)) {
@@ -95,30 +135,50 @@ func TestWiderPresetIncludesMoreOrEqual(t *testing.T) {
 	}
 }
 
-func TestSummaryBalancesAreConsistent(t *testing.T) {
+func TestSummaryBucketsAndAvailable(t *testing.T) {
 	s := newFixed()
+	s.Seed(200, 12*7*24*time.Hour)
 	r, _ := s.ApplyRelative(12, "weeks")
 	sum := s.Summary(r)
-	if sum.ClosingMinor != sum.OpeningMinor+sum.CreditsMinor-sum.DebitsMinor {
-		t.Fatalf("closing != opening + credits - debits: %+v", sum)
-	}
+
+	// Count includes RETURNED rows; buckets do not.
 	if sum.Count != len(s.Transfers(r)) {
 		t.Fatalf("summary count %d != transfers %d", sum.Count, len(s.Transfers(r)))
 	}
+	for _, v := range []int64{sum.CreditsPosted, sum.DebitsPosted, sum.CreditsPending, sum.DebitsPending} {
+		if v < 0 {
+			t.Fatalf("bucket should be non-negative: %+v", sum)
+		}
+	}
+	// Available follows the unimatrix formula, clamped at zero.
+	want := sum.CreditsPosted - sum.DebitsPosted - sum.DebitsPending
+	if want < 0 {
+		want = 0
+	}
+	if sum.AvailableMinor() != want {
+		t.Fatalf("available = %d, want %d", sum.AvailableMinor(), want)
+	}
 }
 
-func TestRunningBalanceEndsAtClosing(t *testing.T) {
+func TestReturnedExcludedFromBuckets(t *testing.T) {
 	s := newFixed()
+	s.Seed(200, 12*7*24*time.Hour)
 	r, _ := s.ApplyRelative(12, "weeks")
-	transfers := s.Transfers(r) // newest-first
 	sum := s.Summary(r)
-	balances := RunningBalance(sum.OpeningMinor, transfers)
-	if len(transfers) == 0 {
-		t.Skip("no transfers in window")
+	bucketTotal := sum.CreditsPosted + sum.DebitsPosted + sum.CreditsPending + sum.DebitsPending
+	var bucketed, returned int64
+	for _, tr := range s.Transfers(r) {
+		if tr.Status == StatusReturned {
+			returned += tr.AmountMinor
+		} else {
+			bucketed += tr.AmountMinor
+		}
 	}
-	// The newest transfer (index 0) carries the closing balance.
-	if balances[transfers[0].ID] != sum.ClosingMinor {
-		t.Fatalf("running balance at newest = %d, want closing %d", balances[transfers[0].ID], sum.ClosingMinor)
+	if bucketTotal != bucketed {
+		t.Fatalf("bucket total %d != non-returned total %d", bucketTotal, bucketed)
+	}
+	if returned == 0 {
+		t.Skip("no returned transfers in window to exclude")
 	}
 }
 

@@ -68,6 +68,21 @@ func (s *Stream) PatchElements(elements string) error {
 	return nil
 }
 
+// PatchElementsMode writes a Datastar element patch with an explicit mode
+// (e.g. "prepend", "append") and optional selector, then flushes.
+func (s *Stream) PatchElementsMode(mode, selector, elements string) error {
+	if err := WriteDatastarPatchElementsMode(s.w, mode, selector, elements); err != nil {
+		return err
+	}
+	s.f.Flush()
+	return nil
+}
+
+// RemoveElements removes the elements matching selector via a Datastar patch.
+func (s *Stream) RemoveElements(selector string) error {
+	return s.PatchElementsMode("remove", selector, "")
+}
+
 // PatchSignals writes a Datastar signal patch, then flushes. Unlike the
 // lower-level WriteDatastarPatchSignals (which takes a pre-encoded string),
 // this marshals any value to JSON for a consistent contract with Send.

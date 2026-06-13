@@ -48,6 +48,7 @@ quickPresets =
     , ( "12h", 12, "hours" )
     , ( "1d", 1, "days" )
     , ( "1w", 1, "weeks" )
+    , ( "All", 1, "all" )
     ]
 
 

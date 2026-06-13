@@ -25,7 +25,7 @@ templ StatementExample() {
 		<div
 			id="statement-summary-panel"
 			class="statement-summary-panel datastar-live"
-			data-signals="{period: '—', count: 0, opening: '—', credits: '—', debits: '—', closing: '—'}"
+			data-signals="{period: '—', count: 0, creditsPosted: '—', debitsPosted: '—', creditsPending: '—', debitsPending: '—', available: '—'}"
 			data-init="@get('/api/statement/stream')">
 			<h3>Datastar summary &middot; server-pushed signals</h3>
 			<div
@@ -37,7 +37,7 @@ templ StatementExample() {
 			<div class="summary-headline">
 				<span class="summary-chip period" data-text="$period">—</span>
 				<span class="summary-chip" data-text="$count + ' transfers'">0 transfers</span>
-				<span class="summary-chip" data-text="'Closing ' + $closing">Closing —</span>
+				<span class="summary-chip avail" data-text="'Available ' + $available">Available —</span>
 			</div>
 			<div id="statement-summary">
 				<p class="muted">Opening Datastar stream&hellip;</p>
@@ -56,28 +56,31 @@ templ StatementExample() {
 }
 
 // StatementSummary is the Datastar-owned summary region, patched over SSE on
-// every range change. The selected period is shown by the live $period chip in
-// the panel headline, so the region itself is just the balance grid.
+// every range change: the four unimatrix buckets (posted/pending × credit/
+// debit) plus the derived available balance. The selected period is shown by
+// the live $period chip in the panel headline.
 templ StatementSummary(sum statement.Summary) {
 	<div id="statement-summary">
 		<div class="summary-grid">
-			@summaryStat("Opening balance", gbp(sum.OpeningMinor), "")
-			@summaryStat("Money in", gbp(sum.CreditsMinor), "in")
-			@summaryStat("Money out", gbp(sum.DebitsMinor), "out")
-			@summaryStat("Closing balance", gbp(sum.ClosingMinor), "")
+			@summaryStat("Credits posted", gbp(sum.CreditsPosted), "in")
+			@summaryStat("Debits posted", gbp(sum.DebitsPosted), "out")
+			@summaryStat("Credits pending", gbp(sum.CreditsPending), "pending")
+			@summaryStat("Debits pending", gbp(sum.DebitsPending), "pending")
+			@summaryStat("Available", gbp(sum.AvailableMinor()), "avail")
 		</div>
+		<p class="summary-formula">available = credits_posted − debits_posted − debits_pending</p>
 	</div>
 }
 
 templ summaryStat(label string, value string, tone string) {
-	<div class={ "summary-stat", templ.KV("summary-in", tone == "in"), templ.KV("summary-out", tone == "out") }>
+	<div class={ "summary-stat", templ.KV("summary-"+tone, tone != "") }>
 		<span class="summary-label">{ label }</span>
 		<span class="summary-value">{ value }</span>
 	</div>
 }
 
 // StatementTransfers is the HTMX-rendered table fragment for the active range.
-templ StatementTransfers(transfers []statement.Transfer, opening int64) {
+templ StatementTransfers(transfers []statement.Transfer) {
 	if len(transfers) == 0 {
 		<p class="muted" style="padding:1rem;">No transfers in this range. Pick a wider window.</p>
 	} else {
@@ -91,25 +94,23 @@ templ StatementTransfers(transfers []statement.Transfer, opening int64) {
 					<th>Status</th>
 					<th class="num">Money out</th>
 					<th class="num">Money in</th>
-					<th class="num">Balance</th>
 				</tr>
 			</thead>
 			<tbody>
-				for _, row := range statementRows(transfers, opening) {
+				for _, t := range transfers {
 					<tr>
-						<td class="nowrap">{ transferTime(row.T) }</td>
+						<td class="nowrap">{ transferTime(t) }</td>
 						<td>
-							{ row.T.Counterparty }
-							if row.T.IsRefund {
+							{ t.Counterparty }
+							if t.IsRefund {
 								<span class="refund-chip">refund</span>
 							}
 						</td>
-						<td class="mono">{ row.T.Reference }</td>
-						<td><span class="method-chip">{ row.T.Method }</span></td>
-						<td><span class={ "status-chip", statusClass(row.T.Status) }>{ row.T.Status }</span></td>
-						<td class="num out">{ moneyOut(row.T) }</td>
-						<td class="num in">{ moneyIn(row.T) }</td>
-						<td class={ "num", balanceClass(row.BalanceMinor) }>{ gbp(row.BalanceMinor) }</td>
+						<td class="mono">{ t.Reference }</td>
+						<td><span class="method-chip">{ t.Method }</span></td>
+						<td><span class={ "status-chip", statusClass(t.Status) }>{ t.Status }</span></td>
+						<td class="num out">{ moneyOut(t) }</td>
+						<td class="num in">{ moneyIn(t) }</td>
 					</tr>
 				}
 			</tbody>
