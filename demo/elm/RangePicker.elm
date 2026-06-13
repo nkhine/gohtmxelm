@@ -9,50 +9,63 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 
 
-{-| RangePicker is the Elm member of the bank-statement fusion: a typed range
-selector modelled on the starbase / CloudWatch pickers. Relative presets live on
-the right; an absolute range is chosen on a two-month calendar by clicking a
-start day then an end day, with a live hover preview and start/in-range/end
-highlighting. It owns no data — it sends the chosen range to Go, which resolves
-and broadcasts it; the picker then reflects the server-confirmed window.
+{-| RangePicker is the Elm member of the bank-statement fusion: a compact
+CloudWatch-style range bar. Quick relative presets sit on a single bar; a
+"Custom" button reveals a panel with two tabs — Absolute (a two-month calendar
+range, click start then end) and Relative (pick "last N" by minutes / hours /
+days / weeks). It owns no data: it sends the chosen range to Go, which resolves
+and broadcasts it, then reflects the server-confirmed window.
 -}
 type alias Date =
     { year : Int, month : Int, day : Int }
 
 
+type Tab
+    = Absolute
+    | Relative
+
+
 type alias Model =
-    { brokerReady : Bool
-    , activePreset : Maybe String
+    { activeRel : Maybe ( Int, String ) -- (value, unit) of the active relative range
+    , customOpen : Bool
+    , tab : Tab
     , today : Maybe Date
-    , month : Maybe Date -- first day of the left-hand visible month
-    , selStart : Maybe Date -- armed start day during selection
+    , month : Maybe Date
+    , selStart : Maybe Date
     , selHover : Maybe Date
-    , committed : Maybe ( Date, Date ) -- last committed custom range
+    , committed : Maybe ( Date, Date ) -- last committed absolute range
     , activeLabel : String
     , activeCount : Maybe Int
     }
 
 
-type alias Preset =
-    { key : String, label : String }
+{-| Quick-bar presets: (label, value, unit).
+-}
+quickPresets : List ( String, Int, String )
+quickPresets =
+    [ ( "1h", 1, "hours" )
+    , ( "3h", 3, "hours" )
+    , ( "12h", 12, "hours" )
+    , ( "1d", 1, "days" )
+    , ( "1w", 1, "weeks" )
+    ]
 
 
-presets : List Preset
-presets =
-    [ Preset "15m" "Last 15 min"
-    , Preset "30m" "Last 30 min"
-    , Preset "1h" "Last 1 hour"
-    , Preset "3h" "Last 3 hours"
-    , Preset "24h" "Last 24 hours"
-    , Preset "2d" "Last 2 days"
-    , Preset "2w" "Last 2 weeks"
-    , Preset "1mo" "Last 1 month"
-    , Preset "3mo" "Last 3 months"
+{-| Relative-tab grids: (heading, unit, values).
+-}
+relGroups : List ( String, String, List Int )
+relGroups =
+    [ ( "Minutes", "minutes", [ 5, 10, 15, 20, 25, 30, 35, 40, 45 ] )
+    , ( "Hours", "hours", List.range 1 12 )
+    , ( "Days", "days", List.range 1 6 )
+    , ( "Weeks", "weeks", List.range 1 4 )
     ]
 
 
 type Msg
-    = PickPreset String
+    = PickRelative Int String
+    | ToggleCustom
+    | SetTab Tab
     | DayClick Date
     | DayHover Date
     | ShiftMonth Int
@@ -72,14 +85,15 @@ main =
 
 init : Decode.Value -> ( Model, Cmd Msg )
 init _ =
-    ( { brokerReady = False
-      , activePreset = Just "24h"
+    ( { activeRel = Just ( 1, "days" )
+      , customOpen = False
+      , tab = Absolute
       , today = Nothing
       , month = Nothing
       , selStart = Nothing
       , selHover = Nothing
       , committed = Nothing
-      , activeLabel = "Last 24 hours"
+      , activeLabel = "Last 1 day"
       , activeCount = Nothing
       }
     , ready
@@ -89,10 +103,22 @@ init _ =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        PickPreset key ->
-            ( { model | activePreset = Just key, committed = Nothing, selStart = Nothing, selHover = Nothing }
-            , sendRange (presetPayload key)
+        PickRelative value unit ->
+            ( { model
+                | activeRel = Just ( value, unit )
+                , committed = Nothing
+                , selStart = Nothing
+                , selHover = Nothing
+                , customOpen = False
+              }
+            , sendRange (relativePayload value unit)
             )
+
+        ToggleCustom ->
+            ( { model | customOpen = not model.customOpen }, Cmd.none )
+
+        SetTab tab ->
+            ( { model | tab = tab }, Cmd.none )
 
         DayHover d ->
             case model.selStart of
@@ -105,7 +131,6 @@ update msg model =
         DayClick d ->
             case model.selStart of
                 Nothing ->
-                    -- First click arms the range; second click commits it.
                     ( { model | selStart = Just d, selHover = Just d }, Cmd.none )
 
                 Just first ->
@@ -117,7 +142,8 @@ update msg model =
                         | selStart = Nothing
                         , selHover = Nothing
                         , committed = Just ( lo, hi )
-                        , activePreset = Nothing
+                        , activeRel = Nothing
+                        , customOpen = False
                       }
                     , sendRange (customPayload lo hi)
                     )
@@ -131,7 +157,7 @@ update msg model =
         BrokerIn raw ->
             case decode raw of
                 BrokerReady ->
-                    ( { model | brokerReady = True }, Cmd.none )
+                    ( model, Cmd.none )
 
                 Sse "statement-range-change" data ->
                     let
@@ -166,13 +192,13 @@ sendRange payload =
     sendStateSet "broker" "statementRange" (Encode.string payload)
 
 
-presetPayload : String -> String
-presetPayload key =
-    Encode.encode 0 (Encode.object [ ( "preset", Encode.string key ) ])
+relativePayload : Int -> String -> String
+relativePayload value unit =
+    Encode.encode 0
+        (Encode.object [ ( "relValue", Encode.int value ), ( "relUnit", Encode.string unit ) ])
 
 
-{-| A calendar range covers whole days: start at 00:00, end at 23:59 (inclusive),
-serialised as the datetime-local strings Go parses.
+{-| A calendar range covers whole days: start at 00:00, end at 23:59 inclusive.
 -}
 customPayload : Date -> Date -> String
 customPayload lo hi =
@@ -191,27 +217,75 @@ customPayload lo hi =
 view : Model -> Html Msg
 view model =
     div [ class "range-picker" ]
-        [ div [ class "range-head" ]
-            [ span [ class "range-current" ] [ text (triggerLabel model) ]
-            , case model.activeCount of
-                Just n ->
-                    span [ class "range-current-count" ] [ text (String.fromInt n ++ " transfers") ]
+        [ div [ class "range-bar" ]
+            (List.map (quickBtn model.activeRel) quickPresets
+                ++ [ button
+                        [ classList [ ( "range-custom-btn", True ), ( "active", model.customOpen || model.committed /= Nothing ) ]
+                        , onClick ToggleCustom
+                        ]
+                        [ text "Custom ▾" ]
+                   ]
+            )
+        , if model.customOpen then
+            viewCustomPanel model
 
-                Nothing ->
-                    span [ class "elm-hint" ] [ text "waiting for server…" ]
-            , if model.brokerReady then
-                span [ class "badge-ready" ] [ text "ready" ]
-
-              else
-                span [ class "badge-waiting" ] [ text "waiting" ]
-            ]
-        , div [ class "range-body" ]
-            [ div [ class "range-cals" ] (viewCalendars model)
-            , div [ class "range-presets-col" ]
-                (List.map (presetBtn model.activePreset) presets)
-            ]
-        , viewFooter model
+          else
+            text ""
         ]
+
+
+quickBtn : Maybe ( Int, String ) -> ( String, Int, String ) -> Html Msg
+quickBtn activeRel ( label, value, unit ) =
+    button
+        [ classList [ ( "range-quick", True ), ( "active", activeRel == Just ( value, unit ) ) ]
+        , onClick (PickRelative value unit)
+        ]
+        [ text label ]
+
+
+viewCustomPanel : Model -> Html Msg
+viewCustomPanel model =
+    div [ class "range-custom-panel" ]
+        [ div [ class "range-tabs" ]
+            [ tabBtn model.tab Absolute "Absolute"
+            , tabBtn model.tab Relative "Relative"
+            ]
+        , case model.tab of
+            Absolute ->
+                div [ class "range-abs" ]
+                    [ div [ class "range-cals" ] (viewCalendars model)
+                    , viewFooter model
+                    ]
+
+            Relative ->
+                div [ class "range-rel" ] (List.map (relGroupView model.activeRel) relGroups)
+        ]
+
+
+tabBtn : Tab -> Tab -> String -> Html Msg
+tabBtn current tab label =
+    button
+        [ classList [ ( "range-tab", True ), ( "active", current == tab ) ]
+        , onClick (SetTab tab)
+        ]
+        [ text label ]
+
+
+relGroupView : Maybe ( Int, String ) -> ( String, String, List Int ) -> Html Msg
+relGroupView activeRel ( heading, unit, values ) =
+    div [ class "rel-group" ]
+        [ span [ class "rel-label" ] [ text heading ]
+        , div [ class "rel-btns" ] (List.map (relBtn activeRel unit) values)
+        ]
+
+
+relBtn : Maybe ( Int, String ) -> String -> Int -> Html Msg
+relBtn activeRel unit value =
+    button
+        [ classList [ ( "rel-btn", True ), ( "active", activeRel == Just ( value, unit ) ) ]
+        , onClick (PickRelative value unit)
+        ]
+        [ text (String.fromInt value) ]
 
 
 viewCalendars : Model -> List (Html Msg)
@@ -264,9 +338,6 @@ calCell model monthDate dayNum =
 
                 Nothing ->
                     ( False, False, False )
-
-        isToday =
-            model.today == Just d
     in
     button
         [ classList
@@ -274,21 +345,12 @@ calCell model monthDate dayNum =
             , ( "in-range", isIn )
             , ( "range-start", isStart )
             , ( "range-end", isEnd )
-            , ( "is-today", isToday )
+            , ( "is-today", model.today == Just d )
             ]
         , onClick (DayClick d)
         , onMouseEnter (DayHover d)
         ]
         [ text (String.fromInt dayNum) ]
-
-
-presetBtn : Maybe String -> Preset -> Html Msg
-presetBtn active preset =
-    button
-        [ classList [ ( "range-preset", True ), ( "active", active == Just preset.key ) ]
-        , onClick (PickPreset preset.key)
-        ]
-        [ text preset.label ]
 
 
 viewFooter : Model -> Html Msg
@@ -310,9 +372,6 @@ viewFooter model =
         ]
 
 
-{-| The range shown on the calendar: the live selection while arming, otherwise
-the committed custom range.
--}
 previewRange : Model -> Maybe ( Date, Date )
 previewRange model =
     case ( model.selStart, model.selHover ) of
@@ -324,21 +383,6 @@ previewRange model =
 
         ( Nothing, _ ) ->
             model.committed
-
-
-triggerLabel : Model -> String
-triggerLabel model =
-    case model.activePreset of
-        Just key ->
-            presets |> List.filter (\p -> p.key == key) |> List.head |> Maybe.map .label |> Maybe.withDefault model.activeLabel
-
-        Nothing ->
-            case model.committed of
-                Just ( lo, hi ) ->
-                    formatDate lo ++ " – " ++ formatDate hi
-
-                Nothing ->
-                    model.activeLabel
 
 
 

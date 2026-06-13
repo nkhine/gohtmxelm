@@ -335,17 +335,18 @@ func main() {
 	// sets the active range, and fans the change out over SSE.
 	r.Post("/api/statement/range", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Preset string `json:"preset"`
-			From   string `json:"from"`
-			To     string `json:"to"`
+			RelValue int    `json:"relValue"`
+			RelUnit  string `json:"relUnit"`
+			From     string `json:"from"`
+			To       string `json:"to"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, "invalid body", http.StatusBadRequest)
 			return
 		}
 		var err error
-		if body.Preset != "" {
-			_, err = stmt.ApplyPreset(body.Preset)
+		if body.RelUnit != "" {
+			_, err = stmt.ApplyRelative(body.RelValue, body.RelUnit)
 		} else {
 			_, err = stmt.ApplyCustom(body.From, body.To)
 		}
@@ -366,10 +367,10 @@ func main() {
 			return
 		}
 		patch := func(s *gohtmxelm.Stream, rng statement.Range, sum statement.Summary) error {
-			if err := s.PatchElements(render(components.StatementSummary(sum, rng.Label))); err != nil {
+			if err := s.PatchElements(render(components.StatementSummary(sum))); err != nil {
 				return err
 			}
-			return s.PatchSignals(statementSignals(sum))
+			return s.PatchSignals(statementSignals(rng, sum))
 		}
 		_ = gohtmxelm.Serve(stream, stmt.Events(),
 			func(s *gohtmxelm.Stream) error {
@@ -424,9 +425,11 @@ func renderControls(w http.ResponseWriter, r *http.Request, snap stopwatch.Snaps
 }
 
 // statementSignals are the Datastar signals patched on every range change —
-// the headline counters that update with no client-side wiring.
-func statementSignals(sum statement.Summary) map[string]any {
+// the headline counters (and the selected period) that update with no
+// client-side wiring.
+func statementSignals(rng statement.Range, sum statement.Summary) map[string]any {
 	return map[string]any{
+		"period":  rng.Label,
 		"count":   sum.Count,
 		"opening": statement.FormatGBP(sum.OpeningMinor),
 		"credits": statement.FormatGBP(sum.CreditsMinor),
