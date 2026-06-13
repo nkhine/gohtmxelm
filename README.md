@@ -104,6 +104,7 @@ Keep the DOM ownership boundaries physical:
 cmd/gohtmxelm/          CLI for init and doctor workflows
 pkg/                    public importable Go package
 pkg/runtime/            embedded browser broker runtime
+pkg/simnet/             deterministic simulation harness for the convergence contract
 demo/internal/dynamo/   in-memory DynamoDB-style table (no external service)
 
 demo/                   reference app users can copy from
@@ -111,6 +112,7 @@ demo/main.go            demo server and routes
 demo/elm/               demo Elm source and elm.json
 demo/static/            demo browser assets
 demo/internal/store/    demo state store
+demo/internal/simviz/   drives pkg/simnet live for the contract simulator card
 demo/internal/ui/       demo templ shell/page composition
 demo/internal/ui/components/
                         demo templ components
@@ -135,6 +137,12 @@ library pattern in a real Go app. It includes:
   Docker/AWS). Submitting the form writes the rows and broadcasts the change, so
   the statement's HTMX table, Datastar summary, and Elm picker all update — the
   statement data is generated at runtime, not hard-coded.
+- a **Contract simulator** that runs the `pkg/simnet` harness live: it replays a
+  deterministic run over the library's own `Broadcaster` and visualises the full
+  request path (Go → Broadcaster → SSE → `bridge.js` → Elm/HTMX/Datastar) under
+  an adversarial network — dropping, delaying, and partitioning SSE while the
+  convergence invariant holds (or, with recovery off, fails reproducibly). See
+  [Testing the pattern](#testing-the-pattern).
 - local Elm source under `demo/elm`
 - demo-only browser assets under `demo/static`
 
@@ -162,6 +170,9 @@ Routes:
 /                   all demo examples
 /examples/message   message workbench only
 /examples/stopwatch stopwatch only
+/examples/statement bank-statement view only
+/examples/seed      seed transfers only
+/examples/simulator contract simulator only
 ```
 
 The Makefile copies Datastar from:
@@ -175,6 +186,44 @@ Override that path if needed:
 ```sh
 make dev DATASTAR_SRC=/path/to/datastar/bundles/datastar.js
 ```
+
+## Testing the pattern
+
+The contract this library makes is **convergence**: after writes stop and the
+network settles, every surface presents the same state Go owns. That guarantee
+is non-trivial because `Broadcaster` is intentionally **lossy** — `Publish`
+skips any subscriber whose buffer is full and never blocks, so a delivered
+stream alone cannot keep surfaces in sync. Convergence depends on
+**reconnect-and-rehydrate** (and/or idempotent snapshot events): a surface that
+misses an event reconnects and `Serve` re-sends the current snapshot.
+
+Two layers verify this, holding the model and the implementation to the **same
+invariants** (`simnet.CheckConvergence` / `simnet.CheckMonotonic`):
+
+- **`pkg/simnet`** — a self-contained, dependency-free deterministic simulation
+  kernel (PADST in spirit: single-threaded, seed-reproducible, invariant-checked
+  after every step). It models the broadcast→SSE→converge contract under a fault
+  profile (drop / delay / duplicate / reorder / partition) for both snapshot and
+  delta event semantics, and proves convergence holds with resync and diverges
+  without it. A failing run is reproducible from its `Seed`.
+- **Real-code tests** — `pkg/broadcaster_synctest_test.go` and
+  `pkg/serve_contract_test.go` drive the shipped `Broadcaster` / `Stream` /
+  `Serve` with Go's `testing/synctest` and `httptest`, asserting the same
+  invariants against the actual goroutines and SSE wire.
+
+```sh
+go test ./... -race          # both layers
+go test ./pkg/simnet/        # the contract model only
+```
+
+The **Contract simulator** card (`/examples/simulator`) runs the `simnet`
+harness live and visualises it. It auto-loops new seeds, but you can drive it:
+play/pause/step, change fault intensity, flip snapshot⇄delta, and **break it**
+(turn resync off) to watch divergence. Each completed run is recorded in a
+ledger with deterministic metrics (faults weathered, max lag); **violations are
+persisted to `sim-violations.jsonl`** (override with `SIM_LOG=...`), reloaded on
+startup, and **replayable** by seed straight from the ledger. See
+[docs/09 — Testing the contract](./docs/09-testing-the-contract.md).
 
 ## CSP Note
 

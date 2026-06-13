@@ -23,6 +23,7 @@ model.
 | 6 | [The fusion pattern](./06-fusion-pattern.md) | DOM ownership boundaries, broker responsibilities, and convergence through Go. |
 | 7 | [React and the SPA tax](./07-react-and-the-spa-tax.md) | Tradeoffs this pattern avoids and tradeoffs it keeps. |
 | 8 | [Svelte and compiler-driven UI](./08-svelte-the-compiler.md) | How compiler-oriented UI compares to this ownership model. |
+| 9 | [Testing the contract](./09-testing-the-contract.md) | The convergence invariant, deterministic simulation (`pkg/simnet`), real-code `synctest` tests, and the live simulator. |
 
 ## Core Model
 
@@ -40,3 +41,8 @@ The most important rule is physical DOM ownership:
 - Datastar patches its own regions.
 - Elm owns its own island roots.
 - Go coordinates shared state and broadcasts changes.
+
+Convergence — every surface ending up agreeing with Go — is the contract the
+model makes. [Chapter 9](./09-testing-the-contract.md) shows how it is verified
+deterministically and why it depends on reconnect-and-rehydrate rather than on
+guaranteed delivery.
