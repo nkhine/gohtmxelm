@@ -153,20 +153,22 @@ class ElmIslandBroker {
       [key]: value,
     };
     this.addActivityEntry("elm", "go", `STATE_SET ${key} from ${event.source}`);
-    this.syncToStore(key, value);
+    this.syncToStore(key, value, event.source);
     return true;
   }
 
   // Gap 3: carry the known version for optimistic locking; handle 409 by
   // logging — the SSE stream will deliver the winning value automatically.
-  syncToStore(key, value) {
+  // source attributes the write to the originating island (e.g. "app-a"),
+  // so every pane can show who last wrote.
+  syncToStore(key, value, source) {
     const storeValue =
       typeof value === "string" ? value : JSON.stringify(value);
     const version = this.storeVersions.get(key) || 0;
     fetch("/api/store", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, value: storeValue, version }),
+      body: JSON.stringify({ key, value: storeValue, source, version }),
     })
       .then((res) => {
         if (res.status === 409) {
@@ -290,19 +292,26 @@ class ElmIslandBroker {
       console.warn("store event parse error", err);
       return;
     }
-    const { key, value, version, seq } = parsed;
+    const { key, value, source, deleted, version, seq } = parsed;
 
     // Gap 3: discard stale deltas; hydration events bypass the check.
     if (checkSeq && seq !== undefined && seq <= this.storeSeq) {
       return;
     }
     if (seq !== undefined) this.storeSeq = Math.max(this.storeSeq, seq);
-    if (version !== undefined) this.storeVersions.set(key, version);
 
-    this.state = { ...this.state, [key]: value };
+    if (deleted) {
+      const { [key]: _gone, ...rest } = this.state;
+      this.state = rest;
+      this.storeVersions.delete(key);
+    } else {
+      if (version !== undefined) this.storeVersions.set(key, version);
+      this.state = { ...this.state, [key]: value };
+    }
 
     if (checkSeq) {
-      this.addActivityEntry("sse", "elm", `STORE_CHANGE key="${key}"`);
+      const verb = deleted ? "STORE_DELETE" : "STORE_CHANGE";
+      this.addActivityEntry("sse", "elm", `${verb} key="${key}" by=${source || "?"}`);
       this.flashStoreRow(key);
     } else {
       this.addActivityEntry("sse", "broker", `hydrate key="${key}"`);
@@ -313,7 +322,7 @@ class ElmIslandBroker {
       type: "STORE_CHANGE",
       source: "broker",
       target: "broadcast",
-      payload: { key, value },
+      payload: { key, value: deleted ? "" : value, source: source || "unknown", deleted: !!deleted },
     });
 
     const storeEl = document.getElementById("store-entries");
@@ -404,6 +413,7 @@ class ElmIslandBroker {
       htmx: "log-from-htmx",
       sse: "log-from-sse",
       go: "log-from-go",
+      datastar: "log-from-datastar",
       broker: "log-from-sse",
     }[from] || "";
 
@@ -463,3 +473,17 @@ ElmIslandBroker.prototype.handleHtmxAfterSwap = function (e) {
     payload: { targetId, url },
   });
 };
+
+// Datastar is deliberately not routed through the Elm broker: it owns its own
+// DOM island. These listeners only make the teaching event log show when
+// Datastar starts/finishes fetch-driven SSE work and when its signals change.
+document.addEventListener("datastar-fetch", (e) => {
+  const type = e.detail?.type || "unknown";
+  const tag = e.detail?.el?.tagName?.toLowerCase() || "element";
+  window.ElmIslandBroker.addActivityEntry("datastar", "go", `${type} from ${tag}`);
+});
+
+document.addEventListener("datastar-signal-patch", (e) => {
+  const keys = Object.keys(e.detail || {}).join(", ") || "signals";
+  window.ElmIslandBroker.addActivityEntry("datastar", "dom", `signal patch: ${keys}`);
+});

@@ -1,9 +1,8 @@
 port module AppB exposing (main)
 
-import BrokerPort exposing (Inbound, Model, decodeInbound, initialModel, ready, sendStateSet)
+import BrokerPort exposing (Model, StoreChange, decodeInbound, initialModel, ready, sendStateSet)
 import Browser
-import Dict
-import Html exposing (Html, button, div, h3, p, span, strong, table, tbody, td, text, th, thead, tr)
+import Html exposing (Html, button, div, h3, p, span, table, tbody, td, text, th, thead, tr)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
@@ -16,13 +15,28 @@ port brokerOut : Encode.Value -> Cmd msg
 port brokerIn : (Decode.Value -> msg) -> Sub msg
 
 
+{-| App B is a typed event log: every store mutation that arrives over SSE
+(no matter whether HTMX, Datastar, another Elm island, or Go wrote it) is
+decoded into a StoreChange and folded into a bounded history list — modelling
+an event stream is exactly what Elm's update loop is for.
+-}
+type alias AppModel =
+    { shared : Model
+    , history : List StoreChange
+    }
+
+
+historyLimit : Int
+historyLimit =
+    6
+
+
 type Msg
-    = SendToA
-    | Broadcast
+    = SetSharedMessage
     | BrokerIn Decode.Value
 
 
-main : Program Decode.Value Model Msg
+main : Program Decode.Value AppModel Msg
 main =
     Browser.element
         { init = init
@@ -32,44 +46,45 @@ main =
         }
 
 
-init : Decode.Value -> ( Model, Cmd Msg )
+init : Decode.Value -> ( AppModel, Cmd Msg )
 init flags =
     let
         islandId =
             Decode.decodeValue (Decode.field "islandId" Decode.string) flags
                 |> Result.withDefault "app-b"
     in
-    ( initialModel islandId, ready brokerOut )
+    ( { shared = initialModel islandId, history = [] }, ready brokerOut )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> AppModel -> ( AppModel, Cmd Msg )
 update msg model =
     case msg of
-        SendToA ->
+        SetSharedMessage ->
             ( model
-            , sendStateSet brokerOut "app-a" "message" (Encode.string "Hello from App B to App A")
-            )
-
-        Broadcast ->
-            ( model
-            , sendStateSet brokerOut "broadcast" "message" (Encode.string "Hello from App B to everyone")
+            , sendStateSet brokerOut "broadcast" "message" (Encode.string "Message written by Elm App B")
             )
 
         BrokerIn value ->
             case decodeInbound value of
                 Ok inbound ->
+                    let
+                        shared =
+                            model.shared
+                    in
                     ( { model
-                        | received = inbound.message
-                        , brokerReady = inbound.brokerReady || model.brokerReady
-                        , storeState = inbound.storeState
-                        , lastHtmxSwap =
-                            -- Gap 2: passive observer — sees every swap that AppA (or HTMX) triggers
-                            case inbound.htmxSwapTarget of
-                                Just _ ->
-                                    inbound.htmxSwapTarget
+                        | shared =
+                            { shared
+                                | received = inbound.message
+                                , brokerReady = inbound.brokerReady || shared.brokerReady
+                                , storeState = inbound.storeState
+                            }
+                        , history =
+                            case inbound.storeChange of
+                                Just change ->
+                                    List.take historyLimit (change :: model.history)
 
                                 Nothing ->
-                                    model.lastHtmxSwap
+                                    model.history
                       }
                     , Cmd.none
                     )
@@ -82,39 +97,61 @@ update msg model =
                     ( model, Cmd.none )
 
 
-view : Model -> Html Msg
+view : AppModel -> Html Msg
 view model =
     div []
         [ div [ class "field-row" ]
-            [ span [ class "field-label" ] [ text "Island ID" ]
-            , span [ class "field-value" ] [ text model.islandId ]
-            ]
-        , div [ class "field-row" ]
             [ span [ class "field-label" ] [ text "Broker" ]
-            , if model.brokerReady then
+            , if model.shared.brokerReady then
                 span [ class "badge-ready" ] [ text "ready" ]
 
               else
                 span [ class "badge-waiting" ] [ text "waiting" ]
             ]
         , div [ class "field-row" ]
-            [ span [ class "field-label" ] [ text "Received" ]
-            , span [ class "field-value" ] [ text (nonempty model.received "(none)") ]
-            ]
-        , div [ class "field-row" ]
-            [ span [ class "field-label" ] [ text "Last HTMX swap" ]
-            , case model.lastHtmxSwap of
-                Just target ->
-                    span [ class "htmx-swap-tag" ] [ text target ]
-
-                Nothing ->
-                    span [ class "field-value" ] [ text "none yet" ]
+            [ span [ class "field-label" ] [ text "Shared message" ]
+            , span [ class "field-value" ] [ text (nonempty model.shared.received "(none)") ]
             ]
         , div [ class "btn-group" ]
-            [ button [ onClick SendToA ] [ text "Send to App A" ]
-            , button [ onClick Broadcast ] [ text "Broadcast" ]
+            [ button [ onClick SetSharedMessage ] [ text "Save from Elm B" ] ]
+        , viewHistory model.history
+        ]
+
+
+viewHistory : List StoreChange -> Html Msg
+viewHistory history =
+    if List.isEmpty history then
+        p [ class "elm-hint" ] [ text "No store events seen yet — write from any pane." ]
+
+    else
+        div [ class "elm-history" ]
+            [ h3 [ class "field-label" ]
+                [ text ("Last " ++ String.fromInt historyLimit ++ " store events") ]
+            , table []
+                [ thead []
+                    [ tr []
+                        [ th [] [ text "By" ]
+                        , th [] [ text "Key" ]
+                        , th [] [ text "Value" ]
+                        ]
+                    ]
+                , tbody [] (List.map viewChange history)
+                ]
             ]
-        , viewStoreState model.storeState
+
+
+viewChange : StoreChange -> Html Msg
+viewChange change =
+    tr []
+        [ td [] [ span [ class ("source-chip source-" ++ change.source) ] [ text change.source ] ]
+        , td [] [ text change.key ]
+        , td []
+            [ if change.deleted then
+                span [ class "elm-hint invalid" ] [ text "(deleted)" ]
+
+              else
+                text change.value
+            ]
         ]
 
 
@@ -125,32 +162,3 @@ nonempty s fallback =
 
     else
         s
-
-
-viewStoreState : Dict.Dict String String -> Html Msg
-viewStoreState state =
-    if Dict.isEmpty state then
-        p [ class "field-row" ] [ text "Store: (empty)" ]
-
-    else
-        div []
-            [ h3 [ class "field-label" ] [ text "Store snapshot" ]
-            , table []
-                [ thead []
-                    [ tr []
-                        [ th [] [ text "Key" ]
-                        , th [] [ text "Value" ]
-                        ]
-                    ]
-                , tbody []
-                    (List.map
-                        (\( k, v ) ->
-                            tr []
-                                [ td [] [ text k ]
-                                , td [] [ text v ]
-                                ]
-                        )
-                        (Dict.toList state)
-                    )
-                ]
-            ]
