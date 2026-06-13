@@ -6,10 +6,31 @@ converge. Every write is **attributed** — the Go store records which surface
 wrote (`htmx`, `datastar`, `app-a`, `app-b`, `go`) and every pane renders that
 same truth its own way.
 
+## Learn from it
+
+The [`docs/`](./docs/README.md) directory is a guided, read-in-order tour that
+uses this codebase to teach the stack from the bottom up — TCP and chunked
+encoding, Server-Sent Events, Go's streaming backend, the philosophy of HTMX,
+Datastar, and Elm, the fusion pattern that lets them coexist, and an honest look
+at what large client-side frameworks cost. Start at
+[`docs/README.md`](./docs/README.md).
+
 ## Run it
 
 ```sh
 make dev
+```
+
+For a live rebuild/restart loop while editing Go, templ, Elm, or `broker.js`:
+
+```sh
+make watch
+```
+
+`make watch` uses [Air](https://github.com/air-verse/air). Install it if needed:
+
+```sh
+go install github.com/air-verse/air@latest
 ```
 
 The Makefile copies Datastar from:
@@ -63,15 +84,28 @@ to the user.
 
 ## Hello Stopwatch
 
-The stopwatch card is a smaller "hello world" fusion:
+The stopwatch card is a compact four-way fusion around one server-owned timer:
 
-1. HTMX owns the start/stop/lap/reset buttons and swaps only the controls fragment.
-2. Go owns elapsed time and lap history, then broadcasts ticks while the timer is running.
-3. Datastar consumes `/api/stopwatch/stream` and patches the live elapsed readout plus lap list.
+1. **Go** owns elapsed time and lap history. A single goroutine ticks only while
+   the timer runs (it parks itself when paused) and fans out on two streams.
+2. **HTMX** owns the start/stop/lap/reset buttons. Each action `hx-post`s and
+   swaps the controls fragment. Crucially, the controls are also a self-refreshing
+   element (`hx-trigger="stopwatch-state-change from:body"`): when any tab acts,
+   an SSE state event re-triggers the fragment in every *other* tab, so the
+   controls never go stale across clients.
+3. **Datastar** consumes `/api/stopwatch/stream` and patches the live readout
+   every tick, but the lap list only on state changes — the 10/sec stream stays
+   small because the readout (`#stopwatch-readout`) and laps (`#stopwatch-laps`)
+   are separately targetable.
+4. **Elm** (`LapStats`) subscribes to the same stopwatch state (relayed by
+   `broker.js` from the JSON `/api/stopwatch/events` stream) and derives typed
+   lap analytics — fastest / slowest / average / last split — as a state machine
+   that models the no-laps case explicitly. No other layer computes these.
 
-The timer itself is server-owned, and the stopwatch intentionally has no Elm
-bundle. Elm stays in the message workbench where typed state matters; the
-stopwatch is the minimal HTMX + Datastar + Go example.
+The two streams are deliberate: `/api/stopwatch/stream` carries HTML patches for
+Datastar (every tick), while `/api/stopwatch/events` carries JSON and fires only
+on discrete state changes, which is all the Elm analyzer and the cross-tab
+control sync need.
 
 ## CSP Note
 

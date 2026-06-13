@@ -7,6 +7,7 @@ import (
 	"fmt"
 	htmlpkg "html"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -28,8 +29,14 @@ func main() {
 	kv := store.New()
 	kv.Set("greeting", "hello world")
 	kv.Set("status", "running")
+
+	// Shared lifecycle context: cancels on SIGINT/SIGTERM and stops the
+	// stopwatch tick goroutine cleanly alongside the HTTP server.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	stopwatch := NewStopwatch()
-	go stopwatch.Run(context.Background())
+	go stopwatch.Run(ctx)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -123,20 +130,77 @@ func main() {
 		ch := stopwatch.Subscribe()
 		defer stopwatch.Unsubscribe(ch)
 
-		writeDatastarPatchElements(w, renderStopwatchLive(stopwatch.Snapshot()))
+		// Hydrate the whole region on connect; afterwards push the readout
+		// every tick but the lap list only when it can have changed (state
+		// changes), so the 10/sec tick stream stays small.
+		snap := stopwatch.Snapshot()
+		writeDatastarPatchElements(w, renderStopwatchReadout(snap))
+		writeDatastarPatchElements(w, renderStopwatchLaps(snap))
 		flusher.Flush()
 
 		for {
 			select {
-			case snap, ok := <-ch:
+			case ev, ok := <-ch:
 				if !ok {
 					return
 				}
-				writeDatastarPatchElements(w, renderStopwatchLive(snap))
+				writeDatastarPatchElements(w, renderStopwatchReadout(ev.Snapshot))
+				if ev.StateChange {
+					writeDatastarPatchElements(w, renderStopwatchLaps(ev.Snapshot))
+				}
 				flusher.Flush()
 			case <-r.Context().Done():
 				return
 			}
+		}
+	})
+
+	// JSON stopwatch stream consumed by broker.js. Emits only on discrete
+	// state changes (start/stop/lap/reset), not on ticks: broker.js forwards
+	// these to the Elm lap analyzer and triggers an HTMX controls refresh so
+	// every connected tab converges on the same control state.
+	r.Get("/api/stopwatch/events", func(w http.ResponseWriter, r *http.Request) {
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("X-Accel-Buffering", "no")
+
+		ch := stopwatch.Subscribe()
+		defer stopwatch.Unsubscribe(ch)
+
+		writeSSE(w, "stopwatch-state", stopwatch.Snapshot())
+		flusher.Flush()
+
+		for {
+			select {
+			case ev, ok := <-ch:
+				if !ok {
+					return
+				}
+				if !ev.StateChange {
+					continue
+				}
+				writeSSE(w, "stopwatch-state", ev.Snapshot)
+				flusher.Flush()
+			case <-r.Context().Done():
+				return
+			}
+		}
+	})
+
+	// Controls fragment GET, used both on initial load and to re-render
+	// controls in tabs that did not initiate the change (HTMX hx-trigger
+	// fired by broker.js on the SSE state event).
+	r.Get("/api/stopwatch/controls", func(w http.ResponseWriter, r *http.Request) {
+		snap := stopwatch.Snapshot()
+		if err := templates.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
@@ -266,10 +330,14 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 0, // disabled — SSE connections are long-lived
 		IdleTimeout:  120 * time.Second,
+		// Derive every request context from the signal context so that on
+		// SIGINT/SIGTERM all in-flight SSE handlers unblock via r.Context()
+		// and return normally. That lets net/http finish each chunked stream
+		// cleanly (so the browser sees a complete response and EventSource
+		// simply reconnects) instead of the process being hard-killed
+		// mid-stream, which surfaces as ERR_INCOMPLETE_CHUNKED_ENCODING.
+		BaseContext: func(net.Listener) context.Context { return ctx },
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	go func() {
 		logger.Info("server started", "addr", addr)
@@ -283,7 +351,9 @@ func main() {
 	stop()
 	logger.Info("shutting down")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// SSE handlers return promptly now that their request contexts are
+	// cancelled, so a short grace period is enough.
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		logger.Error("shutdown failed", "error", err)
@@ -389,7 +459,6 @@ func datastarWriteResult(message string, isError bool) string {
 type StopwatchSnapshot struct {
 	ElapsedMs int64          `json:"elapsedMs"`
 	Running   bool           `json:"running"`
-	Seq       uint64         `json:"seq"`
 	Laps      []StopwatchLap `json:"laps"`
 }
 
@@ -398,31 +467,64 @@ type StopwatchLap struct {
 	ElapsedMs int64 `json:"elapsedMs"`
 }
 
+// StopwatchEvent is what subscribers receive. StateChange distinguishes a
+// discrete user action (start/stop/lap/reset) from a periodic tick, so
+// consumers that only care about control state (HTMX controls, the Elm lap
+// analyzer) can ignore the 10/sec tick stream.
+type StopwatchEvent struct {
+	Snapshot    StopwatchSnapshot
+	StateChange bool
+}
+
 type Stopwatch struct {
 	mu          sync.RWMutex
 	elapsed     time.Duration
 	startedAt   time.Time
 	running     bool
-	seq         uint64
 	laps        []time.Duration
-	subscribers map[chan StopwatchSnapshot]struct{}
+	subscribers map[chan StopwatchEvent]struct{}
+	now         func() time.Time // injectable clock for deterministic tests
+	wake        chan struct{}    // signals Run that the timer started ticking
 }
 
 func NewStopwatch() *Stopwatch {
 	return &Stopwatch{
-		subscribers: make(map[chan StopwatchSnapshot]struct{}),
+		subscribers: make(map[chan StopwatchEvent]struct{}),
+		now:         time.Now,
+		wake:        make(chan struct{}, 1),
 	}
 }
 
+// Run drives the periodic tick loop. The ticker only runs while the stopwatch
+// is running: when paused it stops the ticker and blocks on wake, so an idle
+// stopwatch does no work. Start() pokes wake to resume ticking.
 func (s *Stopwatch) Run(ctx context.Context) {
 	ticker := time.NewTicker(100 * time.Millisecond)
+	ticker.Stop()
 	defer ticker.Stop()
+
+	running := false
 	for {
-		select {
-		case <-ticker.C:
-			s.tick()
-		case <-ctx.Done():
-			return
+		if running {
+			select {
+			case <-ticker.C:
+				if _, ok := s.tick(); !ok {
+					ticker.Stop()
+					running = false
+				}
+			case <-s.wake:
+				// already ticking; nothing to do
+			case <-ctx.Done():
+				return
+			}
+		} else {
+			select {
+			case <-s.wake:
+				ticker.Reset(100 * time.Millisecond)
+				running = true
+			case <-ctx.Done():
+				return
+			}
 		}
 	}
 }
@@ -431,41 +533,43 @@ func (s *Stopwatch) Start() StopwatchSnapshot {
 	s.mu.Lock()
 	if !s.running {
 		s.running = true
-		s.startedAt = time.Now()
-		s.seq++
+		s.startedAt = s.now()
 	}
 	snap := s.snapshotLocked()
 	subs := s.subscriberListLocked()
 	s.mu.Unlock()
-	s.notify(subs, snap)
+	s.notify(subs, StopwatchEvent{Snapshot: snap, StateChange: true})
+	// Wake the tick loop without blocking if a poke is already pending.
+	select {
+	case s.wake <- struct{}{}:
+	default:
+	}
 	return snap
 }
 
 func (s *Stopwatch) Stop() StopwatchSnapshot {
 	s.mu.Lock()
 	if s.running {
-		s.elapsed += time.Since(s.startedAt)
+		s.elapsed += s.now().Sub(s.startedAt)
 		s.running = false
-		s.seq++
 	}
 	snap := s.snapshotLocked()
 	subs := s.subscriberListLocked()
 	s.mu.Unlock()
-	s.notify(subs, snap)
+	s.notify(subs, StopwatchEvent{Snapshot: snap, StateChange: true})
 	return snap
 }
 
 func (s *Stopwatch) Reset() StopwatchSnapshot {
 	s.mu.Lock()
 	s.elapsed = 0
-	s.startedAt = time.Now()
+	s.startedAt = s.now()
 	s.running = false
 	s.laps = nil
-	s.seq++
 	snap := s.snapshotLocked()
 	subs := s.subscriberListLocked()
 	s.mu.Unlock()
-	s.notify(subs, snap)
+	s.notify(subs, StopwatchEvent{Snapshot: snap, StateChange: true})
 	return snap
 }
 
@@ -474,12 +578,11 @@ func (s *Stopwatch) Lap() StopwatchSnapshot {
 	elapsed := s.elapsedLocked()
 	if elapsed > 0 {
 		s.laps = append([]time.Duration{elapsed}, s.laps...)
-		s.seq++
 	}
 	snap := s.snapshotLocked()
 	subs := s.subscriberListLocked()
 	s.mu.Unlock()
-	s.notify(subs, snap)
+	s.notify(subs, StopwatchEvent{Snapshot: snap, StateChange: true})
 	return snap
 }
 
@@ -489,32 +592,33 @@ func (s *Stopwatch) Snapshot() StopwatchSnapshot {
 	return s.snapshotLocked()
 }
 
-func (s *Stopwatch) Subscribe() chan StopwatchSnapshot {
-	ch := make(chan StopwatchSnapshot, 16)
+func (s *Stopwatch) Subscribe() chan StopwatchEvent {
+	ch := make(chan StopwatchEvent, 16)
 	s.mu.Lock()
 	s.subscribers[ch] = struct{}{}
 	s.mu.Unlock()
 	return ch
 }
 
-func (s *Stopwatch) Unsubscribe(ch chan StopwatchSnapshot) {
+func (s *Stopwatch) Unsubscribe(ch chan StopwatchEvent) {
 	s.mu.Lock()
 	delete(s.subscribers, ch)
 	s.mu.Unlock()
 	close(ch)
 }
 
+// tick emits a periodic (non-state-change) update. It returns ok=false when
+// the stopwatch is paused, which tells Run to stop the ticker.
 func (s *Stopwatch) tick() (StopwatchSnapshot, bool) {
 	s.mu.Lock()
 	if !s.running {
 		s.mu.Unlock()
 		return StopwatchSnapshot{}, false
 	}
-	s.seq++
 	snap := s.snapshotLocked()
 	subs := s.subscriberListLocked()
 	s.mu.Unlock()
-	s.notify(subs, snap)
+	s.notify(subs, StopwatchEvent{Snapshot: snap, StateChange: false})
 	return snap, true
 }
 
@@ -531,7 +635,6 @@ func (s *Stopwatch) snapshotLocked() StopwatchSnapshot {
 	return StopwatchSnapshot{
 		ElapsedMs: elapsed.Milliseconds(),
 		Running:   s.running,
-		Seq:       s.seq,
 		Laps:      laps,
 	}
 }
@@ -539,40 +642,68 @@ func (s *Stopwatch) snapshotLocked() StopwatchSnapshot {
 func (s *Stopwatch) elapsedLocked() time.Duration {
 	elapsed := s.elapsed
 	if s.running {
-		elapsed += time.Since(s.startedAt)
+		elapsed += s.now().Sub(s.startedAt)
 	}
 	return elapsed
 }
 
-func (s *Stopwatch) subscriberListLocked() []chan StopwatchSnapshot {
-	subs := make([]chan StopwatchSnapshot, 0, len(s.subscribers))
+func (s *Stopwatch) subscriberListLocked() []chan StopwatchEvent {
+	subs := make([]chan StopwatchEvent, 0, len(s.subscribers))
 	for ch := range s.subscribers {
 		subs = append(subs, ch)
 	}
 	return subs
 }
 
-func (s *Stopwatch) notify(subs []chan StopwatchSnapshot, snap StopwatchSnapshot) {
+func (s *Stopwatch) notify(subs []chan StopwatchEvent, ev StopwatchEvent) {
 	for _, ch := range subs {
 		select {
-		case ch <- snap:
+		case ch <- ev:
 		default:
 		}
 	}
 }
 
-func renderStopwatchLive(snap StopwatchSnapshot) string {
+// renderStopwatchReadout renders only the clock face — pushed on every tick.
+// The face is four concentric rings (hours, minutes, seconds, subseconds),
+// each filled by how far through its own unit the elapsed time currently is.
+func renderStopwatchReadout(snap StopwatchSnapshot) string {
+	status := "paused"
+	if snap.Running {
+		status = "running"
+	}
+	sub, sec, min, hour := stopwatchDials(snap.ElapsedMs)
+
+	var b strings.Builder
+	b.WriteString(`<div id="stopwatch-readout">`)
+	fmt.Fprintf(
+		&b,
+		`<div class="dial %s" style="--d-sub:%.2fdeg;--d-sec:%.2fdeg;--d-min:%.2fdeg;--d-hour:%.2fdeg">`,
+		status, sub, sec, min, hour,
+	)
+	// The dial-center is nested inside the innermost ring so each ring shows
+	// only as a band around its child.
+	b.WriteString(`<div class="ring ring-hour"><div class="ring ring-min"><div class="ring ring-sec"><div class="ring ring-sub">`)
+	b.WriteString(`<div class="dial-center">`)
+	fmt.Fprintf(&b, `<div class="stopwatch-time">%s</div>`, htmlpkg.EscapeString(formatElapsed(snap.ElapsedMs)))
+	fmt.Fprintf(&b, `<div class="stopwatch-state">%s</div>`, htmlpkg.EscapeString(status))
+	b.WriteString(`</div>`)                  // .dial-center
+	b.WriteString(`</div></div></div></div>`) // ring-sub, ring-sec, ring-min, ring-hour
+	b.WriteString(`</div>`)                   // .dial
+	b.WriteString(`</div>`)                   // #stopwatch-readout
+	return b.String()
+}
+
+// renderStopwatchLaps renders the lap list and live status — pushed only on
+// discrete state changes, since ticks never alter laps.
+func renderStopwatchLaps(snap StopwatchSnapshot) string {
 	status := "paused"
 	if snap.Running {
 		status = "running"
 	}
 
 	var b strings.Builder
-	b.WriteString(`<div id="stopwatch-live" class="stopwatch-live">`)
-	fmt.Fprintf(&b, `<div class="stopwatch-face" style="--progress:%s">`, htmlpkg.EscapeString(progressAngle(snap.ElapsedMs)))
-	fmt.Fprintf(&b, `<div class="stopwatch-time">%s</div>`, htmlpkg.EscapeString(formatElapsed(snap.ElapsedMs)))
-	fmt.Fprintf(&b, `<div class="stopwatch-state">%s</div>`, htmlpkg.EscapeString(status))
-	b.WriteString(`</div>`)
+	b.WriteString(`<div id="stopwatch-laps">`)
 	b.WriteString(`<div class="lap-list">`)
 	if len(snap.Laps) == 0 {
 		b.WriteString(`<p class="muted">No laps yet. Use the HTMX Lap button once the timer has started.</p>`)
@@ -592,15 +723,28 @@ func renderStopwatchLive(snap StopwatchSnapshot) string {
 	return b.String()
 }
 
+// formatElapsed formats milliseconds as HH:MM:SS:mmm.
 func formatElapsed(ms int64) string {
-	minutes := ms / 60000
+	hours := ms / 3600000
+	minutes := (ms / 60000) % 60
 	seconds := (ms / 1000) % 60
-	tenths := (ms / 100) % 10
-	return fmt.Sprintf("%02d:%02d.%d", minutes, seconds, tenths)
+	millis := ms % 1000
+	return fmt.Sprintf("%02d:%02d:%02d:%03d", hours, minutes, seconds, millis)
 }
 
-func progressAngle(ms int64) string {
-	return fmt.Sprintf("%.2fdeg", float64(ms%60000)/60000*360)
+// stopwatchDials returns the fill angle (degrees, 0–360) for each of the four
+// dial rings. Each ring shows how far the elapsed time has progressed through
+// its own unit: the subsecond ring completes once per second, the second ring
+// once per minute, the minute ring once per hour, and the hour ring once per
+// 12-hour cycle. Using the full millisecond value (rather than the integer
+// unit) makes each ring sweep smoothly rather than stepping.
+func stopwatchDials(ms int64) (sub, sec, min, hour float64) {
+	const deg = 360.0
+	sub = float64(ms%1000) / 1000.0 * deg          // fills every second
+	sec = float64(ms%60000) / 60000.0 * deg        // fills every minute
+	min = float64(ms%3600000) / 3600000.0 * deg    // fills every hour
+	hour = float64(ms%43200000) / 43200000.0 * deg // fills every 12 hours
+	return sub, sec, min, hour
 }
 
 func stopwatchCanLap(snap StopwatchSnapshot) bool {
