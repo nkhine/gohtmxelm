@@ -1,17 +1,10 @@
-port module LapStats exposing (main)
+module LapStats exposing (main)
 
 import Browser
-import BrokerPort exposing (Inbound(..), decode, ready)
+import BrokerPort exposing (Inbound(..), brokerIn, decode, ready)
 import Html exposing (Html, div, span, text)
 import Html.Attributes exposing (class)
 import Json.Decode as Decode
-import Json.Encode as Encode
-
-
-port brokerOut : Encode.Value -> Cmd msg
-
-
-port brokerIn : (Decode.Value -> msg) -> Sub msg
 
 
 {-| LapStats is the Elm member of the stopwatch fusion. It owns no DOM the
@@ -63,7 +56,7 @@ main =
 
 init : Decode.Value -> ( Model, Cmd Msg )
 init _ =
-    ( { brokerReady = False, running = False, laps = [] }, ready brokerOut )
+    ( { brokerReady = False, running = False, laps = [] }, ready )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

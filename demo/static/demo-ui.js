@@ -12,9 +12,12 @@
   const storeVersions = new Map();
   let storeSeq = 0;
 
-  // ── Mirror Elm writes to the store (optimistic lock) ──────────────────────
+  // ── Route Elm state writes to the right endpoint ──────────────────────────
+  // The host maps shared-state keys to server endpoints. "statementRange" is a
+  // range-picker command (a JSON string), not a KV write.
   document.addEventListener("gohtmxelm:state-set", (e) => {
     const { key, value, source } = e.detail;
+    if (key === "statementRange") return postRange(value);
     const body = typeof value === "string" ? value : JSON.stringify(value);
     const version = storeVersions.get(key) || 0;
     log("elm", "go", `STATE_SET ${key} from ${source}`);
@@ -31,13 +34,37 @@
       .catch((err) => console.warn("store sync failed", err));
   });
 
+  // The picker sends a JSON string ({"preset":"15m"} or {"from":...,"to":...}).
+  function postRange(value) {
+    let payload;
+    try {
+      payload = typeof value === "string" ? JSON.parse(value) : value;
+    } catch (err) {
+      return console.warn("invalid statementRange payload", value, err);
+    }
+    log("elm", "go", `range → ${payload.preset || payload.from + ".." + payload.to}`);
+    fetch("/api/statement/range", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch((err) => console.warn("range post failed", err));
+  }
+
   // ── React to forwarded SSE ────────────────────────────────────────────────
   document.addEventListener("gohtmxelm:sse", (e) => {
     const { event, data } = e.detail;
     if (event === "store-hydrate") return applyStore(data, false);
     if (event === "store-change") return applyStore(data, true);
     if (event === "stopwatch-state") return applyStopwatch(data);
+    if (event === "statement-range-change") return applyStatementRange(data);
   });
+
+  function applyStatementRange(data) {
+    const label = data && data.label ? data.label : "range";
+    const count = data && typeof data.count === "number" ? data.count : "?";
+    log("sse", "htmx", `STATEMENT_RANGE ${label} (${count})`);
+    if (window.htmx) window.htmx.trigger(document.body, "statement-range-change");
+  }
 
   function applyStore(data, isDelta) {
     if (!data || typeof data !== "object") return;

@@ -1,0 +1,129 @@
+package components
+
+import "github.com/nkhine/gohtmxelm/demo/internal/statement"
+
+// StatementExample is the bank-statement fusion card: an Elm range picker
+// drives a Go-owned date range; HTMX renders the statement table and Datastar
+// renders the live summary, all converging through one SSE broadcast.
+templ StatementExample() {
+	<section class="workbench statement-card" id="example-statement">
+		<div class="workbench-header">
+			<h2 class="workbench-title">Account statement</h2>
+			<div class="flow-line">
+				<span class="flow-tag flow-elm">Elm range picker</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-go">Go filters transfers</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-sse">SSE</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-htmx">HTMX table</span>
+				<span>+</span>
+				<span class="flow-tag flow-datastar">Datastar summary</span>
+			</div>
+		</div>
+
+		<div class="statement-grid">
+			<div class="statement-panel">
+				<h3>Elm range picker &middot; typed selection</h3>
+				<div
+					id="range-picker"
+					class="elm-island"
+					data-elm-module="RangePicker"
+					data-island-id="range-picker"
+					data-props="{}"></div>
+				<p class="control-note">
+					Presets and the custom window are a typed state machine in Elm.
+					The selection is sent to Go, which resolves it against the server
+					clock and broadcasts the result — every surface converges on the
+					same range.
+				</p>
+			</div>
+
+			<div
+				id="statement-summary-panel"
+				class="statement-panel datastar-live"
+				data-signals="{count: 0, opening: '—', credits: '—', debits: '—', closing: '—'}"
+				data-init="@get('/api/statement/stream')">
+				<h3>Datastar summary &middot; server-pushed signals</h3>
+				<div class="summary-headline">
+					<span class="summary-chip" data-text="$count + ' transfers'">0 transfers</span>
+					<span class="summary-chip" data-text="'Closing ' + $closing">Closing —</span>
+				</div>
+				<div id="statement-summary">
+					<p class="muted">Opening Datastar stream&hellip;</p>
+				</div>
+			</div>
+		</div>
+
+		<div
+			id="statement-table"
+			class="statement-table"
+			hx-get="/api/statement/transfers"
+			hx-trigger="load, statement-range-change from:body"
+			hx-swap="innerHTML">
+			<p class="muted" style="padding:1rem;">Loading statement&hellip;</p>
+		</div>
+	</section>
+}
+
+// StatementSummary is the Datastar-owned summary region, patched over SSE on
+// every range change.
+templ StatementSummary(sum statement.Summary, label string) {
+	<div id="statement-summary">
+		<p class="datastar-note">{ label }</p>
+		<div class="summary-grid">
+			@summaryStat("Opening balance", gbp(sum.OpeningMinor), "")
+			@summaryStat("Money in", gbp(sum.CreditsMinor), "in")
+			@summaryStat("Money out", gbp(sum.DebitsMinor), "out")
+			@summaryStat("Closing balance", gbp(sum.ClosingMinor), "")
+		</div>
+	</div>
+}
+
+templ summaryStat(label string, value string, tone string) {
+	<div class={ "summary-stat", templ.KV("summary-in", tone == "in"), templ.KV("summary-out", tone == "out") }>
+		<span class="summary-label">{ label }</span>
+		<span class="summary-value">{ value }</span>
+	</div>
+}
+
+// StatementTransfers is the HTMX-rendered table fragment for the active range.
+templ StatementTransfers(transfers []statement.Transfer, opening int64) {
+	if len(transfers) == 0 {
+		<p class="muted" style="padding:1rem;">No transfers in this range. Pick a wider window.</p>
+	} else {
+		<table class="statement-rows">
+			<thead>
+				<tr>
+					<th>When</th>
+					<th>Counterparty</th>
+					<th>Reference</th>
+					<th>Method</th>
+					<th>Status</th>
+					<th class="num">Money out</th>
+					<th class="num">Money in</th>
+					<th class="num">Balance</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, row := range statementRows(transfers, opening) {
+					<tr>
+						<td class="nowrap">{ transferTime(row.T) }</td>
+						<td>
+							{ row.T.Counterparty }
+							if row.T.IsRefund {
+								<span class="refund-chip">refund</span>
+							}
+						</td>
+						<td class="mono">{ row.T.Reference }</td>
+						<td><span class="method-chip">{ row.T.Method }</span></td>
+						<td><span class={ "status-chip", statusClass(row.T.Status) }>{ row.T.Status }</span></td>
+						<td class="num out">{ moneyOut(row.T) }</td>
+						<td class="num in">{ moneyIn(row.T) }</td>
+						<td class={ "num", balanceClass(row.BalanceMinor) }>{ gbp(row.BalanceMinor) }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

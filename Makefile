@@ -51,7 +51,7 @@ $(DATASTAR_JS):
 # All Elm islands compile into one bundle exposing window.Elm.{AppA,AppB,...},
 # which the broker looks up by module name.
 $(ELM_OUT): $(ELM_SRCS) demo/elm.json
-	cd demo && elm make elm/AppA.elm elm/AppB.elm elm/LapStats.elm --output=static/elm.js
+	cd demo && elm make elm/AppA.elm elm/AppB.elm elm/LapStats.elm elm/RangePicker.elm --output=static/elm.js
 
 $(TEMPL_OUT): $(TEMPL_SRCS)
 	templ generate

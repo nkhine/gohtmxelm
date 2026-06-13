@@ -1,6 +1,6 @@
-port module AppA exposing (main)
+module AppA exposing (main)
 
-import BrokerPort exposing (Inbound(..), Model, brokerState, decode, initialModel, ready, sendHtmxSwap, sendStateSet, storeChangeFromData)
+import BrokerPort exposing (Inbound(..), Model, brokerIn, brokerState, decode, initialModel, ready, sendHtmxSwap, sendStateSet, storeChangeFromData)
 import Browser
 import Dict
 import Html exposing (Html, button, div, form, input, p, span, text)
@@ -8,12 +8,6 @@ import Html.Attributes exposing (class, disabled, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Json.Decode as Decode
 import Json.Encode as Encode
-
-
-port brokerOut : Encode.Value -> Cmd msg
-
-
-port brokerIn : (Decode.Value -> msg) -> Sub msg
 
 
 {-| App A is the "Elm strength" showcase: a draft editor whose validity is a
@@ -78,7 +72,7 @@ init flags =
             Decode.decodeValue (Decode.field "islandId" Decode.string) flags
                 |> Result.withDefault "app-a"
     in
-    ( { shared = initialModel islandId, draft = "" }, ready brokerOut )
+    ( { shared = initialModel islandId, draft = "" }, ready )
 
 
 update : Msg -> AppModel -> ( AppModel, Cmd Msg )
@@ -91,7 +85,7 @@ update msg model =
             case classifyDraft model.draft of
                 Valid trimmed ->
                     ( { model | draft = "" }
-                    , sendStateSet brokerOut "broadcast" "message" (Encode.string trimmed)
+                    , sendStateSet "broadcast" "message" (Encode.string trimmed)
                     )
 
                 _ ->
@@ -102,7 +96,7 @@ update msg model =
         RefreshServerMessage ->
             -- Gap 1: tells broker.js to call htmx.ajax — no Go round-trip from Elm.
             ( model
-            , sendHtmxSwap brokerOut "#server-message" "/message"
+            , sendHtmxSwap "#server-message" "/message"
             )
 
         BrokerIn value ->

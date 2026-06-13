@@ -1,7 +1,9 @@
-module BrokerPort exposing
+port module BrokerPort exposing
     ( Inbound(..)
     , Model
     , StoreChange
+    , brokerIn
+    , brokerOut
     , brokerState
     , decode
     , initialModel
@@ -15,6 +17,18 @@ module BrokerPort exposing
 import Dict exposing (Dict)
 import Json.Decode as Decode
 import Json.Encode as Encode
+
+
+{-| The broker ports are declared ONCE here, in the shared port module, and
+reused by every island. Declaring them per-island would register the same port
+name multiple times in a single compiled bundle, which Elm rejects at load
+("There can only be one port named brokerIn"). Each `Browser.element` instance
+still gets its own isolated port wiring.
+-}
+port brokerOut : Encode.Value -> Cmd msg
+
+
+port brokerIn : (Decode.Value -> msg) -> Sub msg
 
 
 protocolVersion : Int
@@ -131,17 +145,17 @@ storeChangeFromData data =
 -- OUTBOUND
 
 
-ready : (Encode.Value -> Cmd msg) -> Cmd msg
-ready out =
-    out (envelope "READY" "broker" (Encode.object []))
+ready : Cmd msg
+ready =
+    brokerOut (envelope "READY" "broker" (Encode.object []))
 
 
 {-| Persist a key/value pair in shared broker state and route to target. The
 host page mirrors the write to its server store.
 -}
-sendStateSet : (Encode.Value -> Cmd msg) -> String -> String -> Encode.Value -> Cmd msg
-sendStateSet out target key value =
-    out
+sendStateSet : String -> String -> Encode.Value -> Cmd msg
+sendStateSet target key value =
+    brokerOut
         (envelope "STATE_SET"
             target
             (Encode.object [ ( "key", Encode.string key ), ( "value", value ) ])
@@ -150,17 +164,17 @@ sendStateSet out target key value =
 
 {-| Send an ephemeral message to target without mutating broker state.
 -}
-sendMessage : (Encode.Value -> Cmd msg) -> String -> Encode.Value -> Cmd msg
-sendMessage out target payload =
-    out (envelope "SEND" target payload)
+sendMessage : String -> Encode.Value -> Cmd msg
+sendMessage target payload =
+    brokerOut (envelope "SEND" target payload)
 
 
 {-| Ask the broker to run an htmx.ajax GET swap on a CSS selector, with no
 Elm→server round-trip.
 -}
-sendHtmxSwap : (Encode.Value -> Cmd msg) -> String -> String -> Cmd msg
-sendHtmxSwap out selector url =
-    out
+sendHtmxSwap : String -> String -> Cmd msg
+sendHtmxSwap selector url =
+    brokerOut
         (envelope "HTMX_SWAP"
             "broker"
             (Encode.object [ ( "selector", Encode.string selector ), ( "url", Encode.string url ) ])
