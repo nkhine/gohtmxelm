@@ -4,7 +4,7 @@ tmp_dir = ".air"
 [build]
 cmd = "make build BINARY=.air/elm-htmx-templ-demo"
 bin = ".air/elm-htmx-templ-demo"
-full_bin = "PORT=8091 ./.air/elm-htmx-templ-demo"
+full_bin = "sh -c 'PORT=${PORT:-8091} exec ./.air/elm-htmx-templ-demo'"
 delay = 700
 include_ext = ["go", "templ", "elm", "js", "mod", "sum"]
 exclude_dir = [

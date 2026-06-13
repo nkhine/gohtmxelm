@@ -1,6 +1,8 @@
 BINARY         ?= elm-htmx-templ-demo
+PORT           ?= 8091
 ELM_OUT        := static/app-a.js static/app-b.js static/lap-stats.js
-TEMPL_OUT      := templates/page_templ.go
+TEMPL_SRCS     := $(shell find . -name '*.templ' -not -path './.git/*')
+TEMPL_OUT      := templates/page_templ.go examples/message_templ.go examples/stopwatch_templ.go
 HTMX_JS        := static/vendor/htmx.js
 DATASTAR_SRC   ?= /Users/nkhine/go/src/github.com/starfederation/datastar/bundles/datastar.js
 DATASTAR_JS    := static/vendor/datastar.js
@@ -40,7 +42,7 @@ static/app-b.js: elm/AppB.elm elm/BrokerPort.elm
 static/lap-stats.js: elm/LapStats.elm elm/BrokerPort.elm
 	elm make elm/LapStats.elm --output=$@
 
-$(TEMPL_OUT): templates/page.templ
+$(TEMPL_OUT): $(TEMPL_SRCS)
 	templ generate
 
 ## test: run Go tests
@@ -53,7 +55,11 @@ dev: go.sum $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS)
 
 ## watch: rebuild generated assets and restart the server on source changes
 watch:
-	air -c .air.toml
+	@if lsof -iTCP:$(PORT) -sTCP:LISTEN -n -P >/dev/null 2>&1; then \
+		echo "Port $(PORT) is already in use. Stop that process or run: PORT=8092 make watch"; \
+		exit 1; \
+	fi
+	PORT=$(PORT) air -c .air.toml
 
 ## onboarding: build the standalone payee onboarding Elm app
 onboarding: $(ONBOARDING_JS)

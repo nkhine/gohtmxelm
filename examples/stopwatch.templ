@@ -1,0 +1,130 @@
+package examples
+
+templ StopwatchExample(stopwatchRunning bool, stopwatchCanLap bool) {
+	<section class="workbench stopwatch-card" id="example-stopwatch">
+		<div class="stopwatch-header">
+			<h2>Hello Stopwatch</h2>
+			<div class="flow-line">
+				<span class="flow-tag flow-htmx">HTMX controls</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-go">Go timer</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-sse">SSE</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-datastar">Datastar readout</span>
+				<span>+</span>
+				<span class="flow-tag flow-elm">Elm analytics</span>
+			</div>
+		</div>
+		<div class="stopwatch-grid">
+			<div class="stopwatch-panel">
+				<h3>HTMX start / stop / reset</h3>
+				<div
+					id="stopwatch-controls"
+					class="stopwatch-controls"
+					hx-get="/api/stopwatch/controls"
+					hx-trigger="stopwatch-state-change from:body"
+					hx-swap="innerHTML">
+					@StopwatchControls(stopwatchRunning, stopwatchCanLap)
+				</div>
+				<p class="control-note" style="margin-top:0.75rem;">
+					These buttons are ordinary <code>hx-post</code> controls. Go
+					owns the timer; when any tab acts, an SSE event re-triggers
+					this fragment in every other tab so the controls never go
+					stale.
+				</p>
+			</div>
+
+			<div
+				class="stopwatch-panel"
+				data-init="@get('/api/stopwatch/stream')">
+				<h3>Datastar live elapsed + laps</h3>
+				<div class="stopwatch-live">
+					<div id="stopwatch-readout">
+						<div class="dial paused" style="--d-sub:0deg;--d-sec:0deg;--d-min:0deg;--d-hour:0deg">
+							<div class="ring ring-hour">
+								<div class="ring ring-min">
+									<div class="ring ring-sec">
+										<div class="ring ring-sub">
+											<div class="dial-center">
+												<div class="stopwatch-time">00:00:00:000</div>
+												<div class="stopwatch-state">paused</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div id="stopwatch-laps">
+						<div class="lap-list">
+							<p class="muted">No laps yet. Use the HTMX Lap button once the timer has started.</p>
+						</div>
+						<span class="stopwatch-live-status">paused via Datastar SSE</span>
+					</div>
+				</div>
+				<p class="control-note" style="margin-top:0.75rem;">
+					Go pushes the readout every tick, but the lap list only on
+					state changes — the 10/sec stream stays small.
+				</p>
+			</div>
+		</div>
+
+		<div class="stopwatch-elm">
+			<div class="elm-island-label">Elm lap analytics &middot; typed derivation</div>
+			<div
+				id="lap-stats"
+				class="elm-island"
+				data-elm-module="LapStats"
+				data-island-id="lap-stats"
+				data-props="{}">
+			</div>
+			<p class="control-note" style="margin-top:0.5rem;">
+				This Elm island subscribes to the same stopwatch SSE state and
+				derives fastest / slowest / average / delta laps as a typed
+				state machine — no Go, HTMX, or Datastar computes these.
+			</p>
+		</div>
+	</section>
+}
+
+// StopwatchControls renders only the buttons. The page wraps them in a
+// self-refreshing #stopwatch-controls element, and every action swaps this
+// fragment back into that wrapper's innerHTML.
+templ StopwatchControls(running bool, canLap bool) {
+	if running {
+		<button
+			class="btn-stop"
+			hx-post="/api/stopwatch/stop"
+			hx-target="#stopwatch-controls"
+			hx-swap="innerHTML">
+			Stop
+		</button>
+	} else {
+		<button
+			hx-post="/api/stopwatch/start"
+			hx-target="#stopwatch-controls"
+			hx-swap="innerHTML">
+			Start
+		</button>
+	}
+	if canLap {
+		<button
+			hx-post="/api/stopwatch/lap"
+			hx-target="#stopwatch-controls"
+			hx-swap="innerHTML">
+			Lap
+		</button>
+	} else {
+		<button disabled>
+			Lap
+		</button>
+	}
+	<button
+		class="btn-reset"
+		hx-post="/api/stopwatch/reset"
+		hx-target="#stopwatch-controls"
+		hx-swap="innerHTML">
+		Reset
+	</button>
+}

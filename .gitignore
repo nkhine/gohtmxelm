@@ -10,7 +10,7 @@ static/lap-stats.js
 static/vendor/
 
 # Generated templ Go code
-templates/page_templ.go
+*_templ.go
 
 # Elm build cache
 elm-stuff/

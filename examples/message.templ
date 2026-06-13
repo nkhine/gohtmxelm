@@ -1,0 +1,127 @@
+package examples
+
+templ MessageWorkbench() {
+	<section class="workbench" id="example-message">
+		<div class="workbench-header">
+			<h2 class="workbench-title">Shared message workbench</h2>
+			<div class="flow-line">
+				<span class="flow-tag flow-htmx">HTMX</span>
+				<span>or</span>
+				<span class="flow-tag flow-datastar">Datastar</span>
+				<span>or</span>
+				<span class="flow-tag flow-elm">Elm</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-go">Go store</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-sse">SSE fan-out</span>
+			</div>
+		</div>
+
+		<section class="live-state">
+			<div class="state-panel">
+				<h2>Current state, rendered by HTMX</h2>
+				<div id="server-message">
+					<p class="muted">Use the Elm HTMX button to swap a server fragment here.</p>
+				</div>
+				<div
+					id="store-entries"
+					hx-get="/api/store/fragment"
+					hx-trigger="load, store-refresh"
+					hx-swap="innerHTML">
+					<p class="muted">Loading store&hellip;</p>
+				</div>
+			</div>
+
+			<div
+				id="datastar-stream"
+				class="state-panel"
+				data-signals="{writes: 0, lastWriter: ''}"
+				data-init="@get('/api/datastar/store/stream')">
+				<h2>Same state, patched by Datastar SSE</h2>
+				<div class="datastar-stats">
+					<span class="datastar-stat" data-text="'Total writes: ' + $writes">Total writes: 0</span>
+					<span
+						class="datastar-stat"
+						data-text="$lastWriter ? 'Last writer: ' + $lastWriter : 'No writes this session'">
+						No writes this session
+					</span>
+				</div>
+				<div class="datastar-live">
+					<div id="datastar-store">
+						<p class="muted">Opening Datastar stream&hellip;</p>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<section class="controls">
+			<div class="control-group htmx-group">
+				<h2>1. Write with HTMX</h2>
+				<p class="control-note">This form posts normal form data to Go. Go saves <code>message</code>, then SSE refreshes every view. The store table above is pure hypermedia: each row's delete button is a server-rendered <code>hx-delete</code> control.</p>
+				<form
+					class="store-form"
+					hx-post="/api/store"
+					hx-swap="none">
+					<input type="hidden" name="key" value="message"/>
+					<input type="text" name="value" placeholder="Message from HTMX" required/>
+					<button class="btn-htmx" type="submit">Save with HTMX</button>
+				</form>
+			</div>
+
+			<div
+				class="control-group datastar-group"
+				data-signals="{messageDraft: ''}">
+				<h2>2. Write with Datastar</h2>
+				<p class="control-note">These inputs are Datastar signals. Submit sends JSON and receives patch events back. The write counter above is a <em>server-pushed signal patch</em> — no client JS touches it.</p>
+				<form
+					class="store-form"
+					data-on:submit="@post('/api/datastar/store', {payload: {key: 'message', value: $messageDraft}})">
+					<input data-bind:message-draft type="text" name="value" placeholder="Message from Datastar" required/>
+					<button class="btn-datastar" type="submit">Save with Datastar</button>
+				</form>
+				<p
+					class="datastar-preview"
+					data-text="$messageDraft ? 'Datastar will save: ' + $messageDraft : 'Datastar signal preview appears here.'">
+					Datastar signal preview appears here.
+				</p>
+				<div id="datastar-write-result" class="datastar-result"></div>
+			</div>
+
+			<div class="control-group elm-group">
+				<h2>3. Write with Elm</h2>
+				<p class="control-note">App A is a typed draft editor — validation is a real state machine, so invalid drafts can't be submitted. App B is a typed event log fed by the same broker. Both speak to Go only through ports.</p>
+				<div class="elm-islands-grid">
+					<div>
+						<div class="elm-island-label">Elm App A &middot; typed editor</div>
+						<div
+							id="app-a"
+							class="elm-island"
+							data-elm-module="AppA"
+							data-island-id="app-a"
+							data-props="{}">
+						</div>
+					</div>
+					<div>
+						<div class="elm-island-label">Elm App B &middot; typed event log</div>
+						<div
+							id="app-b"
+							class="elm-island"
+							data-elm-module="AppB"
+							data-island-id="app-b"
+							data-props="{}">
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<div class="activity-log">
+			<div id="activity-entries">
+				<div class="log-entry">
+					<span class="log-time">--:--:--</span>
+					<span class="log-msg">Waiting for HTMX, Datastar, Elm, Go, and SSE events&hellip;</span>
+				</div>
+			</div>
+		</div>
+	</section>
+}
