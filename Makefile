@@ -1,5 +1,5 @@
-BINARY         := elm-htmx-templ-demo
-ELM_OUT        := static/app-a.js static/app-b.js
+BINARY         ?= elm-htmx-templ-demo
+ELM_OUT        := static/app-a.js static/app-b.js static/lap-stats.js
 TEMPL_OUT      := templates/page_templ.go
 HTMX_JS        := static/vendor/htmx.js
 DATASTAR_SRC   ?= /Users/nkhine/go/src/github.com/starfederation/datastar/bundles/datastar.js
@@ -7,13 +7,17 @@ DATASTAR_JS    := static/vendor/datastar.js
 ONBOARDING_JS  := onboarding/main.js
 GO_SRCS        := $(shell find . -name '*.go' -not -path './.git/*')
 
-.PHONY: local clean test dev onboarding
+.PHONY: local build clean test dev watch onboarding
 
 ## local: build everything then start the server
 local: $(BINARY) $(HTMX_JS) $(DATASTAR_JS)
 	./$(BINARY)
 
+## build: compile generated assets and Go binary
+build: $(BINARY)
+
 $(BINARY): go.sum $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS) $(GO_SRCS)
+	mkdir -p $(dir $@)
 	go build -o $@ .
 
 go.sum: go.mod
@@ -33,6 +37,9 @@ static/app-a.js: elm/AppA.elm elm/BrokerPort.elm
 static/app-b.js: elm/AppB.elm elm/BrokerPort.elm
 	elm make elm/AppB.elm --output=$@
 
+static/lap-stats.js: elm/LapStats.elm elm/BrokerPort.elm
+	elm make elm/LapStats.elm --output=$@
+
 $(TEMPL_OUT): templates/page.templ
 	templ generate
 
@@ -43,6 +50,10 @@ test:
 ## dev: build generated files and run without compiling a binary
 dev: go.sum $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS)
 	go run .
+
+## watch: rebuild generated assets and restart the server on source changes
+watch:
+	air -c .air.toml
 
 ## onboarding: build the standalone payee onboarding Elm app
 onboarding: $(ONBOARDING_JS)

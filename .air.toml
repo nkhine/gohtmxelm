@@ -1,0 +1,34 @@
+root = "."
+tmp_dir = ".air"
+
+[build]
+cmd = "make build BINARY=.air/elm-htmx-templ-demo"
+bin = ".air/elm-htmx-templ-demo"
+full_bin = "PORT=8091 ./.air/elm-htmx-templ-demo"
+delay = 700
+include_ext = ["go", "templ", "elm", "js", "mod", "sum"]
+exclude_dir = [
+  ".git",
+  ".air",
+  "elm-stuff",
+  "onboarding/elm-stuff",
+  "static/vendor",
+]
+exclude_file = [
+  "elm-htmx-templ-demo",
+  "static/app-a.js",
+  "static/app-b.js",
+  "static/lap-stats.js",
+  "templates/page_templ.go",
+  "onboarding/main.js",
+]
+stop_on_error = true
+send_interrupt = true
+kill_delay = "500ms"
+
+[log]
+time = true
+
+[screen]
+clear_on_rebuild = false
+keep_scroll = true
