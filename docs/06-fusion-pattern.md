@@ -16,7 +16,7 @@ That's it. Everything else follows. HTMX swaps its fragments; Datastar morphs it
 regions; Elm renders its islands. The boundaries are physical — different DOM
 subtrees — and they are never crossed. When two reactivity systems write to the
 same nodes, you get the classic disaster: each clobbers the other's changes, you
-get flicker, lost input, and bugs no one can reproduce. This app avoids the whole
+get flicker, lost input, and bugs no one can reproduce. The reference demo avoids the whole
 category by **partitioning the DOM** and forbidding overlap.
 
 So how do the surfaces ever agree on anything? They don't talk to each other at
@@ -166,7 +166,7 @@ Honesty matters more than advocacy. This architecture is a poor fit when:
   server-authoritative model fights you.
 - **Latency to the server dominates the interaction.** A drawing canvas or a game
   needs sub-frame local response; a server round-trip per change is wrong. (Note:
-  this app already pushes such cases to Elm's *local* state — the boundary is the
+  the reference demo already pushes such cases to Elm's *local* state — the boundary is the
   same one in miniature.)
 - **You have no server, or a purely static deploy.** This pattern assumes a live
   server holding state and connections.

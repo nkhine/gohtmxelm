@@ -11,7 +11,6 @@ exclude_dir = [
   ".git",
   ".air",
   "demo/elm-stuff",
-  "onboarding/elm-stuff",
   "demo/static/vendor",
 ]
 exclude_file = [
@@ -22,7 +21,6 @@ exclude_file = [
   "demo/internal/ui/page_templ.go",
   "demo/internal/ui/components/message_templ.go",
   "demo/internal/ui/components/stopwatch_templ.go",
-  "onboarding/main.js",
 ]
 stop_on_error = true
 send_interrupt = true
