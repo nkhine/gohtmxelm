@@ -19,3 +19,6 @@ demo/elm-stuff/
 
 # macOS
 .DS_Store
+
+# simulator violation log (runtime artifact)
+sim-violations.jsonl
