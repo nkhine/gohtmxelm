@@ -1,19 +1,20 @@
 # Binary
 elm-htmx-templ-demo
+gohtmxelm-demo
 
 # Generated Elm bundles
-static/app-a.js
-static/app-b.js
-static/lap-stats.js
+demo/static/app-a.js
+demo/static/app-b.js
+demo/static/lap-stats.js
 
 # Vendored third-party JS (downloaded by make)
-static/vendor/
+demo/static/vendor/
 
 # Generated templ Go code
 *_templ.go
 
 # Elm build cache
-elm-stuff/
+demo/elm-stuff/
 onboarding/elm-stuff/
 
 # Air live-reload build directory

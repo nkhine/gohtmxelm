@@ -72,7 +72,7 @@ never need to handle it defensively.
 
 ### Example 1: the typed draft editor (App A)
 
-[`elm/AppA.elm`](../elm/AppA.elm) is a message editor. A draft can be empty, too
+[`demo/elm/AppA.elm`](../demo/elm/AppA.elm) is a message editor. A draft can be empty, too
 long, or valid. Instead of tracking that with a string plus a couple of booleans
 (which permits nonsense like "empty *and* valid"), it uses a single type with one
 constructor per legal state:
@@ -114,7 +114,7 @@ of safety than a runtime `if (valid) { ... }` check you might forget.
 
 ### Example 2: lap analytics with no sentinel values (LapStats)
 
-[`elm/LapStats.elm`](../elm/LapStats.elm) computes fastest/slowest/average lap
+[`demo/elm/LapStats.elm`](../demo/elm/LapStats.elm) computes fastest/slowest/average lap
 times. The naive version returns zeros when there are no laps — and then every
 reader has to remember that "0" might mean "no data." Elm models the absence
 explicitly:
@@ -163,7 +163,7 @@ port brokerIn  : (Decode.Value -> msg) -> Sub msg -- JavaScript → Elm
 
 Crucially, **data coming in from JS is untrusted and must be decoded.** Elm won't
 let you assume the shape of foreign JSON; you write a decoder that either produces
-a well-typed value or a typed error. From [`elm/BrokerPort.elm`](../elm/BrokerPort.elm):
+a well-typed value or a typed error. From [`demo/elm/BrokerPort.elm`](../demo/elm/BrokerPort.elm):
 
 ```elm
 decodeStoreChange : Decode.Decoder StoreChange
@@ -188,7 +188,7 @@ untyped chaos goes in one side, only well-typed values come out the other.
 
 Elm doesn't own the whole page here. It runs as **islands** — small `Browser.element`
 apps mounted into specific `<div>`s, each managed by the broker
-([`static/broker.js`](../static/broker.js)) which calls `Elm.AppA.init({ node, flags })`.
+([`demo/static/broker.js`](../demo/static/broker.js)) which calls `Elm.AppA.init({ node, flags })`.
 Three islands run: the draft editor (App A), an event log (App B), and the lap
 analyzer (LapStats). Each is a self-contained TEA program with its own `Model`,
 `update`, and `view`.

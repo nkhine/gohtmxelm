@@ -1,4 +1,4 @@
-module elm-htmx-templ-demo
+module github.com/nkhine/gohtmxelm
 
 go 1.25.0
 

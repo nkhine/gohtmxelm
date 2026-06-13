@@ -85,7 +85,7 @@ the architecture in one click.
 
 ## 6.4 The broker: a typed message bus in ~250 lines of JS
 
-[`static/broker.js`](../static/broker.js) is the connective tissue between Elm and
+[`demo/static/broker.js`](../demo/static/broker.js) is the connective tissue between Elm and
 everything else. It does a handful of well-defined jobs, and its design is worth
 studying as a small systems exercise:
 

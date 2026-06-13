@@ -38,7 +38,7 @@ into the page.
 ## 3.2 How HTMX works, on the wire
 
 HTMX adds a few HTML attributes. Here is the HTMX write form from this app
-([`templates/page.templ`](../templates/page.templ)):
+([`demo/internal/ui/page.templ`](../demo/internal/ui/page.templ)):
 
 ```html
 <form hx-post="/api/store" hx-swap="none">
@@ -62,7 +62,7 @@ The server's reply is **HTML, not JSON**:
 
 ```go
 r.Get("/api/store/fragment", func(w http.ResponseWriter, r *http.Request) {
-	templates.StoreEntries(kv.Entries()).Render(r.Context(), w) // renders <table>...
+	ui.StoreEntries(kv.Entries()).Render(r.Context(), w) // renders <table>...
 })
 ```
 

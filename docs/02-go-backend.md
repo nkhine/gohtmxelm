@@ -61,7 +61,7 @@ The handler never touches shared state directly; it just drains its own channel.
 
 ## 2.2 The key-value store: one source of truth, with pub/sub
 
-[`internal/store/store.go`](../internal/store/store.go) is the heart of the app.
+[`demo/internal/store/store.go`](../demo/internal/store/store.go) is the heart of the app.
 It is a thread-safe map with three powers layered on top: **versioning**,
 **attribution**, and **change notification**.
 

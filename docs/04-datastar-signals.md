@@ -30,7 +30,7 @@ wire any of it.**
 ## 4.2 Signals, declared in markup
 
 Here's the Datastar write form from this app
-([`templates/page.templ`](../templates/page.templ)):
+([`demo/internal/ui/page.templ`](../demo/internal/ui/page.templ)):
 
 ```html
 <div class="control-group" data-signals="{messageDraft: ''}">

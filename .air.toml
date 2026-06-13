@@ -2,24 +2,26 @@ root = "."
 tmp_dir = ".air"
 
 [build]
-cmd = "make build BINARY=.air/elm-htmx-templ-demo"
-bin = ".air/elm-htmx-templ-demo"
-full_bin = "sh -c 'PORT=${PORT:-8091} exec ./.air/elm-htmx-templ-demo'"
+cmd = "make build BINARY=.air/gohtmxelm-demo"
+bin = ".air/gohtmxelm-demo"
+full_bin = "sh -c 'PORT=${PORT:-8091} exec ./.air/gohtmxelm-demo'"
 delay = 700
 include_ext = ["go", "templ", "elm", "js", "mod", "sum"]
 exclude_dir = [
   ".git",
   ".air",
-  "elm-stuff",
+  "demo/elm-stuff",
   "onboarding/elm-stuff",
-  "static/vendor",
+  "demo/static/vendor",
 ]
 exclude_file = [
-  "elm-htmx-templ-demo",
-  "static/app-a.js",
-  "static/app-b.js",
-  "static/lap-stats.js",
-  "templates/page_templ.go",
+  "gohtmxelm-demo",
+  "demo/static/app-a.js",
+  "demo/static/app-b.js",
+  "demo/static/lap-stats.js",
+  "demo/internal/ui/page_templ.go",
+  "demo/internal/ui/components/message_templ.go",
+  "demo/internal/ui/components/stopwatch_templ.go",
   "onboarding/main.js",
 ]
 stop_on_error = true

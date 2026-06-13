@@ -20,9 +20,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"elm-htmx-templ-demo/examples"
-	"elm-htmx-templ-demo/internal/store"
-	"elm-htmx-templ-demo/templates"
+	"github.com/nkhine/gohtmxelm/demo/internal/store"
+	"github.com/nkhine/gohtmxelm/demo/internal/ui"
+	"github.com/nkhine/gohtmxelm/demo/internal/ui/components"
+	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
 )
 
 type exampleRoute struct {
@@ -52,7 +53,7 @@ func main() {
 			Title:       "Shared message workbench",
 			Description: "HTMX, Datastar, Elm, and Go update one shared key.",
 			Render: func(StopwatchSnapshot) templ.Component {
-				return examples.MessageWorkbench()
+				return components.MessageWorkbench()
 			},
 		},
 		{
@@ -60,7 +61,7 @@ func main() {
 			Title:       "Hello stopwatch",
 			Description: "HTMX controls a Go timer while Datastar and Elm react to SSE.",
 			Render: func(snap StopwatchSnapshot) templ.Component {
-				return examples.StopwatchExample(snap.Running, stopwatchCanLap(snap))
+				return components.StopwatchExample(snap.Running, stopwatchCanLap(snap))
 			},
 		},
 	}
@@ -79,11 +80,11 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(securityHeaders)
 
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("demo/static"))))
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Snapshot()
-		if err := templates.IndexPage(exampleNav, snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := ui.IndexPage(exampleNav, snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
@@ -95,20 +96,20 @@ func main() {
 			http.NotFound(w, r)
 			return
 		}
-		if err := templates.ExamplePage(exampleNav, slug, example.Title, example.Render(stopwatch.Snapshot())).Render(r.Context(), w); err != nil {
+		if err := ui.ExamplePage(exampleNav, slug, example.Title, example.Render(stopwatch.Snapshot())).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	r.Get("/message", func(w http.ResponseWriter, r *http.Request) {
-		if err := templates.ServerMessage("Hello from Go via HTMX").Render(r.Context(), w); err != nil {
+		if err := ui.ServerMessage("Hello from Go via HTMX").Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	// Store fragment rendered by HTMX on load and on every store-refresh trigger.
 	r.Get("/api/store/fragment", func(w http.ResponseWriter, r *http.Request) {
-		if err := templates.StoreEntries(kv.Entries()).Render(r.Context(), w); err != nil {
+		if err := ui.StoreEntries(kv.Entries()).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
@@ -122,10 +123,7 @@ func main() {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("X-Accel-Buffering", "no")
+		gohtmxelm.PrepareSSE(w)
 
 		ch := kv.Subscribe()
 		defer kv.Unsubscribe(ch)
@@ -162,10 +160,7 @@ func main() {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("X-Accel-Buffering", "no")
+		gohtmxelm.PrepareSSE(w)
 
 		ch := stopwatch.Subscribe()
 		defer stopwatch.Unsubscribe(ch)
@@ -206,10 +201,7 @@ func main() {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("X-Accel-Buffering", "no")
+		gohtmxelm.PrepareSSE(w)
 
 		ch := stopwatch.Subscribe()
 		defer stopwatch.Unsubscribe(ch)
@@ -239,35 +231,35 @@ func main() {
 	// fired by broker.js on the SSE state event).
 	r.Get("/api/stopwatch/controls", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Snapshot()
-		if err := examples.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := components.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	r.Post("/api/stopwatch/start", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Start()
-		if err := examples.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := components.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	r.Post("/api/stopwatch/stop", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Stop()
-		if err := examples.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := components.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	r.Post("/api/stopwatch/reset", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Reset()
-		if err := examples.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := components.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	r.Post("/api/stopwatch/lap", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Lap()
-		if err := examples.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := components.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
@@ -303,9 +295,7 @@ func main() {
 	// Datastar form writes return SSE events, because Datastar's fetch action
 	// expects the response to be hypermedia it can apply immediately.
 	r.Post("/api/datastar/store", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("X-Accel-Buffering", "no")
+		gohtmxelm.PrepareSSE(w)
 
 		key, value, _, version, err := parseStoreBody(r)
 		if err != nil || strings.TrimSpace(key) == "" {
@@ -335,10 +325,7 @@ func main() {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("X-Accel-Buffering", "no")
+		gohtmxelm.PrepareSSE(w)
 
 		ch := kv.Subscribe()
 		defer kv.Unsubscribe(ch)
@@ -441,10 +428,10 @@ func sanitizeSource(s string) string {
 	return b.String()
 }
 
-func navItems(routes []exampleRoute) []templates.ExampleNav {
-	items := make([]templates.ExampleNav, 0, len(routes))
+func navItems(routes []exampleRoute) []ui.ExampleNav {
+	items := make([]ui.ExampleNav, 0, len(routes))
 	for _, route := range routes {
-		items = append(items, templates.ExampleNav{
+		items = append(items, ui.ExampleNav{
 			Slug:        route.Slug,
 			Title:       route.Title,
 			Description: route.Description,
@@ -463,21 +450,15 @@ func findExample(routes []exampleRoute, slug string) (exampleRoute, bool) {
 }
 
 func writeSSE(w http.ResponseWriter, event string, data any) {
-	b, _ := json.Marshal(data)
-	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, b)
+	_ = gohtmxelm.WriteSSE(w, event, data)
 }
 
 func writeDatastarPatchElements(w http.ResponseWriter, elements string) {
-	fmt.Fprint(w, "event: datastar-patch-elements\n")
-	for _, line := range strings.Split(elements, "\n") {
-		fmt.Fprintf(w, "data: elements %s\n", line)
-	}
-	fmt.Fprint(w, "\n")
+	_ = gohtmxelm.WriteDatastarPatchElements(w, elements)
 }
 
 func writeDatastarPatchSignals(w http.ResponseWriter, signals string) {
-	fmt.Fprint(w, "event: datastar-patch-signals\n")
-	fmt.Fprintf(w, "data: signals %s\n\n", signals)
+	_ = gohtmxelm.WriteDatastarPatchSignals(w, signals)
 }
 
 func renderDatastarStore(entries []store.Entry, note string) string {

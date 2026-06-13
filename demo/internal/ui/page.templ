@@ -1,12 +1,12 @@
-package templates
+package ui
 
 import (
 	"net/url"
 
 	templpkg "github.com/a-h/templ"
 
-	"elm-htmx-templ-demo/examples"
-	"elm-htmx-templ-demo/internal/store"
+	"github.com/nkhine/gohtmxelm/demo/internal/ui/components"
+	"github.com/nkhine/gohtmxelm/demo/internal/store"
 )
 
 type ExampleNav struct {
@@ -271,8 +271,8 @@ templ IndexPage(nav []ExampleNav, stopwatchRunning bool, stopwatchCanLap bool) {
 
 templ IndexContent(stopwatchRunning bool, stopwatchCanLap bool) {
 	<main class="lattice">
-		@examples.MessageWorkbench()
-		@examples.StopwatchExample(stopwatchRunning, stopwatchCanLap)
+		@components.MessageWorkbench()
+		@components.StopwatchExample(stopwatchRunning, stopwatchCanLap)
 		@Explainer()
 	</main>
 }
