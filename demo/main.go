@@ -19,12 +19,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/nkhine/gohtmxelm/demo/internal/simviz"
 	"github.com/nkhine/gohtmxelm/demo/internal/statement"
 	"github.com/nkhine/gohtmxelm/demo/internal/stopwatch"
 	"github.com/nkhine/gohtmxelm/demo/internal/store"
 	"github.com/nkhine/gohtmxelm/demo/internal/ui"
 	"github.com/nkhine/gohtmxelm/demo/internal/ui/components"
 	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
+	"github.com/nkhine/gohtmxelm/pkg/simnet"
 )
 
 type exampleRoute struct {
@@ -50,6 +52,44 @@ func main() {
 	go sw.Run(ctx)
 
 	stmt := statement.New(time.Now)
+
+	// The simulator card runs the simnet contract harness live: a deterministic
+	// run is recorded, then replayed frame-by-frame over the library's own
+	// broadcaster. One goroutine drives playback, stopped on shutdown.
+	sim := simviz.New()
+	// Persist violations to a JSONL file so a failure survives the auto-loop and
+	// the seed can reproduce it for a fix. Best-effort: disabled if unopenable.
+	simLogPath := os.Getenv("SIM_LOG")
+	if simLogPath == "" {
+		simLogPath = "sim-violations.jsonl"
+	}
+	// Reload previously persisted failures into the ledger so they are never
+	// lost across restarts.
+	if data, err := os.ReadFile(simLogPath); err == nil && len(data) > 0 {
+		var hist []simviz.RunResult
+		for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+			if strings.TrimSpace(line) == "" {
+				continue
+			}
+			var rr simviz.RunResult
+			if json.Unmarshal([]byte(line), &rr) == nil {
+				hist = append(hist, rr)
+			}
+		}
+		if len(hist) > 0 {
+			sim.LoadHistory(hist)
+			logger.Info("reloaded simulator history", "runs", len(hist))
+		}
+	}
+	if f, err := os.OpenFile(simLogPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+		defer f.Close()
+		enc := json.NewEncoder(f)
+		sim.SetOnComplete(func(rr simviz.RunResult) { _ = enc.Encode(rr) })
+		logger.Info("simulator violation log", "path", simLogPath)
+	} else {
+		logger.Warn("simulator violation log disabled", "error", err)
+	}
+	go sim.Run(ctx)
 
 	exampleRoutes := []exampleRoute{
 		{
@@ -82,6 +122,14 @@ func main() {
 			Description: "Fake transfers into the statement's in-memory DynamoDB table.",
 			Render: func(stopwatch.Snapshot) templ.Component {
 				return components.SeedExample()
+			},
+		},
+		{
+			Slug:        "simulator",
+			Title:       "Contract simulator",
+			Description: "Watch simnet drop, delay & partition SSE while invariants hold.",
+			Render: func(stopwatch.Snapshot) templ.Component {
+				return components.SimulatorExample()
 			},
 		},
 	}
@@ -289,6 +337,8 @@ func main() {
 		defer sw.Events().Unsubscribe(swCh)
 		stCh := stmt.Events().Subscribe()
 		defer stmt.Events().Unsubscribe(stCh)
+		simCh := sim.Events().Subscribe()
+		defer sim.Events().Unsubscribe(simCh)
 
 		// Hydrate every domain on connect.
 		for _, state := range kv.AllStates() {
@@ -299,6 +349,7 @@ func main() {
 		_ = stream.Send("stopwatch-state", sw.Snapshot())
 		rng := stmt.Range()
 		_ = stream.Send("statement-range-change", rangePayload(rng, stmt.Summary(rng)))
+		_ = stream.Send("sim-frame", sim.Current())
 
 		for {
 			select {
@@ -321,6 +372,13 @@ func main() {
 					return
 				}
 				if stream.Send("statement-range-change", rangePayload(ev.Range, ev.Summary)) != nil {
+					return
+				}
+			case f, ok := <-simCh:
+				if !ok {
+					return
+				}
+				if stream.Send("sim-frame", f) != nil {
 					return
 				}
 			case <-stream.Done():
@@ -446,6 +504,97 @@ func main() {
 		)
 	})
 
+	// ── Contract simulator ────────────────────────────────────────────────
+	// Datastar owns the verdict panel: each frame patches the seed/step/lamp
+	// signals and the invariant summary element. The radial network animation
+	// is the Elm island, fed the same frames as "sim-frame" over /api/stream.
+	r.Get("/api/sim/stream", func(w http.ResponseWriter, r *http.Request) {
+		stream, err := gohtmxelm.NewStream(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		patchFrame := func(s *gohtmxelm.Stream, f simnet.Frame) error {
+			if err := s.PatchElements(render(components.SimulatorVerdict(f, sim.Status()))); err != nil {
+				return err
+			}
+			return s.PatchSignals(simSignals(f, sim.Status()))
+		}
+		patchResults := func(s *gohtmxelm.Stream) error {
+			return s.PatchElements(render(components.SimulatorResults(sim.Results())))
+		}
+		// Re-render the ledger only when it actually changes, not every frame.
+		lastVer := -1
+		_ = gohtmxelm.Serve(stream, sim.Events(),
+			func(s *gohtmxelm.Stream) error {
+				if err := patchFrame(s, sim.Current()); err != nil {
+					return err
+				}
+				lastVer = sim.ResultsVersion()
+				return patchResults(s)
+			},
+			func(s *gohtmxelm.Stream, f simnet.Frame) error {
+				if err := patchFrame(s, f); err != nil {
+					return err
+				}
+				if v := sim.ResultsVersion(); v != lastVer {
+					lastVer = v
+					return patchResults(s)
+				}
+				return nil
+			},
+		)
+	})
+
+	// Simulator controls. Plain HTMX posts (hx-swap="none"); the running stream
+	// reflects the new state on its next frame, so no response body is needed.
+	r.Post("/api/sim/control", func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Query().Get("action") {
+		case "play":
+			sim.Play()
+		case "pause":
+			sim.Pause()
+		case "step":
+			sim.Step()
+		case "reseed":
+			sim.Reseed()
+		case "semantics-snapshot":
+			sim.SetSemantics(simnet.Snapshot)
+		case "semantics-delta":
+			sim.SetSemantics(simnet.Delta)
+		case "resync-on":
+			sim.SetResync(true)
+		case "resync-off":
+			sim.SetResync(false)
+		case "calm":
+			sim.SetIntensity(simviz.Calm)
+		case "normal":
+			sim.SetIntensity(simviz.Normal)
+		case "storm":
+			sim.SetIntensity(simviz.Storm)
+		case "pausefail-on":
+			sim.SetPauseOnFail(true)
+		case "pausefail-off":
+			sim.SetPauseOnFail(false)
+		case "clear":
+			sim.Clear()
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// Replay an exact past run from the ledger (seed + knobs), loaded paused at
+	// frame 0 so it can be stepped through deterministically.
+	r.Post("/api/sim/replay", func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		seed, _ := strconv.ParseInt(q.Get("seed"), 10, 64)
+		sem := simnet.Delta
+		if q.Get("semantics") == "snapshot" {
+			sem = simnet.Snapshot
+		}
+		sim.Replay(seed, sem, simviz.Intensity(q.Get("intensity")), q.Get("resync") == "true")
+		w.WriteHeader(http.StatusNoContent)
+	})
+
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      r,
@@ -499,6 +648,30 @@ func statementSignals(rng statement.Range, sum statement.Summary) map[string]any
 		"creditsPending": statement.FormatGBP(sum.CreditsPending),
 		"debitsPending":  statement.FormatGBP(sum.DebitsPending),
 		"available":      statement.FormatGBP(sum.AvailableMinor()),
+	}
+}
+
+// simSignals are the Datastar signals the simulator verdict panel binds to:
+// the run identity, progress, and the live invariant lamp.
+func simSignals(f simnet.Frame, st simviz.Status) map[string]any {
+	lamp := "synced"
+	switch {
+	case f.Violated:
+		lamp = "violated"
+	case !f.Converged:
+		lamp = "settling"
+	}
+	return map[string]any{
+		"simSeed":        st.Seed,
+		"simStep":        f.Step,
+		"simTotal":       f.Total,
+		"simAuth":        f.AuthVersion,
+		"simLamp":        lamp,
+		"simSemantics":   st.Semantics,
+		"simResync":      st.Resync,
+		"simIntensity":   st.Intensity,
+		"simPlaying":     st.Playing,
+		"simPauseOnFail": st.PauseOnFail,
 	}
 }
 

@@ -19,6 +19,7 @@ var brokerScript = templ.Raw(gohtmxelm.BrowserScript(gohtmxelm.Options{
 	Sources: []gohtmxelm.Source{
 		{URL: "/api/stream", Events: []string{
 			"store-hydrate", "store-change", "stopwatch-state", "statement-range-change",
+			"sim-frame",
 		}},
 	},
 }))
