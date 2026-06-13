@@ -1,12 +1,19 @@
 package templates
 
-templ Page() {
+import (
+	"net/url"
+
+	"elm-htmx-templ-demo/internal/store"
+)
+
+templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 	<!doctype html>
 	<html lang="en">
 		<head>
 			<meta charset="utf-8"/>
-			<title>Go + templ + HTMX + Elm Islands</title>
+			<title>HTMX + Datastar + Elm Fusion</title>
 			<script src="/static/vendor/htmx.js"></script>
+			<script type="module" src="/static/vendor/datastar.js"></script>
 			<script src="/static/app-a.js"></script>
 			<script src="/static/app-b.js"></script>
 			<script defer src="/static/broker.js"></script>
@@ -14,81 +21,70 @@ templ Page() {
 				*, *::before, *::after { box-sizing: border-box; }
 
 				:root {
-					--go-blue:    #00ACD7;
-					--go-dark:    #007d9c;
+					--go-blue: #00ACD7;
+					--go-dark: #007d9c;
 					--elm-purple: #7C3AED;
-					--elm-dark:   #5b21b6;
-					--htmx-gray:  #374151;
-					--sse-green:  #10B981;
-					--sse-red:    #EF4444;
-
-					--server-bg:  #EFF8FB;
-					--server-border: #bae6f7;
-					--elm-bg:     #F5F0FF;
-					--elm-border: #d8b4fe;
-
-					--log-bg:     #0f172a;
-					--log-text:   #94a3b8;
-					--log-entry-htmx: #38bdf8;
-					--log-entry-elm:  #a78bfa;
-					--log-entry-sse:  #34d399;
-					--log-entry-go:   #fb923c;
-
+					--elm-dark: #5b21b6;
+					--datastar-orange: #F97316;
+					--datastar-dark: #C2410C;
+					--htmx-gray: #374151;
+					--sse-green: #10B981;
+					--sse-red: #EF4444;
+					--border: #d7dee8;
+					--text: #1e293b;
+					--muted: #64748b;
+					--page: #f8fafc;
+					--panel: #fff;
+					--log-bg: #0f172a;
+					--log-text: #94a3b8;
 					--radius: 8px;
 					--shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
 				}
 
 				body {
-					font-family: system-ui, -apple-system, sans-serif;
 					margin: 0;
 					padding: 1.5rem;
-					background: #f8fafc;
-					color: #1e293b;
+					background: var(--page);
+					color: var(--text);
+					font-family: system-ui, -apple-system, sans-serif;
 					font-size: 0.9rem;
 				}
 
-				/* ── Header ────────────────────────────────────────────── */
 				.page-header {
 					display: flex;
 					align-items: center;
 					gap: 0.65rem;
 					flex-wrap: wrap;
-					margin-bottom: 1.25rem;
+					margin-bottom: 1rem;
 				}
 				.page-header h1 {
 					margin: 0;
 					font-size: 1.25rem;
 					font-weight: 700;
 					color: #0f172a;
-					white-space: nowrap;
 				}
-
-				/* Tech stack badges */
 				.badge {
 					display: inline-flex;
 					align-items: center;
-					gap: 0.3rem;
 					padding: 0.2rem 0.6rem;
 					border-radius: 999px;
 					font-size: 0.75rem;
-					font-weight: 600;
-					letter-spacing: 0.02em;
+					font-weight: 700;
 				}
-				.badge-go    { background: var(--go-blue);    color: #fff; }
-				.badge-htmx  { background: var(--htmx-gray);  color: #fff; }
-				.badge-elm   { background: var(--elm-purple);  color: #fff; }
-				.badge-sse   { background: var(--sse-green);   color: #fff; }
+				.badge-go { background: var(--go-blue); color: #fff; }
+				.badge-htmx { background: var(--htmx-gray); color: #fff; }
+				.badge-datastar { background: var(--datastar-orange); color: #fff; }
+				.badge-elm { background: var(--elm-purple); color: #fff; }
+				.badge-sse { background: var(--sse-green); color: #fff; }
 
-				/* SSE status pill */
 				.sse-status {
-					margin-left: 0.25rem;
 					display: inline-flex;
 					align-items: center;
 					gap: 0.35rem;
 					padding: 0.2rem 0.7rem;
 					border-radius: 999px;
 					font-size: 0.75rem;
-					font-weight: 600;
+					font-weight: 700;
 					border: 1px solid transparent;
 				}
 				.sse-status.connected {
@@ -107,163 +103,482 @@ templ Page() {
 					border-radius: 50%;
 					background: currentColor;
 				}
-				.sse-status.connected .sse-dot {
-					animation: pulse 2s infinite;
-				}
+				.sse-status.connected .sse-dot { animation: pulse 2s infinite; }
 				@keyframes pulse {
 					0%, 100% { opacity: 1; }
-					50%       { opacity: 0.4; }
+					50% { opacity: 0.4; }
 				}
 
-				/* ── Two-column zone layout ────────────────────────────── */
-				.zones {
-					display: grid;
-					grid-template-columns: 1fr 1fr;
-					gap: 1rem;
-					margin-bottom: 1rem;
-				}
-				@media (max-width: 800px) {
-					.zones { grid-template-columns: 1fr; }
-				}
-
-				.zone {
+				.workbench {
+					background: var(--panel);
+					border: 1px solid var(--border);
 					border-radius: var(--radius);
-					border: 2px solid;
+					box-shadow: var(--shadow);
 					overflow: hidden;
-					box-shadow: var(--shadow);
 				}
-				.zone-server {
-					border-color: var(--server-border);
-					background: var(--server-bg);
-				}
-				.zone-elm {
-					border-color: var(--elm-border);
-					background: var(--elm-bg);
-				}
-
-				.zone-header {
+				.workbench-header {
 					display: flex;
 					align-items: center;
-					gap: 0.5rem;
-					padding: 0.5rem 0.85rem;
-					font-weight: 700;
-					font-size: 0.8rem;
-					letter-spacing: 0.04em;
-					text-transform: uppercase;
-				}
-				.zone-server .zone-header {
-					background: var(--go-blue);
-					color: #fff;
-				}
-				.zone-elm .zone-header {
-					background: var(--elm-purple);
-					color: #fff;
-				}
-
-				/* ── Cards ─────────────────────────────────────────────── */
-				.card {
-					background: #fff;
-					border: 1px solid #e2e8f0;
-					border-radius: var(--radius);
+					justify-content: space-between;
+					gap: 1rem;
 					padding: 0.85rem 1rem;
-					margin: 0.75rem;
-					box-shadow: var(--shadow);
+					background: #e8f7fb;
+					border-bottom: 1px solid #bae6f7;
 				}
-				.card h2 {
-					margin: 0 0 0.6rem 0;
-					font-size: 0.85rem;
-					font-weight: 700;
-					text-transform: uppercase;
-					letter-spacing: 0.05em;
-					color: #64748b;
+				.workbench-title {
+					margin: 0;
+					font-size: 1rem;
+					font-weight: 800;
+					color: #0f172a;
 				}
-
-				/* ── Side-by-side islands inside the Elm zone ─────────── */
-				.elm-islands-grid {
-					display: grid;
-					grid-template-columns: 1fr 1fr;
-					gap: 0;
-				}
-				.elm-islands-grid .card:first-child {
-					border-right: 1px solid var(--elm-border);
-				}
-				@media (max-width: 960px) {
-					.elm-islands-grid { grid-template-columns: 1fr; }
-					.elm-islands-grid .card:first-child { border-right: none; }
-				}
-
-				/* ── Elm island section ─────────────────────────────────── */
-				.elm-island-label {
-					font-size: 0.7rem;
-					font-weight: 600;
-					text-transform: uppercase;
-					letter-spacing: 0.06em;
-					color: var(--elm-purple);
-					margin-bottom: 0.4rem;
+				.flow-line {
 					display: flex;
 					align-items: center;
-					gap: 0.3rem;
+					gap: 0.4rem;
+					flex-wrap: wrap;
+					color: var(--muted);
+					font-size: 0.78rem;
+					font-weight: 700;
+				}
+				.flow-tag {
+					display: inline-flex;
+					align-items: center;
+					padding: 0.12rem 0.45rem;
+					border-radius: 999px;
+					font-family: Menlo, Consolas, monospace;
+					font-size: 0.72rem;
+				}
+				.flow-go { background: #e0f7fb; color: var(--go-dark); }
+				.flow-htmx { background: #f1f5f9; color: var(--htmx-gray); }
+				.flow-datastar { background: #ffedd5; color: var(--datastar-dark); }
+				.flow-elm { background: #ede9fe; color: var(--elm-dark); }
+				.flow-sse { background: #d1fae5; color: #065f46; }
+
+				.live-state {
+					display: grid;
+					grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.8fr);
+					gap: 1rem;
+					padding: 1rem;
+					border-bottom: 1px solid var(--border);
+				}
+				@media (max-width: 900px) {
+					.live-state { grid-template-columns: 1fr; }
+				}
+				.state-panel {
+					border: 1px solid var(--border);
+					border-radius: var(--radius);
+					background: #fff;
+					padding: 0.85rem;
+					min-height: 9rem;
+				}
+				.state-panel h2,
+				.control-group h2 {
+					margin: 0 0 0.65rem;
+					font-size: 0.78rem;
+					font-weight: 800;
+					text-transform: uppercase;
+					letter-spacing: 0.04em;
+					color: var(--muted);
+				}
+				#server-message {
+					min-height: 1.75rem;
+					margin-bottom: 0.75rem;
+					padding-bottom: 0.75rem;
+					border-bottom: 1px solid #e2e8f0;
+				}
+				.datastar-live {
+					border: 1px solid #fed7aa;
+					border-radius: var(--radius);
+					padding: 0.65rem;
+					background: #fff7ed;
+					min-height: 6rem;
+				}
+				.datastar-note {
+					margin: 0 0 0.45rem;
+					color: var(--datastar-dark);
+					font-size: 0.78rem;
+					font-weight: 800;
+				}
+				.muted {
+					margin: 0;
+					color: #94a3b8;
+					font-size: 0.82rem;
 				}
 
-				/* ── Buttons ────────────────────────────────────────────── */
+				.controls {
+					display: grid;
+					grid-template-columns: repeat(3, minmax(0, 1fr));
+					gap: 0;
+					border-bottom: 1px solid var(--border);
+				}
+				@media (max-width: 1100px) {
+					.controls { grid-template-columns: 1fr; }
+				}
+				.control-group {
+					padding: 1rem;
+					border-right: 1px solid var(--border);
+				}
+				.control-group:last-child { border-right: none; }
+				@media (max-width: 1100px) {
+					.control-group {
+						border-right: none;
+						border-bottom: 1px solid var(--border);
+					}
+					.control-group:last-child { border-bottom: none; }
+				}
+				.control-note {
+					margin: 0 0 0.7rem;
+					color: var(--muted);
+					font-size: 0.8rem;
+					line-height: 1.45;
+				}
+				.store-form {
+					display: flex;
+					gap: 0.45rem;
+					flex-wrap: wrap;
+				}
+				.store-form input {
+					flex: 1;
+					min-width: 10rem;
+					padding: 0.42rem 0.6rem;
+					border: 1px solid #cbd5e1;
+					border-radius: 5px;
+					background: #fff;
+					font-size: 0.82rem;
+				}
+				.store-form input:focus {
+					outline: 2px solid var(--go-blue);
+					outline-offset: 1px;
+				}
 				button, .btn {
 					cursor: pointer;
-					padding: 0.4rem 0.75rem;
+					padding: 0.42rem 0.75rem;
 					border: none;
 					border-radius: 5px;
 					font-size: 0.8rem;
-					font-weight: 600;
+					font-weight: 700;
+					color: #fff;
 					transition: opacity 0.15s, transform 0.1s;
 				}
 				button:active { transform: scale(0.97); }
+				button:hover { opacity: 0.86; }
+				.btn-htmx, .htmx-group button { background: var(--go-blue); }
+				.btn-datastar, .datastar-group button { background: var(--datastar-orange); }
+				.elm-island button { background: var(--elm-purple); margin: 0.25rem 0.35rem 0.25rem 0; }
+				.elm-island .btn-htmx-trigger { background: var(--go-blue); }
 
-				/* default (HTMX zone) */
-				.zone-server button, .zone-server .btn {
-					background: var(--go-blue);
-					color: #fff;
+				.datastar-preview {
+					margin: 0.65rem 0 0;
+					padding: 0.45rem 0.55rem;
+					border: 1px dashed #fdba74;
+					border-radius: 5px;
+					background: #fff7ed;
+					color: #7c2d12;
+					font-size: 0.8rem;
 				}
-				.zone-server button:hover { opacity: 0.85; }
-
-				/* Elm island buttons get their colours via CSS targeting */
-				.elm-island button {
-					background: var(--elm-purple);
-					color: #fff;
-					margin-right: 0.35rem;
-					margin-top: 0.5rem;
+				.datastar-result {
+					margin-top: 0.55rem;
+					color: #166534;
+					font-size: 0.8rem;
+					font-weight: 700;
 				}
-				.elm-island button:hover { opacity: 0.85; }
+				.datastar-result.error { color: #991b1b; }
 
-				/* HTMX-trigger button inside Elm island gets Go colour */
-				.elm-island .btn-htmx-trigger {
-					background: var(--go-blue);
+				.datastar-stats {
+					display: flex;
+					gap: 0.5rem;
+					flex-wrap: wrap;
+					margin-bottom: 0.6rem;
+				}
+				.datastar-stat {
+					display: inline-flex;
+					align-items: center;
+					padding: 0.18rem 0.55rem;
+					border: 1px solid #fdba74;
+					border-radius: 999px;
+					background: #fff7ed;
+					color: var(--datastar-dark);
+					font-size: 0.74rem;
+					font-weight: 700;
 				}
 
-				/* ── Status badges rendered by Elm ─────────────────────── */
-				.badge-ready {
+				.source-chip {
 					display: inline-block;
+					border-radius: 999px;
+					padding: 0.08rem 0.5rem;
+					font-size: 0.7rem;
+					font-weight: 800;
+					background: #f1f5f9;
+					color: #475569;
+				}
+				.source-htmx { background: #e0f2fe; color: #0369a1; }
+				.source-datastar { background: #ffedd5; color: var(--datastar-dark); }
+				.source-app-a, .source-app-b { background: #ede9fe; color: var(--elm-dark); }
+				.source-go { background: #e0f7fb; color: var(--go-dark); }
+
+				.stopwatch-card {
+					margin: 1rem;
+					border: 1px solid #c7d2fe;
+					border-radius: var(--radius);
+					background:
+						radial-gradient(circle at 16% 20%, rgba(124,58,237,.16), transparent 24rem),
+						linear-gradient(135deg, #f8fafc, #eef2ff 52%, #fff7ed);
+					box-shadow: var(--shadow);
+					overflow: hidden;
+				}
+				.stopwatch-header {
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					gap: 1rem;
+					padding: 0.85rem 1rem;
+					border-bottom: 1px solid #c7d2fe;
+					background: rgba(255,255,255,.72);
+				}
+				.stopwatch-header h2 {
+					margin: 0;
+					font-size: 0.95rem;
+					font-weight: 850;
+					color: #312e81;
+				}
+				.stopwatch-grid {
+					display: grid;
+					grid-template-columns: 0.7fr 1.5fr;
+					gap: 1rem;
+					padding: 1rem;
+				}
+				@media (max-width: 1100px) {
+					.stopwatch-grid { grid-template-columns: 1fr; }
+				}
+				.stopwatch-panel {
+					border: 1px solid rgba(148,163,184,.45);
+					border-radius: var(--radius);
+					padding: 0.85rem;
+					background: rgba(255,255,255,.86);
+				}
+				.stopwatch-panel h3 {
+					margin: 0 0 0.6rem;
+					font-size: 0.75rem;
+					font-weight: 850;
+					text-transform: uppercase;
+					letter-spacing: 0.05em;
+					color: var(--muted);
+				}
+				.stopwatch-controls {
+					display: flex;
+					gap: 0.45rem;
+					flex-wrap: wrap;
+				}
+				.stopwatch-controls button {
+					background: #4f46e5;
+				}
+				.stopwatch-controls button:disabled {
+					cursor: not-allowed;
+					opacity: 0.45;
+				}
+				.stopwatch-controls .btn-stop {
+					background: #dc2626;
+				}
+				.stopwatch-controls .btn-reset {
+					background: #475569;
+				}
+				.stopwatch-live {
+					display: grid;
+					grid-template-columns: 15rem minmax(0, 1fr);
+					align-items: center;
+					gap: 1rem;
+					border: 1px solid #fdba74;
+					border-radius: var(--radius);
+					padding: 0.85rem;
+					background: #fff7ed;
+				}
+				@media (max-width: 720px) {
+					.stopwatch-live { grid-template-columns: 1fr; }
+				}
+				.stopwatch-face {
+					--progress: 0deg;
+					position: relative;
+					display: grid;
+					place-items: center;
+					width: 15rem;
+					aspect-ratio: 1;
+					border-radius: 50%;
+					background:
+						radial-gradient(circle at 50% 50%, #ffffff 0 48%, transparent 49%),
+						conic-gradient(from -90deg, #7c3aed var(--progress), #e2e8f0 0);
+					box-shadow: inset 0 0 0 1px #c4b5fd, 0 18px 45px rgba(49,46,129,.18);
+				}
+				.stopwatch-face::after {
+					content: "";
+					position: absolute;
+					inset: 1.05rem;
+					border-radius: 50%;
+					border: 1px solid #ddd6fe;
+				}
+				.stopwatch-time {
+					position: relative;
+					z-index: 1;
+					font-family: Menlo, Consolas, monospace;
+					font-size: 2.15rem;
+					font-weight: 850;
+					color: #1f2937;
+				}
+				.stopwatch-state {
+					position: relative;
+					z-index: 1;
+					margin-top: 3.4rem;
+					color: var(--muted);
+					font-size: 0.72rem;
+					font-weight: 850;
+					text-transform: uppercase;
+					letter-spacing: 0.08em;
+				}
+				.stopwatch-live-status {
+					display: inline-flex;
+					width: fit-content;
+					margin-top: 0.6rem;
+					padding: 0.12rem 0.5rem;
+					border-radius: 999px;
+					font-size: 0.72rem;
+					font-weight: 850;
+					background: #e2e8f0;
+					color: #475569;
+				}
+				.stopwatch-live-status.running {
+					background: #dcfce7;
+					color: #166534;
+				}
+				.lap-list {
+					max-height: 12rem;
+					overflow-y: auto;
+					border: 1px solid #e2e8f0;
+					border-radius: var(--radius);
+					background: #fff;
+				}
+				.lap-row {
+					display: grid;
+					grid-template-columns: 4rem 1fr;
+					gap: 0.5rem;
+					padding: 0.45rem 0.6rem;
+					border-bottom: 1px solid #f1f5f9;
+					font-family: Menlo, Consolas, monospace;
+					font-size: 0.8rem;
+				}
+				.lap-row:last-child { border-bottom: none; }
+				.lap-index {
+					color: var(--muted);
+					font-weight: 850;
+				}
+
+				.row-actions { text-align: right; }
+				.btn-row-delete {
+					background: #fff;
+					border: 1px solid #fca5a5;
+					color: #b91c1c;
+					font-size: 0.7rem;
+					font-weight: 700;
+					padding: 0.18rem 0.5rem;
+				}
+				.btn-row-delete:hover { background: #fee2e2; opacity: 1; }
+
+				.elm-form {
+					display: flex;
+					gap: 0.4rem;
+					margin: 0.4rem 0 0.2rem;
+				}
+				.elm-form input {
+					flex: 1;
+					min-width: 0;
+					padding: 0.38rem 0.55rem;
+					border: 1px solid #c4b5fd;
+					border-radius: 5px;
+					font-size: 0.8rem;
+				}
+				.elm-form input:focus {
+					outline: 2px solid var(--elm-purple);
+					outline-offset: 1px;
+				}
+				.elm-form button:disabled {
+					opacity: 0.45;
+					cursor: not-allowed;
+					transform: none;
+				}
+				.elm-hint {
+					margin: 0 0 0.35rem;
+					font-size: 0.72rem;
+					color: var(--muted);
+				}
+				.elm-hint.invalid { color: #b91c1c; font-weight: 700; }
+				.elm-history table { font-size: 0.74rem; }
+				.elm-history td, .elm-history th { padding: 0.25rem 0.4rem; }
+
+				.elm-islands-grid {
+					display: grid;
+					grid-template-columns: 1fr 1fr;
+					gap: 0.75rem;
+				}
+				@media (max-width: 720px) {
+					.elm-islands-grid { grid-template-columns: 1fr; }
+				}
+				.elm-island {
+					border: 1px solid #ddd6fe;
+					border-radius: var(--radius);
+					padding: 0.65rem;
+					background: #faf5ff;
+					min-height: 12rem;
+				}
+				.elm-island-label {
+					margin-bottom: 0.35rem;
+					color: var(--elm-dark);
+					font-size: 0.72rem;
+					font-weight: 800;
+					text-transform: uppercase;
+				}
+				.field-row {
+					display: flex;
+					align-items: baseline;
+					gap: 0.4rem;
+					margin-bottom: 0.3rem;
+				}
+				.field-label {
+					min-width: 6.5rem;
+					color: var(--muted);
+					font-size: 0.75rem;
+					font-weight: 700;
+				}
+				.field-value { color: var(--text); }
+				.badge-ready,
+				.badge-waiting {
+					display: inline-block;
+					border-radius: 999px;
+					padding: 0.1rem 0.5rem;
+					font-size: 0.7rem;
+					font-weight: 800;
+				}
+				.badge-ready {
 					background: #dcfce7;
 					color: #166534;
 					border: 1px solid #86efac;
-					border-radius: 999px;
-					padding: 0.1rem 0.5rem;
-					font-size: 0.7rem;
-					font-weight: 700;
 				}
 				.badge-waiting {
-					display: inline-block;
 					background: #fef9c3;
 					color: #854d0e;
 					border: 1px solid #fde047;
-					border-radius: 999px;
-					padding: 0.1rem 0.5rem;
-					font-size: 0.7rem;
-					font-weight: 700;
+				}
+				.htmx-swap-tag {
+					display: inline-block;
+					background: #e0f2fe;
+					color: #0369a1;
+					border: 1px solid #7dd3fc;
+					border-radius: 4px;
+					padding: 0.1rem 0.45rem;
+					font-family: Menlo, Consolas, monospace;
+					font-size: 0.78rem;
 				}
 
-				/* ── Table / store ─────────────────────────────────────── */
 				table {
-					border-collapse: collapse;
 					width: 100%;
+					border-collapse: collapse;
 					font-size: 0.85rem;
 				}
 				th, td {
@@ -272,329 +587,337 @@ templ Page() {
 					border-bottom: 1px solid #f1f5f9;
 				}
 				th {
-					font-weight: 600;
-					color: #64748b;
+					color: var(--muted);
 					font-size: 0.75rem;
+					font-weight: 800;
 					text-transform: uppercase;
 					letter-spacing: 0.04em;
 					border-bottom: 2px solid #e2e8f0;
 				}
 				tr:last-child td { border-bottom: none; }
-
-				/* flash animation when SSE updates a row */
 				@keyframes flash-update {
-					0%   { background: #fef08a; }
+					0% { background: #fef08a; }
 					100% { background: transparent; }
 				}
-				.store-row-flash {
-					animation: flash-update 0.9s ease-out;
-				}
+				.store-row-flash { animation: flash-update 0.9s ease-out; }
 
-				/* ── Store form ─────────────────────────────────────────── */
-				.store-form {
-					display: flex;
-					gap: 0.4rem;
-					margin-top: 0.75rem;
-					flex-wrap: wrap;
-				}
-				.store-form input {
-					padding: 0.35rem 0.6rem;
-					border: 1px solid #cbd5e1;
-					border-radius: 5px;
-					font-size: 0.82rem;
-					flex: 1;
-					min-width: 7rem;
-					background: #fff;
-				}
-				.store-form input:focus {
-					outline: 2px solid var(--go-blue);
-					outline-offset: 1px;
-				}
-
-				/* ── Activity log ───────────────────────────────────────── */
 				.activity-log {
+					margin: 1rem;
 					background: var(--log-bg);
 					border-radius: var(--radius);
 					padding: 0.6rem 0.75rem;
 					box-shadow: inset 0 1px 3px rgba(0,0,0,.3);
-					margin-top: 0.5rem;
 				}
 				#activity-entries {
-					font-family: 'Menlo', 'Consolas', monospace;
-					font-size: 0.72rem;
-					color: var(--log-text);
-					max-height: 160px;
-					overflow-y: auto;
 					display: flex;
 					flex-direction: column-reverse;
+					max-height: 155px;
+					overflow-y: auto;
+					color: var(--log-text);
+					font-family: Menlo, Consolas, monospace;
+					font-size: 0.72rem;
 				}
 				.log-entry {
-					padding: 0.15rem 0;
-					border-bottom: 1px solid #1e293b;
 					display: grid;
 					grid-template-columns: 5.5rem 1fr;
 					gap: 0.5rem;
-					animation: slide-in 0.2s ease-out;
-				}
-				@keyframes slide-in {
-					from { opacity: 0; transform: translateY(-4px); }
-					to   { opacity: 1; transform: translateY(0); }
+					padding: 0.15rem 0;
+					border-bottom: 1px solid #1e293b;
 				}
 				.log-time { color: #475569; }
-				.log-msg  { color: var(--log-text); }
+				.log-from-elm { color: #a78bfa; }
+				.log-from-htmx { color: #38bdf8; }
+				.log-from-sse { color: #34d399; }
+				.log-from-go { color: #fb923c; }
+				.log-from-datastar { color: #fdba74; }
 
-				.log-from-elm   { color: var(--log-entry-elm);  }
-				.log-from-htmx  { color: var(--log-entry-htmx); }
-				.log-from-sse   { color: var(--log-entry-sse);  }
-				.log-from-go    { color: var(--log-entry-go);   }
-
-				/* ── Last-swap tag in Elm ───────────────────────────────── */
-				.htmx-swap-tag {
-					display: inline-block;
-					background: #e0f2fe;
-					color: #0369a1;
-					border: 1px solid #7dd3fc;
-					border-radius: 4px;
-					padding: 0.1rem 0.45rem;
-					font-family: monospace;
-					font-size: 0.78rem;
+				.explainer {
+					display: grid;
+					grid-template-columns: repeat(4, minmax(0, 1fr));
+					gap: 0.75rem;
+					padding: 0 1rem 1rem;
 				}
-
-				/* ── Island docs card ──────────────────────────────────── */
-				.island-docs {
-					margin: 0 0.75rem 0.75rem;
-					border-top: 2px dashed var(--elm-border);
-					padding-top: 0.75rem;
-					font-size: 0.8rem;
-					color: #374151;
-					line-height: 1.55;
+				@media (max-width: 1000px) {
+					.explainer { grid-template-columns: 1fr 1fr; }
 				}
-				.island-docs h3 {
-					margin: 0 0 0.35rem 0;
-					font-size: 0.72rem;
-					font-weight: 700;
-					text-transform: uppercase;
-					letter-spacing: 0.06em;
-					color: var(--elm-purple);
+				@media (max-width: 620px) {
+					.explainer { grid-template-columns: 1fr; }
 				}
-				.island-docs p {
-					margin: 0 0 0.65rem 0;
+				.explainer-item {
+					border: 1px solid var(--border);
+					border-radius: var(--radius);
+					padding: 0.65rem;
+					background: #fff;
 				}
-				.island-docs ul {
-					margin: 0 0 0.65rem 0;
-					padding-left: 1.1rem;
-				}
-				.island-docs li {
-					margin-bottom: 0.25rem;
-				}
-				.island-docs .flow-tag {
-					display: inline-block;
-					font-family: monospace;
-					font-size: 0.72rem;
-					padding: 0.05rem 0.35rem;
-					border-radius: 3px;
-					font-weight: 600;
-					margin-right: 0.2rem;
-				}
-				.island-docs .flow-elm  { background: #ede9fe; color: var(--elm-dark); }
-				.island-docs .flow-go   { background: #e0f7fb; color: var(--go-dark); }
-				.island-docs .flow-htmx { background: #f1f5f9; color: var(--htmx-gray); }
-				.island-docs .flow-sse  { background: #d1fae5; color: #065f46; }
-
-				/* ── Misc ───────────────────────────────────────────────── */
-				.field-row {
-					display: flex;
-					align-items: baseline;
-					gap: 0.4rem;
-					margin-bottom: 0.3rem;
-				}
-				.field-label {
-					font-weight: 600;
-					color: #64748b;
+				.explainer-item h3 {
+					margin: 0 0 0.35rem;
 					font-size: 0.75rem;
-					min-width: 7rem;
+					font-weight: 800;
+					text-transform: uppercase;
+					letter-spacing: 0.04em;
+					color: var(--muted);
 				}
-				.field-value { color: #1e293b; }
-
-				.divider {
-					border: none;
-					border-top: 1px solid #e2e8f0;
-					margin: 0.6rem 0;
+				.explainer-item p {
+					margin: 0;
+					color: #475569;
+					font-size: 0.8rem;
+					line-height: 1.45;
 				}
 			</style>
 		</head>
 		<body>
 			<header class="page-header">
-				<h1>Go + templ + HTMX + Elm Islands</h1>
-				<span class="badge badge-go">Go</span>
+				<h1>Shared Message Workbench</h1>
 				<span class="badge badge-htmx">HTMX</span>
+				<span class="badge badge-datastar">Datastar</span>
 				<span class="badge badge-elm">Elm</span>
-				<span class="badge badge-sse">SSE Bridge</span>
+				<span class="badge badge-go">Go</span>
+				<span class="badge badge-sse">SSE</span>
 				<span id="sse-status" class="sse-status disconnected">
 					<span class="sse-dot"></span>
 					<span id="sse-status-text">SSE disconnected</span>
 				</span>
 			</header>
 
-			<div class="zones">
-				<!-- ── Server Zone ── -->
-				<div class="zone zone-server">
-					<div class="zone-header">
-						&#9679; Server Zone &mdash; Go / HTMX
+			<main class="workbench">
+				<div class="workbench-header">
+					<h2 class="workbench-title">One shared key: <code>message</code></h2>
+					<div class="flow-line">
+						<span class="flow-tag flow-htmx">HTMX</span>
+						<span>or</span>
+						<span class="flow-tag flow-datastar">Datastar</span>
+						<span>or</span>
+						<span class="flow-tag flow-elm">Elm</span>
+						<span>&rarr;</span>
+						<span class="flow-tag flow-go">Go store</span>
+						<span>&rarr;</span>
+						<span class="flow-tag flow-sse">SSE fan-out</span>
 					</div>
+				</div>
 
-					<div class="card">
-						<h2>HTMX fragment</h2>
-						<button
-							hx-get="/message"
-							hx-target="#server-message"
-							hx-swap="innerHTML">
-							Load server message
-						</button>
-						<div id="server-message" style="margin-top:0.5rem;"></div>
-					</div>
-
-					<div class="card">
-						<h2>Go KV Store</h2>
+				<section class="live-state">
+					<div class="state-panel">
+						<h2>Current state, rendered by HTMX</h2>
+						<div id="server-message">
+							<p class="muted">Use the Elm HTMX button to swap a server fragment here.</p>
+						</div>
 						<div
 							id="store-entries"
 							hx-get="/api/store/fragment"
 							hx-trigger="load, store-refresh"
 							hx-swap="innerHTML">
-							<p style="color:#94a3b8;font-size:0.82rem;">Loading&hellip;</p>
+							<p class="muted">Loading store&hellip;</p>
 						</div>
-						<hr class="divider"/>
+					</div>
+
+					<div
+						id="datastar-stream"
+						class="state-panel"
+						data-signals="{writes: 0, lastWriter: ''}"
+						data-init="@get('/api/datastar/store/stream')">
+						<h2>Same state, patched by Datastar SSE</h2>
+						<div class="datastar-stats">
+							<span class="datastar-stat" data-text="'Total writes: ' + $writes">Total writes: 0</span>
+							<span
+								class="datastar-stat"
+								data-text="$lastWriter ? 'Last writer: ' + $lastWriter : 'No writes this session'">
+								No writes this session
+							</span>
+						</div>
+						<div class="datastar-live">
+							<div id="datastar-store">
+								<p class="muted">Opening Datastar stream&hellip;</p>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<section class="controls">
+					<div class="control-group htmx-group">
+						<h2>1. Write with HTMX</h2>
+						<p class="control-note">This form posts normal form data to Go. Go saves <code>message</code>, then SSE refreshes every view. The store table above is pure hypermedia: each row's delete button is a server-rendered <code>hx-delete</code> control.</p>
 						<form
 							class="store-form"
 							hx-post="/api/store"
 							hx-swap="none">
-							<input type="text" name="key" placeholder="key" required/>
-							<input type="text" name="value" placeholder="value" required/>
-							<button type="submit">Set</button>
+							<input type="hidden" name="key" value="message"/>
+							<input type="text" name="value" placeholder="Message from HTMX" required/>
+							<button class="btn-htmx" type="submit">Save with HTMX</button>
 						</form>
 					</div>
 
-					<div class="card">
-						<h2>&#9654; Cross-boundary event log</h2>
-						<div class="activity-log">
-							<div id="activity-entries">
-								<div class="log-entry">
-									<span class="log-time">--:--:--</span>
-									<span class="log-msg">Waiting for events&hellip;</span>
+					<div
+						class="control-group datastar-group"
+						data-signals="{messageDraft: ''}">
+						<h2>2. Write with Datastar</h2>
+						<p class="control-note">These inputs are Datastar signals. Submit sends JSON and receives patch events back. The write counter above is a <em>server-pushed signal patch</em> — no client JS touches it.</p>
+						<form
+							class="store-form"
+							data-on:submit="@post('/api/datastar/store', {payload: {key: 'message', value: $messageDraft}})">
+							<input data-bind:message-draft type="text" name="value" placeholder="Message from Datastar" required/>
+							<button class="btn-datastar" type="submit">Save with Datastar</button>
+						</form>
+						<p
+							class="datastar-preview"
+							data-text="$messageDraft ? 'Datastar will save: ' + $messageDraft : 'Datastar signal preview appears here.'">
+							Datastar signal preview appears here.
+						</p>
+						<div id="datastar-write-result" class="datastar-result"></div>
+					</div>
+
+					<div class="control-group elm-group">
+						<h2>3. Write with Elm</h2>
+						<p class="control-note">App A is a typed draft editor — validation is a real state machine, so invalid drafts can't be submitted. App B is a typed event log fed by the same broker. Both speak to Go only through ports.</p>
+						<div class="elm-islands-grid">
+							<div>
+								<div class="elm-island-label">Elm App A &middot; typed editor</div>
+								<div
+									id="app-a"
+									class="elm-island"
+									data-elm-module="AppA"
+									data-island-id="app-a"
+									data-props="{}">
+								</div>
+							</div>
+							<div>
+								<div class="elm-island-label">Elm App B &middot; typed event log</div>
+								<div
+									id="app-b"
+									class="elm-island"
+									data-elm-module="AppB"
+									data-island-id="app-b"
+									data-props="{}">
 								</div>
 							</div>
 						</div>
 					</div>
-				</div>
+				</section>
 
-				<!-- ── Elm Islands Zone ── -->
-				<div class="zone zone-elm">
-					<div class="zone-header">
-						&#9679; Elm Islands
-					</div>
-
-					<div class="elm-islands-grid">
-						<div class="card">
-							<div class="elm-island-label">&#9670; App A</div>
-							<div
-								id="app-a"
-								class="elm-island"
-								data-elm-module="AppA"
-								data-island-id="app-a"
-								data-props="{}">
-							</div>
-						</div>
-
-						<div class="card">
-							<div class="elm-island-label">&#9670; App B</div>
-							<div
-								id="app-b"
-								class="elm-island"
-								data-elm-module="AppB"
-								data-island-id="app-b"
-								data-props="{}">
-							</div>
+				<section class="stopwatch-card">
+					<div class="stopwatch-header">
+						<h2>Hello Stopwatch</h2>
+						<div class="flow-line">
+							<span class="flow-tag flow-htmx">HTMX controls</span>
+							<span>&rarr;</span>
+							<span class="flow-tag flow-go">Go timer</span>
+							<span>&rarr;</span>
+							<span class="flow-tag flow-sse">SSE ticks</span>
+							<span>&rarr;</span>
+							<span class="flow-tag flow-datastar">Datastar</span>
 						</div>
 					</div>
+					<div class="stopwatch-grid">
+						<div class="stopwatch-panel">
+							<h3>HTMX start / stop / reset</h3>
+							@StopwatchControls(stopwatchRunning, stopwatchCanLap)
+							<p class="control-note" style="margin-top:0.75rem;">
+								These buttons are ordinary <code>hx-post</code> controls. Go
+								owns the timer and lap history; HTMX only swaps this controls
+								fragment.
+							</p>
+						</div>
 
-					<div class="island-docs">
-						<h3>What is this?</h3>
-						<p>
-							Each panel above is an independent <strong>Elm island</strong> — a
-							<code>Browser.element</code> app compiled to JavaScript and mounted
-							into a server-rendered page by <code>broker.js</code>.
-							Islands share no global state and never call each other directly;
-							all communication crosses a typed message bus (the broker).
-						</p>
+						<div
+							class="stopwatch-panel"
+							data-init="@get('/api/stopwatch/stream')">
+							<h3>Datastar live elapsed + laps</h3>
+							<div id="stopwatch-live" class="stopwatch-live">
+								<div class="stopwatch-face">
+									<div class="stopwatch-time">00:00.0</div>
+									<div class="stopwatch-state">paused</div>
+								</div>
+								<div>
+									<div class="lap-list">
+										<p class="muted">No laps yet. Use the HTMX Lap button once the timer has started.</p>
+									</div>
+									<span class="stopwatch-live-status">paused via Datastar SSE</span>
+								</div>
+							</div>
+							<p class="control-note" style="margin-top:0.75rem;">
+								Go pushes <code>datastar-patch-elements</code> every tick while
+								the timer is running and after each lap/reset.
+							</p>
+						</div>
+					</div>
+				</section>
 
-						<h3>How the bridge works</h3>
-						<p>
-							Every Elm app exposes two ports — <code>brokerOut</code> to send
-							events and <code>brokerIn</code> to receive them.
-							<code>broker.js</code> sits between all islands and the server,
-							normalising, routing, and stamping each message with a source ID
-							before delivery.
-						</p>
-
-						<h3>What it demonstrates</h3>
-						<ul>
-							<li>
-								<span class="flow-tag flow-elm">Elm &#8594; Elm</span>
-								Direct island-to-island messaging and broadcast — App&nbsp;A can
-								target App&nbsp;B and vice versa without a server round-trip.
-							</li>
-							<li>
-								<span class="flow-tag flow-elm">Elm</span>
-								<span class="flow-tag flow-go">&#8594; Go</span>
-								A <em>STATE_SET</em> event from either island is posted to the Go
-								KV store via <code>POST /api/store</code> with optimistic-lock
-								versioning (HTTP&nbsp;409 on conflict).
-							</li>
-							<li>
-								<span class="flow-tag flow-go">Go</span>
-								<span class="flow-tag flow-sse">SSE</span>
-								<span class="flow-tag flow-elm">&#8594; Elm</span>
-								Store writes are broadcast to all connected browsers over
-								Server-Sent Events and forwarded into every island as a
-								<em>STORE_CHANGE</em> event — the table in each island updates
-								automatically.
-							</li>
-							<li>
-								<span class="flow-tag flow-elm">Elm &#8594; HTMX</span>
-								App&nbsp;A&#39;s <em>Refresh via HTMX</em> button emits an
-								<em>HTMX_SWAP</em> event; broker.js calls
-								<code>htmx.ajax()</code> to swap a server fragment into the DOM
-								without Elm ever touching the network directly.
-							</li>
-							<li>
-								<span class="flow-tag flow-htmx">HTMX &#8594; Elm</span>
-								Every HTMX swap fires <code>htmx:afterSwap</code>, which
-								broker.js converts into an <em>HTMX_AFTER_SWAP</em> broadcast —
-								both islands observe the swap target and URL, demonstrating
-								passive reactivity to server-driven DOM changes.
-							</li>
-						</ul>
-
-						<h3>Try it</h3>
-						<ul>
-							<li>Click <strong>Send to App B</strong> in App&nbsp;A — watch the <em>Received</em> field update only in App&nbsp;B.</li>
-							<li>Click <strong>Broadcast</strong> — both islands update simultaneously.</li>
-							<li>Type a key/value into the store form and click <strong>Set</strong> — the store table flashes and both islands&#39; snapshots update via SSE.</li>
-							<li>Click <strong>Refresh via HTMX</strong> in App&nbsp;A — the server fragment swaps in the left zone and both islands log the swap target in <em>Last HTMX swap</em>.</li>
-							<li>Watch the event log in the Server Zone to trace every cross-boundary event in real time.</li>
-						</ul>
+				<div class="activity-log">
+					<div id="activity-entries">
+						<div class="log-entry">
+							<span class="log-time">--:--:--</span>
+							<span class="log-msg">Waiting for HTMX, Datastar, Elm, Go, and SSE events&hellip;</span>
+						</div>
 					</div>
 				</div>
-			</div>
+
+				<section class="explainer">
+					<div class="explainer-item">
+						<h3>HTMX</h3>
+						<p>Best for small server-rendered request/response interactions.</p>
+					</div>
+					<div class="explainer-item">
+						<h3>Datastar</h3>
+						<p>Best for declarative local signals and server-pushed DOM patches.</p>
+					</div>
+					<div class="explainer-item">
+						<h3>Elm</h3>
+						<p>Best for typed client-side state machines and explicit update logic.</p>
+					</div>
+					<div class="explainer-item">
+						<h3>Fusion</h3>
+						<p>All three write the same Go state, then SSE makes every surface converge.</p>
+					</div>
+				</section>
+			</main>
 		</body>
 	</html>
+}
+
+templ StopwatchControls(running bool, canLap bool) {
+	<div id="stopwatch-controls" class="stopwatch-controls">
+		if running {
+			<button
+				class="btn-stop"
+				hx-post="/api/stopwatch/stop"
+				hx-target="#stopwatch-controls"
+				hx-swap="outerHTML">
+				Stop
+			</button>
+		} else {
+			<button
+				hx-post="/api/stopwatch/start"
+				hx-target="#stopwatch-controls"
+				hx-swap="outerHTML">
+				Start
+			</button>
+		}
+		if canLap {
+			<button
+				hx-post="/api/stopwatch/lap"
+				hx-target="#stopwatch-controls"
+				hx-swap="outerHTML">
+				Lap
+			</button>
+		} else {
+			<button disabled>
+				Lap
+			</button>
+		}
+		<button
+			class="btn-reset"
+			hx-post="/api/stopwatch/reset"
+			hx-target="#stopwatch-controls"
+			hx-swap="outerHTML">
+			Reset
+		</button>
+	</div>
 }
 
 templ ServerMessage(message string) {
 	<p style="margin:0.4rem 0; color:#0f172a;">{ message }</p>
 }
 
-templ StoreEntries(entries map[string]string) {
+templ StoreEntries(entries []store.Entry) {
 	if len(entries) == 0 {
 		<p style="color:#94a3b8; font-size:0.82rem; margin:0;">Store is empty.</p>
 	} else {
@@ -603,13 +926,26 @@ templ StoreEntries(entries map[string]string) {
 				<tr>
 					<th>Key</th>
 					<th>Value</th>
+					<th>By</th>
+					<th></th>
 				</tr>
 			</thead>
 			<tbody>
-				for k, v := range entries {
-					<tr data-store-key={ k }>
-						<td>{ k }</td>
-						<td>{ v }</td>
+				for _, e := range entries {
+					<tr data-store-key={ e.Key }>
+						<td>{ e.Key }</td>
+						<td>{ e.Value }</td>
+						<td><span class={ "source-chip", "source-" + e.Source }>{ e.Source }</span></td>
+						<td class="row-actions">
+							<button
+								class="btn-row-delete"
+								hx-delete={ "/api/store/" + url.PathEscape(e.Key) }
+								hx-confirm={ "Delete key \"" + e.Key + "\" everywhere?" }
+								hx-swap="none"
+								title="Server-rendered hypermedia control: hx-delete">
+								delete
+							</button>
+						</td>
 					</tr>
 				}
 			</tbody>

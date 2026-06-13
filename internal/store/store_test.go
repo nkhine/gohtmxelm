@@ -65,7 +65,7 @@ func TestSetIfSucceedsWithMatchingVersion(t *testing.T) {
 	s.Set("k", "v1")
 	ver := s.Version("k")
 
-	newVer, ok := s.SetIf("k", "v2", ver)
+	newVer, ok := s.SetIf("k", "v2", "test", ver)
 	if !ok {
 		t.Fatal("SetIf should succeed when version matches")
 	}
@@ -84,7 +84,7 @@ func TestSetIfFailsOnVersionConflict(t *testing.T) {
 	ver := s.Version("k")
 	s.Set("k", "v2") // bumps version
 
-	cur, ok := s.SetIf("k", "v3", ver) // stale version
+	cur, ok := s.SetIf("k", "v3", "test", ver) // stale version
 	if ok {
 		t.Fatal("SetIf should fail when version does not match")
 	}
@@ -100,9 +100,57 @@ func TestSetIfFailsOnVersionConflict(t *testing.T) {
 func TestSetIfWithZeroVersionAlwaysWrites(t *testing.T) {
 	s := New()
 	s.Set("k", "v1")
-	_, ok := s.SetIf("k", "v2", 0)
+	_, ok := s.SetIf("k", "v2", "test", 0)
 	if !ok {
 		t.Fatal("SetIf with version=0 should always succeed")
+	}
+}
+
+func TestSetIfRecordsSource(t *testing.T) {
+	s := New()
+	s.SetIf("k", "v", "datastar", 0)
+	entries := s.Entries()
+	if len(entries) != 1 || entries[0].Source != "datastar" {
+		t.Fatalf("expected source datastar, got %+v", entries)
+	}
+}
+
+func TestEntriesSortedByKey(t *testing.T) {
+	s := New()
+	s.Set("b", "2")
+	s.Set("a", "1")
+	entries := s.Entries()
+	if len(entries) != 2 || entries[0].Key != "a" || entries[1].Key != "b" {
+		t.Fatalf("expected sorted entries, got %+v", entries)
+	}
+}
+
+func TestDeleteRemovesKeyAndNotifies(t *testing.T) {
+	s := New()
+	s.Set("k", "v")
+	ch := s.Subscribe()
+	defer s.Unsubscribe(ch)
+
+	if !s.Delete("k", "htmx") {
+		t.Fatal("Delete should return true for existing key")
+	}
+	if _, ok := s.Get("k"); ok {
+		t.Fatal("key should be gone after Delete")
+	}
+	select {
+	case e := <-ch:
+		if !e.Deleted || e.Key != "k" || e.Source != "htmx" {
+			t.Fatalf("unexpected delete event %+v", e)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for delete event")
+	}
+}
+
+func TestDeleteMissingKeyReturnsFalse(t *testing.T) {
+	s := New()
+	if s.Delete("nope", "htmx") {
+		t.Fatal("Delete of missing key should return false")
 	}
 }
 

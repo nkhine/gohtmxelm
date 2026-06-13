@@ -1,6 +1,7 @@
 module BrokerPort exposing
     ( Inbound
     , Model
+    , StoreChange
     , decodeInbound
     , initialModel
     , ready
@@ -20,6 +21,7 @@ type alias Model =
     , brokerReady : Bool
     , storeState : Dict String String
     , lastHtmxSwap : Maybe String
+    , lastWrite : Maybe StoreChange
     }
 
 
@@ -30,6 +32,18 @@ initialModel islandId =
     , brokerReady = False
     , storeState = Dict.empty
     , lastHtmxSwap = Nothing
+    , lastWrite = Nothing
+    }
+
+
+{-| One store mutation observed via SSE, with attribution: which surface
+(htmx, datastar, app-a, app-b, go) performed it.
+-}
+type alias StoreChange =
+    { key : String
+    , value : String
+    , source : String
+    , deleted : Bool
     }
 
 
@@ -38,6 +52,7 @@ type alias Inbound =
     , brokerReady : Bool
     , storeState : Dict String String
     , htmxSwapTarget : Maybe String
+    , storeChange : Maybe StoreChange
     }
 
 
@@ -113,7 +128,7 @@ sendHtmxSwap out selector url =
 decodeInbound : Decode.Value -> Result Decode.Error Inbound
 decodeInbound =
     Decode.decodeValue
-        (Decode.map4 Inbound
+        (Decode.map5 Inbound
             -- message: read from shared broker state
             (Decode.oneOf
                 [ Decode.field "brokerState" (Decode.field "message" Decode.string)
@@ -151,4 +166,40 @@ decodeInbound =
                 , Decode.succeed Nothing
                 ]
             )
+            -- storeChange: present only on STORE_CHANGE events; carries
+            -- attribution so islands know who wrote without trusting the DOM
+            (Decode.oneOf
+                [ Decode.field "type" Decode.string
+                    |> Decode.andThen
+                        (\t ->
+                            if t == "STORE_CHANGE" then
+                                Decode.map Just decodeStoreChange
+
+                            else
+                                Decode.succeed Nothing
+                        )
+                , Decode.succeed Nothing
+                ]
+            )
+        )
+
+
+decodeStoreChange : Decode.Decoder StoreChange
+decodeStoreChange =
+    Decode.map4 StoreChange
+        (Decode.at [ "payload", "key" ] Decode.string)
+        (Decode.oneOf
+            [ Decode.at [ "payload", "value" ] Decode.string
+            , Decode.succeed ""
+            ]
+        )
+        (Decode.oneOf
+            [ Decode.at [ "payload", "source" ] Decode.string
+            , Decode.succeed "unknown"
+            ]
+        )
+        (Decode.oneOf
+            [ Decode.at [ "payload", "deleted" ] Decode.bool
+            , Decode.succeed False
+            ]
         )
