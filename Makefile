@@ -20,7 +20,7 @@ GO_SRCS        := $(shell find . -name '*.go' -not -path './.git/*')
 
 ## local: build everything then start the server
 local: $(BINARY) $(HTMX_JS) $(DATASTAR_JS)
-	./$(BINARY)
+	PORT=$(PORT) ./$(BINARY)
 
 ## build: compile generated assets and Go binary
 build: $(BINARY)
@@ -62,7 +62,7 @@ test:
 
 ## dev: build generated files and run without compiling a binary
 dev: go.sum $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS)
-	go run ./demo
+	PORT=$(PORT) go run ./demo
 
 ## watch: rebuild generated assets and restart the server on source changes
 watch:

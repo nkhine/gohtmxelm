@@ -41,8 +41,8 @@ in a tiny convention.
 HTTP/1.1 is a *text protocol* layered on the TCP byte stream. A request is:
 
 ```
-GET /api/events HTTP/1.1\r\n
-Host: localhost:8080\r\n
+GET /api/stream HTTP/1.1\r\n
+Host: localhost:8091\r\n
 Accept: text/event-stream\r\n
 \r\n
 ```
