@@ -22,36 +22,34 @@ templ StatementExample() {
 			</div>
 		</div>
 
-		<div class="statement-grid">
-			<div class="statement-panel">
-				<h3>Elm range picker &middot; typed selection</h3>
-				<div
-					id="range-picker"
-					class="elm-island"
-					data-elm-module="RangePicker"
-					data-island-id="range-picker"
-					data-props="{}"></div>
-				<p class="control-note">
-					Presets and the custom window are a typed state machine in Elm.
-					The selection is sent to Go, which resolves it against the server
-					clock and broadcasts the result — every surface converges on the
-					same range.
-				</p>
-			</div>
-
+		<div class="statement-picker">
+			<h3>Elm range picker &middot; typed selection</h3>
 			<div
-				id="statement-summary-panel"
-				class="statement-panel datastar-live"
-				data-signals="{count: 0, opening: '—', credits: '—', debits: '—', closing: '—'}"
-				data-init="@get('/api/statement/stream')">
-				<h3>Datastar summary &middot; server-pushed signals</h3>
-				<div class="summary-headline">
-					<span class="summary-chip" data-text="$count + ' transfers'">0 transfers</span>
-					<span class="summary-chip" data-text="'Closing ' + $closing">Closing —</span>
-				</div>
-				<div id="statement-summary">
-					<p class="muted">Opening Datastar stream&hellip;</p>
-				</div>
+				id="range-picker"
+				class="elm-island"
+				data-elm-module="RangePicker"
+				data-island-id="range-picker"
+				data-props="{}"></div>
+			<p class="control-note">
+				Pick a relative preset on the right, or click a start and end day on
+				the calendar. The selection is sent to Go, which resolves it against
+				the server clock and broadcasts the result — every surface converges
+				on the same range.
+			</p>
+		</div>
+
+		<div
+			id="statement-summary-panel"
+			class="statement-panel datastar-live"
+			data-signals="{count: 0, opening: '—', credits: '—', debits: '—', closing: '—'}"
+			data-init="@get('/api/statement/stream')">
+			<h3>Datastar summary &middot; server-pushed signals</h3>
+			<div class="summary-headline">
+				<span class="summary-chip" data-text="$count + ' transfers'">0 transfers</span>
+				<span class="summary-chip" data-text="'Closing ' + $closing">Closing —</span>
+			</div>
+			<div id="statement-summary">
+				<p class="muted">Opening Datastar stream&hellip;</p>
 			</div>
 		</div>
 

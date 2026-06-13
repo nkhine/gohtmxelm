@@ -80,7 +80,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8091"
 	}
 	addr := ":" + port
 
@@ -436,12 +436,15 @@ func statementSignals(sum statement.Summary) map[string]any {
 }
 
 // rangePayload is the JSON the broker forwards to the Elm picker and demo-ui.js.
+// todayIso lets the calendar open on the current month without the island
+// needing its own clock or a timezone library.
 func rangePayload(rng statement.Range, sum statement.Summary) map[string]any {
 	return map[string]any{
-		"label":  rng.Label,
-		"count":  sum.Count,
-		"fromMs": rng.From.UnixMilli(),
-		"toMs":   rng.To.UnixMilli(),
+		"label":    rng.Label,
+		"count":    sum.Count,
+		"fromMs":   rng.From.UnixMilli(),
+		"toMs":     rng.To.UnixMilli(),
+		"todayIso": time.Now().Format("2006-01-02"),
 	}
 }
 
