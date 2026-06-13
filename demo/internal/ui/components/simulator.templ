@@ -1,0 +1,300 @@
+package components
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/nkhine/gohtmxelm/demo/internal/simviz"
+	"github.com/nkhine/gohtmxelm/pkg/simnet"
+)
+
+// SimulatorExample is the contract-simulator card. The Go simnet kernel records
+// a deterministic run of the broadcast→SSE→converge contract under an
+// adversarial network; the server replays it frame-by-frame over the library's
+// own Broadcaster. The Elm island draws the radial network (packets, drops,
+// partitions); Datastar renders the live invariant verdict — both fed the same
+// frames. It is the library validating itself, with its own pattern.
+templ SimulatorExample() {
+	<section class="workbench simulator-card" id="example-simulator">
+		<div class="workbench-header">
+			<h2 class="workbench-title">Contract simulator</h2>
+			<div class="flow-line">
+				<span class="flow-tag flow-go">Go simnet kernel</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-go">Broadcaster</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-sse">SSE</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-elm">Elm radial network</span>
+				<span>+</span>
+				<span class="flow-tag flow-datastar">Datastar verdict</span>
+			</div>
+		</div>
+
+		<p class="sim-blurb">
+			Every frame the server drops, delays, duplicates or partitions SSE between
+			Go and five surfaces. With reconnect-and-rehydrate on, they always converge;
+			turn it off and watch the same lossy stream diverge — reproducibly, by seed.
+		</p>
+
+		@simControls()
+
+		<div class="sim-grid">
+			<!-- Elm island: the radial network animation, fed "sim-frame" via the broker. -->
+			<div
+				id="sim-network"
+				class="elm-island sim-network"
+				data-elm-module="Simulator"
+				data-island-id="sim-network"
+				data-props="{}"></div>
+
+			<!-- Datastar verdict panel: server-pushed signals + the invariant summary. -->
+			<div
+				id="sim-verdict-panel"
+				class="sim-verdict-panel datastar-live"
+				data-signals="{simSeed: 0, simStep: 0, simTotal: 0, simAuth: 0, simLamp: 'synced', simSemantics: '—', simResync: true, simIntensity: '—', simPlaying: true, simPauseOnFail: true}"
+				data-init="@get('/api/sim/stream')">
+				<div class="sim-headline">
+					<span class="sim-chip" data-text="'seed ' + $simSeed">seed —</span>
+					<span class="sim-chip" data-text="'step ' + $simStep + '/' + $simTotal">step —</span>
+					<span class="sim-chip" data-text="$simSemantics">—</span>
+					<span class="sim-chip" data-text="$simResync ? 'resync on' : 'resync OFF'">resync</span>
+				</div>
+				<div id="sim-verdict">
+					<p class="muted">Opening simulator stream&hellip;</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="sim-results-panel">
+			<div class="sim-results-head">
+				<h3>Run ledger <span class="sim-results-note">&middot; failures persist in sim-violations.jsonl &amp; reload here</span></h3>
+				<div class="sim-control-group">
+					<span class="sim-control-label">pause on fail</span>
+					<button class="sim-btn ghost" data-class="{active: $simPauseOnFail}" hx-post="/api/sim/control?action=pausefail-on" hx-swap="none">on</button>
+					<button class="sim-btn ghost" data-class="{active: !$simPauseOnFail}" hx-post="/api/sim/control?action=pausefail-off" hx-swap="none">off</button>
+					<button class="sim-btn ghost" hx-post="/api/sim/control?action=clear" hx-swap="none">clear</button>
+				</div>
+			</div>
+			<div id="sim-results">
+				<p class="muted">No completed runs yet&hellip;</p>
+			</div>
+		</div>
+	</section>
+}
+
+// SimulatorResults is the durable run ledger, patched over the Datastar stream
+// whenever a run completes. Each row is seed-stamped so a violation can be
+// reproduced (and fixed) long after it scrolled off the live view.
+templ SimulatorResults(rows []simviz.RunResult) {
+	<div id="sim-results">
+		if len(rows) == 0 {
+			<p class="muted">No completed runs yet&hellip;</p>
+		} else {
+			<ul class="sim-run-list">
+				for _, r := range rows {
+					<li class={ "sim-run", templ.KV("bad", r.Violated), templ.KV("ok", !r.Violated) }>
+						<div class="sim-run-head">
+							<span class="sim-run-verdict">
+								if r.Violated {
+									✗
+								} else {
+									✓
+								}
+							</span>
+							<span class="sim-run-seed">seed { fmt.Sprintf("%d", r.Seed) }</span>
+							<span class="sim-run-cfg">{ r.Semantics } &middot; { r.Intensity } &middot; { resyncLabel(r.Resync) }</span>
+							<span class="sim-run-metrics">{ runMetrics(r) }</span>
+							<span class="sim-run-time">{ shortTime(r.At) }</span>
+							<button
+								class="sim-btn ghost sim-replay"
+								hx-post={ replayURL(r) }
+								hx-swap="none"
+								title="Reload this exact run, paused at frame 0">▶ replay</button>
+						</div>
+						if r.Violated {
+							<div class="sim-run-detail">{ r.Invariant }: { r.Detail }</div>
+						} else {
+							<div class="sim-run-detail muted">{ fmt.Sprintf("%d surfaces converged at v%d in %d steps", r.Surfaces, r.Writes, r.Steps) }</div>
+						}
+					</li>
+				}
+			</ul>
+		}
+	</div>
+}
+
+func resyncLabel(on bool) string {
+	if on {
+		return "resync on"
+	}
+	return "resync OFF"
+}
+
+// shortTime trims an RFC3339 timestamp to HH:MM:SS for the ledger.
+func shortTime(rfc string) string {
+	if len(rfc) >= 19 {
+		return rfc[11:19]
+	}
+	return rfc
+}
+
+// simControls are plain HTMX posts; the running stream reflects the new state on
+// its next frame, so each control swaps nothing (hx-swap="none").
+templ simControls() {
+	<div class="sim-controls">
+		<div class="sim-control-group">
+			<button class="sim-btn" data-class="{active: $simPlaying}" hx-post="/api/sim/control?action=play" hx-swap="none">▶ Play</button>
+			<button class="sim-btn" data-class="{active: !$simPlaying}" hx-post="/api/sim/control?action=pause" hx-swap="none">⏸ Pause</button>
+			<button class="sim-btn" data-attr="{disabled: $simPlaying}" hx-post="/api/sim/control?action=step" hx-swap="none">⏭ Step</button>
+			<button class="sim-btn" hx-post="/api/sim/control?action=reseed" hx-swap="none">⟳ New seed</button>
+		</div>
+		<div class="sim-control-group">
+			<span class="sim-control-label">faults</span>
+			<button class="sim-btn ghost" data-class="{active: $simIntensity === 'calm'}" hx-post="/api/sim/control?action=calm" hx-swap="none">calm</button>
+			<button class="sim-btn ghost" data-class="{active: $simIntensity === 'normal'}" hx-post="/api/sim/control?action=normal" hx-swap="none">normal</button>
+			<button class="sim-btn ghost" data-class="{active: $simIntensity === 'storm'}" hx-post="/api/sim/control?action=storm" hx-swap="none">storm</button>
+		</div>
+		<div class="sim-control-group">
+			<span class="sim-control-label">events</span>
+			<button class="sim-btn ghost" data-class="{active: $simSemantics === 'snapshot'}" hx-post="/api/sim/control?action=semantics-snapshot" hx-swap="none">snapshot</button>
+			<button class="sim-btn ghost" data-class="{active: $simSemantics === 'delta'}" hx-post="/api/sim/control?action=semantics-delta" hx-swap="none">delta</button>
+		</div>
+		<div class="sim-control-group">
+			<span class="sim-control-label">recovery</span>
+			<button class="sim-btn ok" data-class="{active: $simResync}" hx-post="/api/sim/control?action=resync-on" hx-swap="none">resync on</button>
+			<button class="sim-btn danger" data-class="{active: !$simResync}" hx-post="/api/sim/control?action=resync-off" hx-swap="none">break it</button>
+		</div>
+	</div>
+}
+
+// SimulatorVerdict is the Datastar-patched invariant summary, replaced on every
+// frame: the current action, the live convergence lamp, the ordering lamp, and
+// the terminal verdict (with the reproduction seed on a violation).
+templ SimulatorVerdict(f simnet.Frame, st simviz.Status) {
+	<div id="sim-verdict">
+		<div class="sim-lamps">
+			@simLamp("convergence", convergenceTone(f))
+			@simLamp("ordering", "ok")
+		</div>
+		<p class="sim-action">
+			<span class={ "sim-kind", "sim-kind-" + string(f.Action.Kind) }>{ string(f.Action.Kind) }</span>
+			<span class="sim-action-label">{ f.Action.Label }</span>
+		</p>
+		if f.Final && f.Violated {
+			<div class="sim-verdict-banner bad">
+				<div class="sim-verdict-title">✗ Contract violated · { f.Violation }</div>
+				<p class="sim-verdict-plain">{ violationPlain(f) }</p>
+				<details class="sim-debug">
+					<summary>How to debug this</summary>
+					<p>
+						This is run <strong>seed { fmt.Sprintf("%d", st.Seed) }</strong>
+						({ f.Semantics } events, { st.Intensity } faults, resync { onoff(f.Resync) }) — fully deterministic, so it reproduces every time.
+					</p>
+					<ul>
+						<li>Press <strong>▶ replay</strong> on this run in the ledger below to watch it again, frame by frame.</li>
+						<li>In code: build a <code>simnet.Config</code> with this seed and these knobs, call <code>.Record()</code>, or run <code>go test ./pkg/simnet/</code> to step the invariant in a test.</li>
+					</ul>
+				</details>
+			</div>
+		} else if f.Final {
+			<div class="sim-verdict-banner good">
+				✓ All { fmt.Sprintf("%d", len(f.Surfaces)) } surfaces converged at v{ fmt.Sprintf("%d", f.AuthVersion) } (seed { fmt.Sprintf("%d", st.Seed) }).
+			</div>
+		} else {
+			<div class="sim-verdict-banner live">
+				{ fmt.Sprintf("%d", convergedCount(f)) } / { fmt.Sprintf("%d", len(f.Surfaces)) } surfaces in sync · authoritative v{ fmt.Sprintf("%d", f.AuthVersion) }
+			</div>
+		}
+	</div>
+}
+
+templ simLamp(label string, tone string) {
+	<span class={ "sim-lamp", "sim-lamp-" + tone }>
+		<span class="sim-lamp-dot"></span>
+		{ label }
+	</span>
+}
+
+// convergenceTone maps a frame to the convergence lamp colour.
+func convergenceTone(f simnet.Frame) string {
+	switch {
+	case f.Violated:
+		return "bad"
+	case f.Converged:
+		return "ok"
+	default:
+		return "warn"
+	}
+}
+
+// convergedCount counts surfaces currently presenting authoritative state.
+func convergedCount(f simnet.Frame) int {
+	n := 0
+	for _, s := range f.Surfaces {
+		if s.Status == "synced" {
+			n++
+		}
+	}
+	return n
+}
+
+// violationPlain turns the invariant detail into a plain-language explanation
+// of what happened and what the user can do about it.
+func violationPlain(f simnet.Frame) string {
+	worst := -1
+	for i, s := range f.Surfaces {
+		if s.Version < f.AuthVersion && (worst < 0 || s.Version < f.Surfaces[worst].Version) {
+			worst = i
+		}
+	}
+	var b strings.Builder
+	if worst >= 0 {
+		s := f.Surfaces[worst]
+		fmt.Fprintf(&b, "%s (%s) is still showing v%d while Go reached v%d — it missed an update and never caught up. ",
+			s.Label, kindName(s.Kind), s.Version, f.AuthVersion)
+	} else {
+		b.WriteString("A surface never caught up to authoritative state. ")
+	}
+	if !f.Resync {
+		b.WriteString("Recovery (reconnect + re-hydrate) is OFF, so a lost event is never repaired. ")
+	}
+	if f.Semantics == "delta" {
+		b.WriteString("With delta events, one missed update blocks every later one (they must apply in order). ")
+	}
+	b.WriteString("Fix: turn resync on, or switch events to snapshot (idempotent, self-healing).")
+	return b.String()
+}
+
+func kindName(kind string) string {
+	switch kind {
+	case "elm":
+		return "Elm island"
+	case "htmx":
+		return "HTMX"
+	case "datastar":
+		return "Datastar"
+	default:
+		return "surface"
+	}
+}
+
+func onoff(b bool) string {
+	if b {
+		return "on"
+	}
+	return "off"
+}
+
+// runMetrics is the compact deterministic summary shown on a ledger row: the
+// faults the run weathered and the worst lag any surface reached.
+func runMetrics(r simviz.RunResult) string {
+	return fmt.Sprintf("%d steps · %d drop · %d dup · %d part · %d reconn · lag %d",
+		r.Steps, r.Drops, r.Duplicates, r.Partitions, r.Reconnects, r.MaxLag)
+}
+
+// replayURL builds the control URL that reloads a ledger run exactly.
+func replayURL(r simviz.RunResult) string {
+	return fmt.Sprintf("/api/sim/replay?seed=%d&semantics=%s&intensity=%s&resync=%t",
+		r.Seed, r.Semantics, r.Intensity, r.Resync)
+}
