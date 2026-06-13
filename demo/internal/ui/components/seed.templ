@@ -1,0 +1,83 @@
+package components
+
+import "github.com/nkhine/gohtmxelm/demo/internal/statement"
+
+// SeedExample is the Seed card. Submitting the form opens a Datastar SSE stream
+// from Go: each faked transfer is written to the in-memory DynamoDB table and
+// pushed as a row into the live feed (newest first, with an entrance
+// animation), while a signal tracks progress. When the stream finishes, Go
+// broadcasts the change so the Statement card's HTMX table, Datastar summary,
+// and Elm picker all update — no hard-coded data.
+templ SeedExample() {
+	<section
+		class="workbench seed-card"
+		id="example-seed"
+		data-signals="{seedCount: 50, seedPeriod: '30d', seeded: 0, seedTotal: 0, seedMsg: ''}">
+		<div class="workbench-header">
+			<h2 class="workbench-title">Seed transfers</h2>
+			<div class="flow-line">
+				<span class="flow-tag flow-go">Go faker</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-go">in-memory DynamoDB</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-sse">SSE per item</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-datastar">live feed</span>
+				<span>+</span>
+				<span class="flow-tag flow-htmx">Statement</span>
+			</div>
+		</div>
+		<div class="seed-body">
+			<form class="seed-form" data-on:submit="@post('/api/statement/seed', {payload: {count: $seedCount, period: $seedPeriod}})">
+				<div class="seed-field">
+					<label for="seed-count">How many transfers</label>
+					<input id="seed-count" type="number" min="1" max="10000" data-bind:seed-count/>
+				</div>
+				<div class="seed-field">
+					<label for="seed-period">Over what period</label>
+					<select id="seed-period" data-bind:seed-period>
+						<option value="24h">Last 24 hours</option>
+						<option value="7d">Last 7 days</option>
+						<option value="30d">Last 30 days</option>
+						<option value="90d">Last 90 days</option>
+						<option value="365d">Last 12 months</option>
+					</select>
+				</div>
+				<button class="btn-go" type="submit">Seed transfers</button>
+				<span class="seed-progress" data-text="$seedTotal > 0 && $seeded < $seedTotal ? 'Seeding… ' + $seeded + ' / ' + $seedTotal : $seedMsg"></span>
+			</form>
+			<div class="seed-feed">
+				<table class="statement-rows seed-feed-table">
+					<thead>
+						<tr>
+							<th>When</th>
+							<th>Counterparty</th>
+							<th>Method</th>
+							<th>Status</th>
+							<th class="num">Money out</th>
+							<th class="num">Money in</th>
+						</tr>
+					</thead>
+					<tbody id="seed-feed-rows"></tbody>
+				</table>
+			</div>
+			<p class="control-note">
+				Each row streams in over SSE as Go writes it to the in-memory
+				DynamoDB table (no Docker). Counterparty names are faked with
+				gofakeit; when the stream ends, the statement above re-renders.
+			</p>
+		</div>
+	</section>
+}
+
+// SeedFeedRow is one streamed transfer, prepended into the live feed.
+templ SeedFeedRow(t statement.Transfer) {
+	<tr class="seed-row">
+		<td class="nowrap">{ transferTime(t) }</td>
+		<td>{ t.Counterparty }</td>
+		<td><span class="method-chip">{ t.Method }</span></td>
+		<td><span class={ "status-chip", statusClass(t.Status) }>{ t.Status }</span></td>
+		<td class="num out">{ moneyOut(t) }</td>
+		<td class="num in">{ moneyIn(t) }</td>
+	</tr>
+}

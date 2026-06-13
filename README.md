@@ -104,6 +104,7 @@ Keep the DOM ownership boundaries physical:
 cmd/gohtmxelm/          CLI for init and doctor workflows
 pkg/                    public importable Go package
 pkg/runtime/            embedded browser broker runtime
+demo/internal/dynamo/   in-memory DynamoDB-style table (no external service)
 
 demo/                   reference app users can copy from
 demo/main.go            demo server and routes
@@ -125,6 +126,15 @@ library pattern in a real Go app. It includes:
 - a shared message workbench using HTMX, Datastar, Elm, Go, and SSE
 - a server-owned stopwatch using HTMX controls, Datastar live patches, and Elm
   lap analytics
+- a bank-statement view: an Elm range picker filters Go-owned transfers while
+  HTMX renders the table and Datastar pushes the summary
+- a **Seed** card that fakes account transfers (the
+  demo treasury transfer-row model treasury payment-row model,
+  with [gofakeit](https://github.com/brianvoe/gofakeit) counterparty names) into
+  the statement's **in-memory DynamoDB-style table** (`demo/internal/dynamo`, no
+  Docker/AWS). Submitting the form writes the rows and broadcasts the change, so
+  the statement's HTMX table, Datastar summary, and Elm picker all update — the
+  statement data is generated at runtime, not hard-coded.
 - local Elm source under `demo/elm`
 - demo-only browser assets under `demo/static`
 

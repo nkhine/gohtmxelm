@@ -6,24 +6,6 @@ import (
 	"github.com/nkhine/gohtmxelm/demo/internal/statement"
 )
 
-// statementRow pairs a transfer with its running balance so the table view can
-// render a per-row balance without recomputing in the template.
-type statementRow struct {
-	T            statement.Transfer
-	BalanceMinor int64
-}
-
-// statementRows attaches the running balance (from the opening balance) to each
-// transfer in a newest-first slice.
-func statementRows(transfers []statement.Transfer, opening int64) []statementRow {
-	bal := statement.RunningBalance(opening, transfers)
-	rows := make([]statementRow, len(transfers))
-	for i, t := range transfers {
-		rows[i] = statementRow{T: t, BalanceMinor: bal[t.ID]}
-	}
-	return rows
-}
-
 func gbp(minor int64) string {
 	return statement.FormatGBP(minor)
 }
@@ -49,11 +31,4 @@ func transferTime(t statement.Transfer) string {
 
 func statusClass(status string) string {
 	return "status-" + strings.ToLower(status)
-}
-
-func balanceClass(minor int64) string {
-	if minor < 0 {
-		return "balance negative"
-	}
-	return "balance"
 }

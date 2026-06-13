@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -73,6 +74,14 @@ func main() {
 			Description: "Elm range picker filters Go-owned transfers; HTMX + Datastar render.",
 			Render: func(stopwatch.Snapshot) templ.Component {
 				return components.StatementExample()
+			},
+		},
+		{
+			Slug:        "seed",
+			Title:       "Seed transfers",
+			Description: "Fake transfers into the statement's in-memory DynamoDB table.",
+			Render: func(stopwatch.Snapshot) templ.Component {
+				return components.SeedExample()
 			},
 		},
 	}
@@ -323,9 +332,7 @@ func main() {
 	// ── Bank statement example ────────────────────────────────────────────
 	// HTMX renders the statement table for the current server-selected range.
 	r.Get("/api/statement/transfers", func(w http.ResponseWriter, r *http.Request) {
-		rng := stmt.Range()
-		opening := stmt.Summary(rng).OpeningMinor
-		if err := components.StatementTransfers(stmt.Transfers(rng), opening).Render(r.Context(), w); err != nil {
+		if err := components.StatementTransfers(stmt.Transfers(stmt.Range())).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
@@ -355,6 +362,62 @@ func main() {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// Seed card: fake N transfers across a period into the statement's
+	// in-memory table, streaming each one to the card's live feed over a
+	// Datastar SSE response. When the stream ends, Go broadcasts the change so
+	// the statement table (HTMX), summary (Datastar), and picker (Elm) update.
+	r.Post("/api/statement/seed", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		count := coerceInt(body["count"])
+		if count < 1 {
+			count = 1
+		}
+		if count > 10000 {
+			count = 10000
+		}
+		periodKey, _ := body["period"].(string)
+		label, dur := seedPeriod(periodKey)
+
+		stream, err := gohtmxelm.NewStream(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		transfers := stmt.Generate(count, dur, time.Now())
+		// Adaptive delay: keep the whole animation under ~2.5s regardless of N.
+		delay := (2500 * time.Millisecond) / time.Duration(len(transfers))
+		if delay < 8*time.Millisecond {
+			delay = 8 * time.Millisecond
+		}
+		if delay > 60*time.Millisecond {
+			delay = 60 * time.Millisecond
+		}
+
+		const feedMax = 12
+		for i, t := range transfers {
+			stmt.Add(t)
+			if stream.PatchElementsMode("prepend", "#seed-feed-rows", render(components.SeedFeedRow(t))) != nil {
+				return
+			}
+			if i >= feedMax {
+				_ = stream.RemoveElements("#seed-feed-rows tr:last-child")
+			}
+			_ = stream.PatchSignals(map[string]any{"seeded": i + 1, "seedTotal": len(transfers)})
+			select {
+			case <-time.After(delay):
+			case <-stream.Done():
+				return
+			}
+		}
+		stmt.Touch() // one broadcast so the statement re-renders with the new data
+		_ = stream.PatchSignals(map[string]any{
+			"seedMsg": fmt.Sprintf("Seeded %d transfers across %s — table now holds %d. Widen the statement range to see them.",
+				len(transfers), label, stmt.Count()),
+		})
 	})
 
 	// Datastar owns the summary panel: signal patches drive the headline
@@ -429,12 +492,13 @@ func renderControls(w http.ResponseWriter, r *http.Request, snap stopwatch.Snaps
 // client-side wiring.
 func statementSignals(rng statement.Range, sum statement.Summary) map[string]any {
 	return map[string]any{
-		"period":  rng.Label,
-		"count":   sum.Count,
-		"opening": statement.FormatGBP(sum.OpeningMinor),
-		"credits": statement.FormatGBP(sum.CreditsMinor),
-		"debits":  statement.FormatGBP(sum.DebitsMinor),
-		"closing": statement.FormatGBP(sum.ClosingMinor),
+		"period":         rng.Label,
+		"count":          sum.Count,
+		"creditsPosted":  statement.FormatGBP(sum.CreditsPosted),
+		"debitsPosted":   statement.FormatGBP(sum.DebitsPosted),
+		"creditsPending": statement.FormatGBP(sum.CreditsPending),
+		"debitsPending":  statement.FormatGBP(sum.DebitsPending),
+		"available":      statement.FormatGBP(sum.AvailableMinor()),
 	}
 }
 
@@ -448,6 +512,45 @@ func rangePayload(rng statement.Range, sum statement.Summary) map[string]any {
 		"fromMs":   rng.From.UnixMilli(),
 		"toMs":     rng.To.UnixMilli(),
 		"todayIso": time.Now().Format("2006-01-02"),
+	}
+}
+
+// seedPeriods are the windows the Seed card can scatter faked transfers over.
+var seedPeriods = []struct {
+	Key   string
+	Label string
+	Dur   time.Duration
+}{
+	{"24h", "the last 24 hours", 24 * time.Hour},
+	{"7d", "the last 7 days", 7 * 24 * time.Hour},
+	{"30d", "the last 30 days", 30 * 24 * time.Hour},
+	{"90d", "the last 90 days", 90 * 24 * time.Hour},
+	{"365d", "the last 12 months", 365 * 24 * time.Hour},
+}
+
+// seedPeriod maps a period key to its label and duration, defaulting to 30 days.
+func seedPeriod(key string) (string, time.Duration) {
+	for _, p := range seedPeriods {
+		if p.Key == key {
+			return p.Label, p.Dur
+		}
+	}
+	return seedPeriods[2].Label, seedPeriods[2].Dur
+}
+
+// coerceInt reads an int from a JSON-decoded value that may be a float64 (JSON
+// number) or a string (Datastar can bind either), defaulting to 0.
+func coerceInt(v any) int {
+	switch n := v.(type) {
+	case float64:
+		return int(n)
+	case int:
+		return n
+	case string:
+		i, _ := strconv.Atoi(n)
+		return i
+	default:
+		return 0
 	}
 }
 
