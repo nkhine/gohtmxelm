@@ -2,10 +2,8 @@
 elm-htmx-templ-demo
 gohtmxelm-demo
 
-# Generated Elm bundles
-demo/static/app-a.js
-demo/static/app-b.js
-demo/static/lap-stats.js
+# Generated Elm bundle (built by make)
+demo/static/elm.js
 
 # Vendored third-party JS (downloaded by make)
 demo/static/vendor/
@@ -15,13 +13,9 @@ demo/static/vendor/
 
 # Elm build cache
 demo/elm-stuff/
-onboarding/elm-stuff/
 
 # Air live-reload build directory
 .air/
-
-# Onboarding app compiled output
-onboarding/main.js
 
 # macOS
 .DS_Store

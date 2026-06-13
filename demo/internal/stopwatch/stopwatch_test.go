@@ -1,4 +1,4 @@
-package main
+package stopwatch
 
 import (
 	"testing"
@@ -18,7 +18,7 @@ func (c *testClock) advance(d time.Duration) { c.t = c.t.Add(d) }
 // never started, so tick() is exercised directly where needed.
 func newTestStopwatch() (*Stopwatch, *testClock) {
 	clock := &testClock{t: time.Unix(0, 0)}
-	sw := NewStopwatch()
+	sw := New()
 	sw.now = clock.now
 	return sw, clock
 }
@@ -123,8 +123,8 @@ func TestLapAtZeroElapsedIsNoOp(t *testing.T) {
 
 func TestSubscriberReceivesStateChange(t *testing.T) {
 	sw, _ := newTestStopwatch()
-	ch := sw.Subscribe()
-	defer sw.Unsubscribe(ch)
+	ch := sw.Events().Subscribe()
+	defer sw.Events().Unsubscribe(ch)
 
 	sw.Start()
 	select {
@@ -142,8 +142,8 @@ func TestSubscriberReceivesStateChange(t *testing.T) {
 
 func TestTickEmitsNonStateChangeAndStopsWhenPaused(t *testing.T) {
 	sw, clock := newTestStopwatch()
-	ch := sw.Subscribe()
-	defer sw.Unsubscribe(ch)
+	ch := sw.Events().Subscribe()
+	defer sw.Events().Unsubscribe(ch)
 
 	sw.Start()
 	<-ch // drain the Start state-change event
@@ -168,19 +168,19 @@ func TestTickEmitsNonStateChangeAndStopsWhenPaused(t *testing.T) {
 	}
 }
 
-func TestStopwatchCanLap(t *testing.T) {
+func TestCanLap(t *testing.T) {
 	cases := []struct {
 		name string
-		snap StopwatchSnapshot
+		snap Snapshot
 		want bool
 	}{
-		{"running", StopwatchSnapshot{Running: true}, true},
-		{"paused with elapsed", StopwatchSnapshot{ElapsedMs: 500}, true},
-		{"fresh", StopwatchSnapshot{}, false},
+		{"running", Snapshot{Running: true}, true},
+		{"paused with elapsed", Snapshot{ElapsedMs: 500}, true},
+		{"fresh", Snapshot{}, false},
 	}
 	for _, tc := range cases {
-		if got := stopwatchCanLap(tc.snap); got != tc.want {
-			t.Errorf("%s: stopwatchCanLap = %v, want %v", tc.name, got, tc.want)
+		if got := tc.snap.CanLap(); got != tc.want {
+			t.Errorf("%s: CanLap = %v, want %v", tc.name, got, tc.want)
 		}
 	}
 }

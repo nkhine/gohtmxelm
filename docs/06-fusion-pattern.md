@@ -16,7 +16,7 @@ That's it. Everything else follows. HTMX swaps its fragments; Datastar morphs it
 regions; Elm renders its islands. The boundaries are physical — different DOM
 subtrees — and they are never crossed. When two reactivity systems write to the
 same nodes, you get the classic disaster: each clobbers the other's changes, you
-get flicker, lost input, and bugs no one can reproduce. This app avoids the whole
+get flicker, lost input, and bugs no one can reproduce. The reference demo avoids the whole
 category by **partitioning the DOM** and forbidding overlap.
 
 So how do the surfaces ever agree on anything? They don't talk to each other at
@@ -83,10 +83,22 @@ the architecture in one click.
 
 ---
 
-## 6.4 The broker: a typed message bus in ~250 lines of JS
+## 6.4 The broker: a generic typed message bus
 
-[`demo/static/broker.js`](../demo/static/broker.js) is the connective tissue between Elm and
-everything else. It does a handful of well-defined jobs, and its design is worth
+The broker is split in two so the reusable transport is never entangled with
+one app's policy:
+
+- [`pkg/runtime/gohtmxelm-broker.js`](../pkg/runtime/gohtmxelm-broker.js) — the
+  **generic** broker shipped by the package. It knows envelopes, routing,
+  shared state, island mounting, and how to bridge *any* SSE source. It contains
+  no store endpoints, no optimistic locking, no activity log. It exposes its
+  activity as `gohtmxelm:*` DOM events.
+- [`demo/static/demo-ui.js`](../demo/static/demo-ui.js) — the **demo's** glue. It
+  listens to those DOM events and adds the app-specific behaviour: mirroring Elm
+  writes to the Go store with optimistic versioning, driving HTMX refreshes, and
+  rendering the teaching activity log.
+
+The generic broker does a handful of well-defined jobs, and its design is worth
 studying as a small systems exercise:
 
 - **Mounts/unmounts Elm islands** by scanning for `data-elm-module` and calling
@@ -100,21 +112,22 @@ studying as a small systems exercise:
   (everyone but the sender), or `broker` (handled internally). The sender never
   names itself — the broker **stamps `source`**, so an island can't lie about who
   it is.
-- **Mirrors Elm writes to Go** with optimistic versioning, and translates an HTTP
-  409 conflict into a no-op (the SSE stream will deliver the winner — see
-  [doc 2](./02-go-backend.md)).
-- **Bridges SSE to islands**: it owns the `EventSource` connections
-  (`connectStore`, `connectStopwatch`), applies hydrate-vs-delta logic with `seq`
-  stale-dropping, and re-broadcasts changes to Elm as typed events.
-- **Caches the last stopwatch snapshot** and replays it to any island that mounts
-  late, so a freshly-mounted analyzer is immediately correct even while the timer
-  is idle.
+- **Bridges any SSE source to islands**: it opens every `EventSource` listed in
+  `data-sources`, forwards each named event to islands as a generic `SSE_EVENT`
+  envelope `{ event, data }`, and **caches the last value per event name**,
+  replaying it to islands that mount late so a fresh analyzer is immediately
+  correct.
+- **Emits `gohtmxelm:*` DOM events** for everything it does (mounted, sse,
+  state-set, source-open/error, htmx-swap), so host pages layer their own policy
+  without forking it.
 
-The broker is deliberately the *only* place that knows how to translate between
-"Elm port message," "Go HTTP request," and "SSE event." Each front-end stays
-ignorant of the others; the broker is the single translator. That centralization
-is what keeps the islands and the HTMX/Datastar surfaces from needing to know
-anything about each other.
+The **demo's** glue (`demo-ui.js`) is what mirrors Elm writes to Go with
+optimistic versioning (translating an HTTP 409 into a no-op — see
+[doc 2](./02-go-backend.md)), applies `seq` stale-dropping, and drives the HTMX
+refreshes. Keeping that in the host means the broker stays a pure, reusable
+translator between "Elm port message," "SSE event," and "DOM event." Each
+front-end stays ignorant of the others; the broker plus its host glue is the
+single translator.
 
 ---
 
@@ -166,7 +179,7 @@ Honesty matters more than advocacy. This architecture is a poor fit when:
   server-authoritative model fights you.
 - **Latency to the server dominates the interaction.** A drawing canvas or a game
   needs sub-frame local response; a server round-trip per change is wrong. (Note:
-  this app already pushes such cases to Elm's *local* state — the boundary is the
+  the reference demo already pushes such cases to Elm's *local* state — the boundary is the
   same one in miniature.)
 - **You have no server, or a purely static deploy.** This pattern assumes a live
   server holding state and connections.

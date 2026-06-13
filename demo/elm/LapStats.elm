@@ -1,7 +1,7 @@
 port module LapStats exposing (main)
 
 import Browser
-import BrokerPort exposing (ready)
+import BrokerPort exposing (Inbound(..), decode, ready)
 import Html exposing (Html, div, span, text)
 import Html.Attributes exposing (class)
 import Json.Decode as Decode
@@ -70,48 +70,26 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         BrokerIn value ->
-            case decodeEvent value of
+            case decode value of
                 BrokerReady ->
                     ( { model | brokerReady = True }, Cmd.none )
 
-                Snapshot running laps ->
-                    ( { model | running = running, laps = laps }, Cmd.none )
+                Sse "stopwatch-state" data ->
+                    ( { model
+                        | running = decodeField [ "running" ] Decode.bool False data
+                        , laps = decodeField [ "laps" ] (Decode.list decodeLap) [] data
+                      }
+                    , Cmd.none
+                    )
 
-                Ignored ->
+                _ ->
                     ( model, Cmd.none )
 
 
-type Event
-    = BrokerReady
-    | Snapshot Bool (List Lap)
-    | Ignored
-
-
-decodeEvent : Decode.Value -> Event
-decodeEvent value =
-    let
-        eventType =
-            Decode.decodeValue (Decode.field "type" Decode.string) value
-                |> Result.withDefault ""
-    in
-    case eventType of
-        "BROKER_READY" ->
-            BrokerReady
-
-        "STOPWATCH_SNAPSHOT" ->
-            let
-                running =
-                    Decode.decodeValue (Decode.at [ "payload", "running" ] Decode.bool) value
-                        |> Result.withDefault False
-
-                laps =
-                    Decode.decodeValue (Decode.at [ "payload", "laps" ] (Decode.list decodeLap)) value
-                        |> Result.withDefault []
-            in
-            Snapshot running laps
-
-        _ ->
-            Ignored
+decodeField : List String -> Decode.Decoder a -> a -> Decode.Value -> a
+decodeField path decoder fallback value =
+    Decode.decodeValue (Decode.at path decoder) value
+        |> Result.withDefault fallback
 
 
 decodeLap : Decode.Decoder Lap

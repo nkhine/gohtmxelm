@@ -24,10 +24,9 @@ templ Shell(title string, active string, nav []ExampleNav, content templpkg.Comp
 			<title>{ title }</title>
 			<script src="/static/vendor/htmx.js"></script>
 			<script type="module" src="/static/vendor/datastar.js"></script>
-			<script src="/static/app-a.js"></script>
-			<script src="/static/app-b.js"></script>
-			<script src="/static/lap-stats.js"></script>
-			<script defer src="/static/broker.js"></script>
+			<script src="/static/elm.js"></script>
+			<script defer src="/static/demo-ui.js"></script>
+			@brokerScript
 			<style>
 				*, *::before, *::after { box-sizing: border-box; }
 				:root {

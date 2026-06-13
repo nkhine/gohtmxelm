@@ -188,7 +188,7 @@ when:
 - You have a large team and ecosystem investment where React's gravity — hiring,
   libraries, tooling — is itself a decisive practical advantage.
 
-Notice these are the *same* cases where this app reaches for **Elm's local
+Notice these are the *same* cases where the reference demo reaches for **Elm's local
 state**. The boundary the fusion app draws inside one page — request/response vs
 server-push vs genuinely-client-stateful — is the *same* boundary you should draw
 when deciding whether a whole app wants HTMX-style server rendering or a React-
@@ -201,7 +201,7 @@ sprinkle of signals.
 
 ## 7.8 The honest summary
 
-| Concern | Mainstream SPA (React-style) | This app's approach |
+| Concern | Mainstream SPA (React-style) | The reference demo's approach |
 |---|---|---|
 | Source of truth | Browser (+ server) → must sync | Server only; client is a cache |
 | State sync | Major problem; whole libraries for it | Doesn't exist — SSE broadcasts truth |
