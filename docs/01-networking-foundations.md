@@ -156,7 +156,7 @@ func writeSSE(w http.ResponseWriter, event string, data any) {
 ```
 
 The browser side is equally simple. The `EventSource` API opens the connection
-and fires DOM events as data arrives. From [`static/broker.js`](../static/broker.js):
+and fires DOM events as data arrives. From [`demo/static/broker.js`](../demo/static/broker.js):
 
 ```js
 const source = new EventSource("/api/events");

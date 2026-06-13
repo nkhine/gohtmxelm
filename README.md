@@ -1,10 +1,90 @@
-# Go + HTMX + Datastar + Elm
+# gohtmxelm
 
-This is a small teaching app for combining three frontend styles around one
-end-user workflow: update the shared `message` key and watch every surface
-converge. Every write is **attributed** — the Go store records which surface
-wrote (`htmx`, `datastar`, `app-a`, `app-b`, `go`) and every pane renders that
-same truth its own way.
+`gohtmxelm` is a Go-first integration pattern for using HTMX, Datastar, Elm,
+and Server-Sent Events inside existing Go projects.
+
+It gives you the reusable glue:
+
+- embedded browser broker for Elm islands
+- Go helpers for SSE, HTMX triggers, and Datastar patch events
+- a small CLI entrypoint for project setup checks
+- a demo app showing the ownership rules in practice
+
+## Use It In A Project
+
+Install the package:
+
+```sh
+go get github.com/nkhine/gohtmxelm/pkg
+```
+
+Mount the runtime assets:
+
+```go
+import gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
+
+kit := gohtmxelm.New(gohtmxelm.Options{
+	AssetPath:   "/gohtmxelm",
+	EventStream: "/api/events",
+	EventNames:  []string{"store-change"},
+})
+
+mux.Handle("/gohtmxelm/", http.StripPrefix("/gohtmxelm/", kit.Assets()))
+```
+
+Add the broker script to pages that use Elm islands:
+
+```go
+template.HTML(kit.BrowserScript())
+```
+
+Mount an Elm island:
+
+```go
+html, err := gohtmxelm.ElmIsland("counter", "Counter", map[string]any{
+	"initial": 0,
+})
+```
+
+Use the response helpers from your handlers:
+
+```go
+gohtmxelm.PrepareSSE(w)
+gohtmxelm.WriteSSE(w, "store-change", payload)
+gohtmxelm.WriteDatastarPatchElements(w, html)
+gohtmxelm.WriteDatastarPatchSignals(w, `{"count":1}`)
+gohtmxelm.Trigger(w, "store-refresh")
+```
+
+Install the CLI while developing:
+
+```sh
+go install github.com/nkhine/gohtmxelm/cmd/gohtmxelm@latest
+gohtmxelm doctor
+gohtmxelm init
+```
+
+## Project Layout
+
+```text
+cmd/gohtmxelm/          CLI for init/doctor workflows
+demo/                   runnable teaching app
+pkg/                    public importable Go package
+pkg/runtime/            embedded browser broker assets
+demo/internal/ui/            demo shell and page composition
+demo/internal/ui/components/ demo templ components
+demo/internal/store/         demo state store
+demo/static/            demo browser assets
+demo/elm/               demo Elm source and elm.json
+```
+
+## Demo App
+
+This repo also contains a teaching app for combining three frontend styles
+around one end-user workflow: update the shared `message` key and watch every
+surface converge. Every write is **attributed** — the Go store records which
+surface wrote (`htmx`, `datastar`, `app-a`, `app-b`, `go`) and every pane
+renders that same truth its own way.
 
 ## Learn from it
 
@@ -35,7 +115,7 @@ go install github.com/air-verse/air@latest
 
 ## Example Lattice
 
-The examples are reusable templ components under `examples/`.
+The demo examples are templ components under `demo/internal/ui/components/`.
 
 Routes:
 
@@ -46,7 +126,8 @@ Routes:
 ```
 
 Both the index and individual routes render the same components, so adding a
-new example means adding one component and one registry entry in `main.go`.
+new example means adding one component and one registry entry in
+`demo/main.go`.
 
 The Makefile copies Datastar from:
 

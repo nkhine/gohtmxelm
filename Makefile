@@ -1,11 +1,11 @@
-BINARY         ?= elm-htmx-templ-demo
+BINARY         ?= gohtmxelm-demo
 PORT           ?= 8091
-ELM_OUT        := static/app-a.js static/app-b.js static/lap-stats.js
+ELM_OUT        := demo/static/app-a.js demo/static/app-b.js demo/static/lap-stats.js
 TEMPL_SRCS     := $(shell find . -name '*.templ' -not -path './.git/*')
-TEMPL_OUT      := templates/page_templ.go examples/message_templ.go examples/stopwatch_templ.go
-HTMX_JS        := static/vendor/htmx.js
+TEMPL_OUT      := demo/internal/ui/page_templ.go demo/internal/ui/components/message_templ.go demo/internal/ui/components/stopwatch_templ.go
+HTMX_JS        := demo/static/vendor/htmx.js
 DATASTAR_SRC   ?= /Users/nkhine/go/src/github.com/starfederation/datastar/bundles/datastar.js
-DATASTAR_JS    := static/vendor/datastar.js
+DATASTAR_JS    := demo/static/vendor/datastar.js
 ONBOARDING_JS  := onboarding/main.js
 GO_SRCS        := $(shell find . -name '*.go' -not -path './.git/*')
 
@@ -20,27 +20,27 @@ build: $(BINARY)
 
 $(BINARY): go.sum $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS) $(GO_SRCS)
 	mkdir -p $(dir $@)
-	go build -o $@ .
+	go build -o $@ ./demo
 
 go.sum: go.mod
 	go mod tidy
 
 $(HTMX_JS):
-	mkdir -p static/vendor
+	mkdir -p demo/static/vendor
 	curl -fsSL https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js -o $@
 
 $(DATASTAR_JS): $(DATASTAR_SRC)
-	mkdir -p static/vendor
+	mkdir -p demo/static/vendor
 	cp $(DATASTAR_SRC) $@
 
-static/app-a.js: elm/AppA.elm elm/BrokerPort.elm
-	elm make elm/AppA.elm --output=$@
+demo/static/app-a.js: demo/elm/AppA.elm demo/elm/BrokerPort.elm demo/elm.json
+	cd demo && elm make elm/AppA.elm --output=static/app-a.js
 
-static/app-b.js: elm/AppB.elm elm/BrokerPort.elm
-	elm make elm/AppB.elm --output=$@
+demo/static/app-b.js: demo/elm/AppB.elm demo/elm/BrokerPort.elm demo/elm.json
+	cd demo && elm make elm/AppB.elm --output=static/app-b.js
 
-static/lap-stats.js: elm/LapStats.elm elm/BrokerPort.elm
-	elm make elm/LapStats.elm --output=$@
+demo/static/lap-stats.js: demo/elm/LapStats.elm demo/elm/BrokerPort.elm demo/elm.json
+	cd demo && elm make elm/LapStats.elm --output=static/lap-stats.js
 
 $(TEMPL_OUT): $(TEMPL_SRCS)
 	templ generate
@@ -51,7 +51,7 @@ test:
 
 ## dev: build generated files and run without compiling a binary
 dev: go.sum $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS)
-	go run .
+	go run ./demo
 
 ## watch: rebuild generated assets and restart the server on source changes
 watch:
