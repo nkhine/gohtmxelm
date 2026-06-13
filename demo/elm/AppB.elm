@@ -1,6 +1,6 @@
-port module AppB exposing (main)
+module AppB exposing (main)
 
-import BrokerPort exposing (Inbound(..), Model, StoreChange, brokerState, decode, initialModel, ready, sendStateSet, storeChangeFromData)
+import BrokerPort exposing (Inbound(..), Model, StoreChange, brokerIn, brokerState, decode, initialModel, ready, sendStateSet, storeChangeFromData)
 import Browser
 import Dict
 import Html exposing (Html, button, div, h3, p, span, table, tbody, td, text, th, thead, tr)
@@ -8,12 +8,6 @@ import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Json.Encode as Encode
-
-
-port brokerOut : Encode.Value -> Cmd msg
-
-
-port brokerIn : (Decode.Value -> msg) -> Sub msg
 
 
 {-| App B is a typed event log: every store mutation that arrives over SSE
@@ -54,7 +48,7 @@ init flags =
             Decode.decodeValue (Decode.field "islandId" Decode.string) flags
                 |> Result.withDefault "app-b"
     in
-    ( { shared = initialModel islandId, history = [] }, ready brokerOut )
+    ( { shared = initialModel islandId, history = [] }, ready )
 
 
 update : Msg -> AppModel -> ( AppModel, Cmd Msg )
@@ -62,7 +56,7 @@ update msg model =
     case msg of
         SetSharedMessage ->
             ( model
-            , sendStateSet brokerOut "broadcast" "message" (Encode.string "Message written by Elm App B")
+            , sendStateSet "broadcast" "message" (Encode.string "Message written by Elm App B")
             )
 
         BrokerIn value ->

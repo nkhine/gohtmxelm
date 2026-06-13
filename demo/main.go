@@ -18,6 +18,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/nkhine/gohtmxelm/demo/internal/statement"
 	"github.com/nkhine/gohtmxelm/demo/internal/stopwatch"
 	"github.com/nkhine/gohtmxelm/demo/internal/store"
 	"github.com/nkhine/gohtmxelm/demo/internal/ui"
@@ -47,6 +48,8 @@ func main() {
 	sw := stopwatch.New()
 	go sw.Run(ctx)
 
+	stmt := statement.New(time.Now)
+
 	exampleRoutes := []exampleRoute{
 		{
 			Slug:        "message",
@@ -62,6 +65,14 @@ func main() {
 			Description: "HTMX controls a Go timer while Datastar and Elm react to SSE.",
 			Render: func(snap stopwatch.Snapshot) templ.Component {
 				return components.StopwatchExample(snap.Running, snap.CanLap())
+			},
+		},
+		{
+			Slug:        "statement",
+			Title:       "Account statement",
+			Description: "Elm range picker filters Go-owned transfers; HTMX + Datastar render.",
+			Render: func(stopwatch.Snapshot) templ.Component {
+				return components.StatementExample()
 			},
 		},
 	}
@@ -84,6 +95,12 @@ func main() {
 	// The reusable broker runtime is served straight from the package's
 	// embedded assets — the demo runs the exact code it ships.
 	r.Handle("/gohtmxelm/*", http.StripPrefix("/gohtmxelm/", gohtmxelm.Assets()))
+
+	// Quiet the browser's automatic favicon request so it doesn't surface as a
+	// 404 in the console.
+	r.Get("/favicon.ico", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		snap := sw.Snapshot()
@@ -175,27 +192,6 @@ func main() {
 		)
 	})
 
-	// JSON stopwatch stream consumed by the broker. Emits only on discrete
-	// state changes (start/stop/lap/reset), not on ticks: demo-ui.js forwards
-	// these to the Elm lap analyzer and triggers an HTMX controls refresh so
-	// every connected tab converges on the same control state.
-	r.Get("/api/stopwatch/events", func(w http.ResponseWriter, r *http.Request) {
-		stream, err := gohtmxelm.NewStream(w, r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		_ = gohtmxelm.Serve(stream, sw.Events(),
-			func(s *gohtmxelm.Stream) error { return s.Send("stopwatch-state", sw.Snapshot()) },
-			func(s *gohtmxelm.Stream, ev stopwatch.Event) error {
-				if !ev.StateChange {
-					return nil
-				}
-				return s.Send("stopwatch-state", ev.Snapshot)
-			},
-		)
-	})
-
 	// Controls fragment GET, used both on initial load and to re-render controls
 	// in tabs that did not initiate the change (HTMX hx-trigger fired by
 	// demo-ui.js on the SSE state event).
@@ -263,28 +259,125 @@ func main() {
 		_ = stream.PatchSignals(map[string]any{"messageDraft": ""})
 	})
 
-	// SSE stream consumed by the broker.
-	// On connect: emits one store-hydrate event per key so demo-ui.js can
-	// initialise per-key versions before processing deltas.
-	// Ongoing: emits store-change events carrying seq and version so clients
-	// can detect and discard out-of-order / stale deliveries.
-	r.Get("/api/events", func(w http.ResponseWriter, r *http.Request) {
+	// Single multiplexed broker stream. The browser broker holds one EventSource
+	// open per source; carrying every domain's events on one connection keeps
+	// the page well under the ~6-connection HTTP/1.1 limit even when several
+	// examples (each with its own Datastar stream) share a page.
+	//
+	// On connect it hydrates every domain (store keys, stopwatch state, the
+	// active statement range); thereafter it forwards each domain's changes.
+	// Stopwatch ticks are skipped — only discrete state changes are relevant to
+	// the broker and the Elm lap analyzer.
+	r.Get("/api/stream", func(w http.ResponseWriter, r *http.Request) {
 		stream, err := gohtmxelm.NewStream(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		_ = gohtmxelm.Serve(stream, kv.Events(),
-			func(s *gohtmxelm.Stream) error {
-				for _, state := range kv.AllStates() {
-					if err := s.Send("store-hydrate", state); err != nil {
-						return err
-					}
+		storeCh := kv.Events().Subscribe()
+		defer kv.Events().Unsubscribe(storeCh)
+		swCh := sw.Events().Subscribe()
+		defer sw.Events().Unsubscribe(swCh)
+		stCh := stmt.Events().Subscribe()
+		defer stmt.Events().Unsubscribe(stCh)
+
+		// Hydrate every domain on connect.
+		for _, state := range kv.AllStates() {
+			if stream.Send("store-hydrate", state) != nil {
+				return
+			}
+		}
+		_ = stream.Send("stopwatch-state", sw.Snapshot())
+		rng := stmt.Range()
+		_ = stream.Send("statement-range-change", rangePayload(rng, stmt.Summary(rng)))
+
+		for {
+			select {
+			case e, ok := <-storeCh:
+				if !ok {
+					return
 				}
-				return nil
+				if stream.Send("store-change", e) != nil {
+					return
+				}
+			case ev, ok := <-swCh:
+				if !ok {
+					return
+				}
+				if ev.StateChange && stream.Send("stopwatch-state", ev.Snapshot) != nil {
+					return
+				}
+			case ev, ok := <-stCh:
+				if !ok {
+					return
+				}
+				if stream.Send("statement-range-change", rangePayload(ev.Range, ev.Summary)) != nil {
+					return
+				}
+			case <-stream.Done():
+				return
+			}
+		}
+	})
+
+	// ── Bank statement example ────────────────────────────────────────────
+	// HTMX renders the statement table for the current server-selected range.
+	r.Get("/api/statement/transfers", func(w http.ResponseWriter, r *http.Request) {
+		rng := stmt.Range()
+		opening := stmt.Summary(rng).OpeningMinor
+		if err := components.StatementTransfers(stmt.Transfers(rng), opening).Render(r.Context(), w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+
+	// The Elm picker's selection arrives here (mirrored by demo-ui.js). Go
+	// resolves a preset against the server clock or parses a custom window,
+	// sets the active range, and fans the change out over SSE.
+	r.Post("/api/statement/range", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Preset string `json:"preset"`
+			From   string `json:"from"`
+			To     string `json:"to"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "invalid body", http.StatusBadRequest)
+			return
+		}
+		var err error
+		if body.Preset != "" {
+			_, err = stmt.ApplyPreset(body.Preset)
+		} else {
+			_, err = stmt.ApplyCustom(body.From, body.To)
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// Datastar owns the summary panel: signal patches drive the headline
+	// counters and an element patch re-renders the detailed grid on every
+	// range change.
+	r.Get("/api/statement/stream", func(w http.ResponseWriter, r *http.Request) {
+		stream, err := gohtmxelm.NewStream(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		patch := func(s *gohtmxelm.Stream, rng statement.Range, sum statement.Summary) error {
+			if err := s.PatchElements(render(components.StatementSummary(sum, rng.Label))); err != nil {
+				return err
+			}
+			return s.PatchSignals(statementSignals(sum))
+		}
+		_ = gohtmxelm.Serve(stream, stmt.Events(),
+			func(s *gohtmxelm.Stream) error {
+				rng := stmt.Range()
+				return patch(s, rng, stmt.Summary(rng))
 			},
-			func(s *gohtmxelm.Stream, e store.Event) error {
-				return s.Send("store-change", e)
+			func(s *gohtmxelm.Stream, ev statement.RangeEvent) error {
+				return patch(s, ev.Range, ev.Summary)
 			},
 		)
 	})
@@ -327,6 +420,28 @@ func main() {
 func renderControls(w http.ResponseWriter, r *http.Request, snap stopwatch.Snapshot) {
 	if err := components.StopwatchControls(snap.Running, snap.CanLap()).Render(r.Context(), w); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// statementSignals are the Datastar signals patched on every range change —
+// the headline counters that update with no client-side wiring.
+func statementSignals(sum statement.Summary) map[string]any {
+	return map[string]any{
+		"count":   sum.Count,
+		"opening": statement.FormatGBP(sum.OpeningMinor),
+		"credits": statement.FormatGBP(sum.CreditsMinor),
+		"debits":  statement.FormatGBP(sum.DebitsMinor),
+		"closing": statement.FormatGBP(sum.ClosingMinor),
+	}
+}
+
+// rangePayload is the JSON the broker forwards to the Elm picker and demo-ui.js.
+func rangePayload(rng statement.Range, sum statement.Summary) map[string]any {
+	return map[string]any{
+		"label":  rng.Label,
+		"count":  sum.Count,
+		"fromMs": rng.From.UnixMilli(),
+		"toMs":   rng.To.UnixMilli(),
 	}
 }
 
