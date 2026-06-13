@@ -16,12 +16,21 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"elm-htmx-templ-demo/examples"
 	"elm-htmx-templ-demo/internal/store"
 	"elm-htmx-templ-demo/templates"
 )
+
+type exampleRoute struct {
+	Slug        string
+	Title       string
+	Description string
+	Render      func(StopwatchSnapshot) templ.Component
+}
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -37,6 +46,25 @@ func main() {
 
 	stopwatch := NewStopwatch()
 	go stopwatch.Run(ctx)
+	exampleRoutes := []exampleRoute{
+		{
+			Slug:        "message",
+			Title:       "Shared message workbench",
+			Description: "HTMX, Datastar, Elm, and Go update one shared key.",
+			Render: func(StopwatchSnapshot) templ.Component {
+				return examples.MessageWorkbench()
+			},
+		},
+		{
+			Slug:        "stopwatch",
+			Title:       "Hello stopwatch",
+			Description: "HTMX controls a Go timer while Datastar and Elm react to SSE.",
+			Render: func(snap StopwatchSnapshot) templ.Component {
+				return examples.StopwatchExample(snap.Running, stopwatchCanLap(snap))
+			},
+		},
+	}
+	exampleNav := navItems(exampleRoutes)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -55,7 +83,19 @@ func main() {
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Snapshot()
-		if err := templates.Page(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := templates.IndexPage(exampleNav, snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+
+	r.Get("/examples/{slug}", func(w http.ResponseWriter, r *http.Request) {
+		slug := chi.URLParam(r, "slug")
+		example, ok := findExample(exampleRoutes, slug)
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		if err := templates.ExamplePage(exampleNav, slug, example.Title, example.Render(stopwatch.Snapshot())).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
@@ -199,35 +239,35 @@ func main() {
 	// fired by broker.js on the SSE state event).
 	r.Get("/api/stopwatch/controls", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Snapshot()
-		if err := templates.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := examples.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	r.Post("/api/stopwatch/start", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Start()
-		if err := templates.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := examples.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	r.Post("/api/stopwatch/stop", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Stop()
-		if err := templates.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := examples.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	r.Post("/api/stopwatch/reset", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Reset()
-		if err := templates.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := examples.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	r.Post("/api/stopwatch/lap", func(w http.ResponseWriter, r *http.Request) {
 		snap := stopwatch.Lap()
-		if err := templates.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
+		if err := examples.StopwatchControls(snap.Running, stopwatchCanLap(snap)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
@@ -399,6 +439,27 @@ func sanitizeSource(s string) string {
 		return "unknown"
 	}
 	return b.String()
+}
+
+func navItems(routes []exampleRoute) []templates.ExampleNav {
+	items := make([]templates.ExampleNav, 0, len(routes))
+	for _, route := range routes {
+		items = append(items, templates.ExampleNav{
+			Slug:        route.Slug,
+			Title:       route.Title,
+			Description: route.Description,
+		})
+	}
+	return items
+}
+
+func findExample(routes []exampleRoute, slug string) (exampleRoute, bool) {
+	for _, route := range routes {
+		if route.Slug == slug {
+			return route, true
+		}
+	}
+	return exampleRoute{}, false
 }
 
 func writeSSE(w http.ResponseWriter, event string, data any) {
@@ -687,7 +748,7 @@ func renderStopwatchReadout(snap StopwatchSnapshot) string {
 	b.WriteString(`<div class="dial-center">`)
 	fmt.Fprintf(&b, `<div class="stopwatch-time">%s</div>`, htmlpkg.EscapeString(formatElapsed(snap.ElapsedMs)))
 	fmt.Fprintf(&b, `<div class="stopwatch-state">%s</div>`, htmlpkg.EscapeString(status))
-	b.WriteString(`</div>`)                  // .dial-center
+	b.WriteString(`</div>`)                   // .dial-center
 	b.WriteString(`</div></div></div></div>`) // ring-sub, ring-sec, ring-min, ring-hour
 	b.WriteString(`</div>`)                   // .dial
 	b.WriteString(`</div>`)                   // #stopwatch-readout

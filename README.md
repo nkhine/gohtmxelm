@@ -33,6 +33,21 @@ make watch
 go install github.com/air-verse/air@latest
 ```
 
+## Example Lattice
+
+The examples are reusable templ components under `examples/`.
+
+Routes:
+
+```text
+/                   composed lattice with all examples
+/examples/message   shared message workbench only
+/examples/stopwatch stopwatch example only
+```
+
+Both the index and individual routes render the same components, so adding a
+new example means adding one component and one registry entry in `main.go`.
+
 The Makefile copies Datastar from:
 
 ```sh

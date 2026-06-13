@@ -13,9 +13,13 @@ class ElmIslandBroker {
     // Last stopwatch snapshot seen over SSE, replayed to islands that mount
     // late so the Elm lap analyzer is correct even while the timer is idle.
     this.lastStopwatch = null;
+    this.active = false;
+    this.storeSource = null;
+    this.stopwatchSource = null;
+    this.storeRetry = null;
+    this.stopwatchRetry = null;
     this.observeRemovals();
-    this.connectStore();
-    this.connectStopwatch();
+    this.resume();
   }
 
   mountAll(root = document) {
@@ -276,7 +280,11 @@ class ElmIslandBroker {
   // store-change deltas are discarded when seq <= storeSeq to protect against
   // stale redelivery on flaky connections.
   connectStore() {
+    if (!this.active || this.storeSource) {
+      return;
+    }
     const source = new EventSource("/api/events");
+    this.storeSource = source;
 
     source.addEventListener("store-hydrate", (e) => {
       this.applyStoreEvent(e, false);
@@ -292,10 +300,17 @@ class ElmIslandBroker {
     };
 
     source.onerror = () => {
+      if (!this.active || source !== this.storeSource) {
+        return;
+      }
       this.updateSseStatus(false);
       this.addActivityEntry("sse", "broker", "EventSource error — reconnecting in 3s");
       source.close();
-      setTimeout(() => this.connectStore(), 3000);
+      this.storeSource = null;
+      this.storeRetry = setTimeout(() => {
+        this.storeRetry = null;
+        this.connectStore();
+      }, 3000);
     };
   }
 
@@ -350,16 +365,27 @@ class ElmIslandBroker {
   // is forwarded to Elm islands (the lap analyzer) and re-triggers the HTMX
   // controls fragment so every tab converges on the same control state.
   connectStopwatch() {
+    if (!this.active || this.stopwatchSource) {
+      return;
+    }
     const source = new EventSource("/api/stopwatch/events");
+    this.stopwatchSource = source;
 
     source.addEventListener("stopwatch-state", (e) => {
       this.applyStopwatchEvent(e);
     });
 
     source.onerror = () => {
+      if (!this.active || source !== this.stopwatchSource) {
+        return;
+      }
       this.addActivityEntry("sse", "broker", "stopwatch stream error — reconnecting in 3s");
       source.close();
-      setTimeout(() => this.connectStopwatch(), 3000);
+      this.stopwatchSource = null;
+      this.stopwatchRetry = setTimeout(() => {
+        this.stopwatchRetry = null;
+        this.connectStopwatch();
+      }, 3000);
     };
   }
 
@@ -437,6 +463,49 @@ class ElmIslandBroker {
     }
     this.apps.delete(islandId);
     this.nodes.delete(node);
+  }
+
+  pause() {
+    this.active = false;
+    this.clearRetryTimers();
+    this.closeSources();
+    this.updateSseStatus(false);
+  }
+
+  resume() {
+    if (this.active) {
+      return;
+    }
+    this.active = true;
+    this.connectStore();
+    this.connectStopwatch();
+    this.mountAll(document);
+    if (window.htmx?.process && document.body) {
+      window.htmx.process(document.body);
+      window.htmx.trigger(document.body, "stopwatch-state-change");
+    }
+  }
+
+  clearRetryTimers() {
+    if (this.storeRetry) {
+      clearTimeout(this.storeRetry);
+      this.storeRetry = null;
+    }
+    if (this.stopwatchRetry) {
+      clearTimeout(this.stopwatchRetry);
+      this.stopwatchRetry = null;
+    }
+  }
+
+  closeSources() {
+    if (this.storeSource) {
+      this.storeSource.close();
+      this.storeSource = null;
+    }
+    if (this.stopwatchSource) {
+      this.stopwatchSource.close();
+      this.stopwatchSource = null;
+    }
   }
 
   parseProps(node) {
@@ -519,6 +588,21 @@ window.ElmIslandBroker = new ElmIslandBroker();
 
 document.addEventListener("DOMContentLoaded", () => {
   window.ElmIslandBroker.mountAll(document);
+});
+
+window.addEventListener("pagehide", () => {
+  window.ElmIslandBroker.pause();
+});
+
+window.addEventListener("pageshow", (event) => {
+  // The browser can restore this page from the back/forward cache with stale
+  // HTMX handlers, Datastar fetch streams, and Elm ports. Reloading gives this
+  // server-owned demo a fresh render while preserving stopwatch state in Go.
+  if (event.persisted) {
+    window.location.reload();
+    return;
+  }
+  window.ElmIslandBroker.resume();
 });
 
 document.body.addEventListener("htmx:afterSettle", () => {

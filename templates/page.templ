@@ -3,15 +3,25 @@ package templates
 import (
 	"net/url"
 
+	templpkg "github.com/a-h/templ"
+
+	"elm-htmx-templ-demo/examples"
 	"elm-htmx-templ-demo/internal/store"
 )
 
-templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
+type ExampleNav struct {
+	Slug        string
+	Title       string
+	Description string
+}
+
+templ Shell(title string, active string, nav []ExampleNav, content templpkg.Component) {
 	<!doctype html>
 	<html lang="en">
 		<head>
 			<meta charset="utf-8"/>
-			<title>HTMX + Datastar + Elm Fusion</title>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ title }</title>
 			<script src="/static/vendor/htmx.js"></script>
 			<script type="module" src="/static/vendor/datastar.js"></script>
 			<script src="/static/app-a.js"></script>
@@ -20,134 +30,70 @@ templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 			<script defer src="/static/broker.js"></script>
 			<style>
 				*, *::before, *::after { box-sizing: border-box; }
-
 				:root {
-					--go-blue: #00ACD7;
-					--go-dark: #007d9c;
-					--elm-purple: #7C3AED;
-					--elm-dark: #5b21b6;
-					--datastar-orange: #F97316;
-					--datastar-dark: #C2410C;
-					--htmx-gray: #374151;
-					--sse-green: #10B981;
-					--sse-red: #EF4444;
-					--border: #d7dee8;
-					--text: #1e293b;
-					--muted: #64748b;
-					--page: #f8fafc;
-					--panel: #fff;
-					--log-bg: #0f172a;
-					--log-text: #94a3b8;
-					--radius: 8px;
+					--go-blue: #00ACD7; --go-dark: #007d9c;
+					--elm-purple: #7C3AED; --elm-dark: #5b21b6;
+					--datastar-orange: #F97316; --datastar-dark: #C2410C;
+					--htmx-gray: #374151; --sse-green: #10B981;
+					--border: #d7dee8; --text: #1e293b; --muted: #64748b;
+					--page: #f8fafc; --panel: #fff; --log-bg: #0f172a;
+					--log-text: #94a3b8; --radius: 8px;
 					--shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
 				}
-
 				body {
-					margin: 0;
-					padding: 1.5rem;
-					background: var(--page);
-					color: var(--text);
-					font-family: system-ui, -apple-system, sans-serif;
-					font-size: 0.9rem;
+					margin: 0; padding: 1.5rem; background: var(--page); color: var(--text);
+					font-family: system-ui, -apple-system, sans-serif; font-size: 0.9rem;
 				}
-
-				.page-header {
-					display: flex;
-					align-items: center;
-					gap: 0.65rem;
-					flex-wrap: wrap;
-					margin-bottom: 1rem;
-				}
-				.page-header h1 {
-					margin: 0;
-					font-size: 1.25rem;
-					font-weight: 700;
-					color: #0f172a;
-				}
+				a { color: inherit; }
+				.page-header { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; margin-bottom: 1rem; }
+				.page-header h1 { margin: 0; font-size: 1.25rem; font-weight: 750; color: #0f172a; }
 				.badge {
-					display: inline-flex;
-					align-items: center;
-					padding: 0.2rem 0.6rem;
-					border-radius: 999px;
-					font-size: 0.75rem;
-					font-weight: 700;
+					display: inline-flex; align-items: center; padding: .2rem .6rem; border-radius: 999px;
+					font-size: .75rem; font-weight: 750; color: #fff;
 				}
-				.badge-go { background: var(--go-blue); color: #fff; }
-				.badge-htmx { background: var(--htmx-gray); color: #fff; }
-				.badge-datastar { background: var(--datastar-orange); color: #fff; }
-				.badge-elm { background: var(--elm-purple); color: #fff; }
-				.badge-sse { background: var(--sse-green); color: #fff; }
-
+				.badge-go { background: var(--go-blue); }
+				.badge-htmx { background: var(--htmx-gray); }
+				.badge-datastar { background: var(--datastar-orange); }
+				.badge-elm { background: var(--elm-purple); }
+				.badge-sse { background: var(--sse-green); }
 				.sse-status {
-					display: inline-flex;
-					align-items: center;
-					gap: 0.35rem;
-					padding: 0.2rem 0.7rem;
-					border-radius: 999px;
-					font-size: 0.75rem;
-					font-weight: 700;
-					border: 1px solid transparent;
+					display: inline-flex; align-items: center; gap: .35rem; padding: .2rem .7rem;
+					border-radius: 999px; font-size: .75rem; font-weight: 750; border: 1px solid transparent;
 				}
-				.sse-status.connected {
-					background: #dcfce7;
-					border-color: #86efac;
-					color: #166534;
-				}
-				.sse-status.disconnected {
-					background: #fee2e2;
-					border-color: #fca5a5;
-					color: #991b1b;
-				}
-				.sse-dot {
-					width: 7px;
-					height: 7px;
-					border-radius: 50%;
-					background: currentColor;
-				}
+				.sse-status.connected { background: #dcfce7; border-color: #86efac; color: #166534; }
+				.sse-status.disconnected { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+				.sse-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 				.sse-status.connected .sse-dot { animation: pulse 2s infinite; }
-				@keyframes pulse {
-					0%, 100% { opacity: 1; }
-					50% { opacity: 0.4; }
-				}
+				@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
 
+				.example-nav {
+					display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+					gap: .65rem; margin: 0 0 1rem;
+				}
+				.example-nav a {
+					display: block; padding: .7rem .8rem; text-decoration: none; background: #fff;
+					border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+				}
+				.example-nav a.active { border-color: var(--elm-purple); background: #faf5ff; }
+				.example-nav strong { display: block; font-size: .85rem; margin-bottom: .2rem; }
+				.example-nav span { color: var(--muted); font-size: .78rem; line-height: 1.35; }
+
+				.lattice { display: grid; gap: 1rem; }
 				.workbench {
-					background: var(--panel);
-					border: 1px solid var(--border);
-					border-radius: var(--radius);
-					box-shadow: var(--shadow);
-					overflow: hidden;
+					background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+					box-shadow: var(--shadow); overflow: hidden;
 				}
-				.workbench-header {
-					display: flex;
-					align-items: center;
-					justify-content: space-between;
-					gap: 1rem;
-					padding: 0.85rem 1rem;
-					background: #e8f7fb;
-					border-bottom: 1px solid #bae6f7;
+				.workbench-header, .stopwatch-header {
+					display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+					padding: .85rem 1rem; background: #e8f7fb; border-bottom: 1px solid #bae6f7;
 				}
-				.workbench-title {
-					margin: 0;
-					font-size: 1rem;
-					font-weight: 800;
-					color: #0f172a;
+				.workbench-title, .stopwatch-header h2 {
+					margin: 0; font-size: 1rem; font-weight: 850; color: #0f172a;
 				}
-				.flow-line {
-					display: flex;
-					align-items: center;
-					gap: 0.4rem;
-					flex-wrap: wrap;
-					color: var(--muted);
-					font-size: 0.78rem;
-					font-weight: 700;
-				}
+				.flow-line { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; color: var(--muted); font-size: .78rem; font-weight: 750; }
 				.flow-tag {
-					display: inline-flex;
-					align-items: center;
-					padding: 0.12rem 0.45rem;
-					border-radius: 999px;
-					font-family: Menlo, Consolas, monospace;
-					font-size: 0.72rem;
+					display: inline-flex; align-items: center; padding: .12rem .45rem; border-radius: 999px;
+					font-family: Menlo, Consolas, monospace; font-size: .72rem;
 				}
 				.flow-go { background: #e0f7fb; color: var(--go-dark); }
 				.flow-htmx { background: #f1f5f9; color: var(--htmx-gray); }
@@ -155,592 +101,143 @@ templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 				.flow-elm { background: #ede9fe; color: var(--elm-dark); }
 				.flow-sse { background: #d1fae5; color: #065f46; }
 
-				.live-state {
-					display: grid;
-					grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.8fr);
-					gap: 1rem;
-					padding: 1rem;
-					border-bottom: 1px solid var(--border);
+				.live-state, .stopwatch-grid {
+					display: grid; grid-template-columns: minmax(0, 1fr) minmax(20rem, 1fr); gap: 1rem;
+					padding: 1rem; border-bottom: 1px solid var(--border);
 				}
-				@media (max-width: 900px) {
-					.live-state { grid-template-columns: 1fr; }
+				@media (max-width: 900px) { .live-state, .stopwatch-grid { grid-template-columns: 1fr; } }
+				.controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--border); }
+				@media (max-width: 1100px) { .controls { grid-template-columns: 1fr; } }
+				.state-panel, .control-group, .stopwatch-panel {
+					border: 1px solid var(--border); border-radius: var(--radius); background: #fff; padding: .85rem;
 				}
-				.state-panel {
-					border: 1px solid var(--border);
-					border-radius: var(--radius);
-					background: #fff;
-					padding: 0.85rem;
-					min-height: 9rem;
+				.control-group { border-radius: 0; border-width: 0 1px 0 0; }
+				.control-group:last-child { border-right: 0; }
+				@media (max-width: 1100px) { .control-group { border-right: 0; border-bottom: 1px solid var(--border); } }
+				.state-panel h2, .control-group h2, .stopwatch-panel h3 {
+					margin: 0 0 .65rem; font-size: .78rem; font-weight: 850; text-transform: uppercase;
+					letter-spacing: .04em; color: var(--muted);
 				}
-				.state-panel h2,
-				.control-group h2 {
-					margin: 0 0 0.65rem;
-					font-size: 0.78rem;
-					font-weight: 800;
-					text-transform: uppercase;
-					letter-spacing: 0.04em;
-					color: var(--muted);
+				.control-note { margin: 0 0 .7rem; color: var(--muted); font-size: .8rem; line-height: 1.45; }
+				#server-message { min-height: 1.75rem; margin-bottom: .75rem; padding-bottom: .75rem; border-bottom: 1px solid #e2e8f0; }
+				.datastar-live { border: 1px solid #fed7aa; border-radius: var(--radius); padding: .65rem; background: #fff7ed; min-height: 6rem; }
+				.datastar-note { margin: 0 0 .45rem; color: var(--datastar-dark); font-size: .78rem; font-weight: 850; }
+				.datastar-stats { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .6rem; }
+				.datastar-stat {
+					display: inline-flex; align-items: center; padding: .18rem .55rem; border: 1px solid #fdba74;
+					border-radius: 999px; background: #fff7ed; color: var(--datastar-dark); font-size: .74rem; font-weight: 750;
 				}
-				#server-message {
-					min-height: 1.75rem;
-					margin-bottom: 0.75rem;
-					padding-bottom: 0.75rem;
-					border-bottom: 1px solid #e2e8f0;
-				}
-				.datastar-live {
-					border: 1px solid #fed7aa;
-					border-radius: var(--radius);
-					padding: 0.65rem;
-					background: #fff7ed;
-					min-height: 6rem;
-				}
-				.datastar-note {
-					margin: 0 0 0.45rem;
-					color: var(--datastar-dark);
-					font-size: 0.78rem;
-					font-weight: 800;
-				}
-				.muted {
-					margin: 0;
-					color: #94a3b8;
-					font-size: 0.82rem;
-				}
+				.datastar-preview { margin: .65rem 0 0; padding: .45rem .55rem; border: 1px dashed #fdba74; border-radius: 5px; background: #fff7ed; color: #7c2d12; font-size: .8rem; }
+				.datastar-result { margin-top: .55rem; color: #166534; font-size: .8rem; font-weight: 750; }
+				.datastar-result.error { color: #991b1b; }
+				.muted { margin: 0; color: #94a3b8; font-size: .82rem; }
 
-				.controls {
-					display: grid;
-					grid-template-columns: repeat(3, minmax(0, 1fr));
-					gap: 0;
-					border-bottom: 1px solid var(--border);
-				}
-				@media (max-width: 1100px) {
-					.controls { grid-template-columns: 1fr; }
-				}
-				.control-group {
-					padding: 1rem;
-					border-right: 1px solid var(--border);
-				}
-				.control-group:last-child { border-right: none; }
-				@media (max-width: 1100px) {
-					.control-group {
-						border-right: none;
-						border-bottom: 1px solid var(--border);
-					}
-					.control-group:last-child { border-bottom: none; }
-				}
-				.control-note {
-					margin: 0 0 0.7rem;
-					color: var(--muted);
-					font-size: 0.8rem;
-					line-height: 1.45;
-				}
-				.store-form {
-					display: flex;
-					gap: 0.45rem;
-					flex-wrap: wrap;
-				}
-				.store-form input {
-					flex: 1;
-					min-width: 10rem;
-					padding: 0.42rem 0.6rem;
-					border: 1px solid #cbd5e1;
-					border-radius: 5px;
-					background: #fff;
-					font-size: 0.82rem;
-				}
-				.store-form input:focus {
-					outline: 2px solid var(--go-blue);
-					outline-offset: 1px;
+				.store-form, .stopwatch-controls, .elm-form { display: flex; gap: .45rem; flex-wrap: wrap; }
+				.store-form input, .elm-form input {
+					flex: 1; min-width: 10rem; padding: .42rem .6rem; border: 1px solid #cbd5e1;
+					border-radius: 5px; background: #fff; font-size: .82rem;
 				}
 				button, .btn {
-					cursor: pointer;
-					padding: 0.42rem 0.75rem;
-					border: none;
-					border-radius: 5px;
-					font-size: 0.8rem;
-					font-weight: 700;
-					color: #fff;
-					transition: opacity 0.15s, transform 0.1s;
+					cursor: pointer; padding: .42rem .75rem; border: none; border-radius: 5px;
+					font-size: .8rem; font-weight: 750; color: #fff; transition: opacity .15s, transform .1s;
 				}
-				button:active { transform: scale(0.97); }
-				button:hover { opacity: 0.86; }
-				.btn-htmx, .htmx-group button { background: var(--go-blue); }
+				button:active { transform: scale(.97); }
+				button:hover { opacity: .86; }
+				button:disabled { cursor: not-allowed; opacity: .45; }
+				.btn-htmx, .htmx-group button, .stopwatch-controls button { background: var(--go-blue); }
 				.btn-datastar, .datastar-group button { background: var(--datastar-orange); }
-				.elm-island button { background: var(--elm-purple); margin: 0.25rem 0.35rem 0.25rem 0; }
+				.stopwatch-controls .btn-stop { background: #dc2626; }
+				.stopwatch-controls .btn-reset { background: #475569; }
+				.elm-island button { background: var(--elm-purple); margin: .25rem .35rem .25rem 0; }
 				.elm-island .btn-htmx-trigger { background: var(--go-blue); }
 
-				.datastar-preview {
-					margin: 0.65rem 0 0;
-					padding: 0.45rem 0.55rem;
-					border: 1px dashed #fdba74;
-					border-radius: 5px;
-					background: #fff7ed;
-					color: #7c2d12;
-					font-size: 0.8rem;
-				}
-				.datastar-result {
-					margin-top: 0.55rem;
-					color: #166534;
-					font-size: 0.8rem;
-					font-weight: 700;
-				}
-				.datastar-result.error { color: #991b1b; }
-
-				.datastar-stats {
-					display: flex;
-					gap: 0.5rem;
-					flex-wrap: wrap;
-					margin-bottom: 0.6rem;
-				}
-				.datastar-stat {
-					display: inline-flex;
-					align-items: center;
-					padding: 0.18rem 0.55rem;
-					border: 1px solid #fdba74;
-					border-radius: 999px;
-					background: #fff7ed;
-					color: var(--datastar-dark);
-					font-size: 0.74rem;
-					font-weight: 700;
-				}
-
 				.source-chip {
-					display: inline-block;
-					border-radius: 999px;
-					padding: 0.08rem 0.5rem;
-					font-size: 0.7rem;
-					font-weight: 800;
-					background: #f1f5f9;
-					color: #475569;
+					display: inline-block; border-radius: 999px; padding: .08rem .5rem; font-size: .7rem;
+					font-weight: 850; background: #f1f5f9; color: #475569;
 				}
 				.source-htmx { background: #e0f2fe; color: #0369a1; }
 				.source-datastar { background: #ffedd5; color: var(--datastar-dark); }
 				.source-app-a, .source-app-b { background: #ede9fe; color: var(--elm-dark); }
 				.source-go { background: #e0f7fb; color: var(--go-dark); }
+				.row-actions { text-align: right; }
+				.btn-row-delete { background: #fff; border: 1px solid #fca5a5; color: #b91c1c; font-size: .7rem; padding: .18rem .5rem; }
 
-				.stopwatch-card {
-					margin: 1rem;
-					border: 1px solid #c7d2fe;
-					border-radius: var(--radius);
-					background:
-						radial-gradient(circle at 16% 20%, rgba(124,58,237,.16), transparent 24rem),
-						linear-gradient(135deg, #f8fafc, #eef2ff 52%, #fff7ed);
-					box-shadow: var(--shadow);
-					overflow: hidden;
-				}
-				.stopwatch-header {
-					display: flex;
-					align-items: center;
-					justify-content: space-between;
-					gap: 1rem;
-					padding: 0.85rem 1rem;
-					border-bottom: 1px solid #c7d2fe;
-					background: rgba(255,255,255,.72);
-				}
-				.stopwatch-header h2 {
-					margin: 0;
-					font-size: 0.95rem;
-					font-weight: 850;
-					color: #312e81;
-				}
-				.stopwatch-grid {
-					display: grid;
-					grid-template-columns: 0.7fr 1.5fr;
-					gap: 1rem;
-					padding: 1rem;
-				}
-				@media (max-width: 1100px) {
-					.stopwatch-grid { grid-template-columns: 1fr; }
-				}
-				.stopwatch-panel {
-					border: 1px solid rgba(148,163,184,.45);
-					border-radius: var(--radius);
-					padding: 0.85rem;
-					background: rgba(255,255,255,.86);
-				}
-				.stopwatch-panel h3 {
-					margin: 0 0 0.6rem;
-					font-size: 0.75rem;
-					font-weight: 850;
-					text-transform: uppercase;
-					letter-spacing: 0.05em;
-					color: var(--muted);
-				}
-				.stopwatch-controls {
-					display: flex;
-					gap: 0.45rem;
-					flex-wrap: wrap;
-				}
-				.stopwatch-controls button {
-					background: #4f46e5;
-				}
-				.stopwatch-controls button:disabled {
-					cursor: not-allowed;
-					opacity: 0.45;
-				}
-				.stopwatch-controls .btn-stop {
-					background: #dc2626;
-				}
-				.stopwatch-controls .btn-reset {
-					background: #475569;
-				}
-				.stopwatch-live {
-					display: grid;
-					grid-template-columns: 17rem minmax(0, 1fr);
-					align-items: center;
-					gap: 1rem;
-					border: 1px solid #fdba74;
-					border-radius: var(--radius);
-					padding: 0.85rem;
-					background: #fff7ed;
-				}
-				@media (max-width: 720px) {
-					.stopwatch-live { grid-template-columns: 1fr; justify-items: center; }
-				}
+				.elm-islands-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+				@media (max-width: 720px) { .elm-islands-grid { grid-template-columns: 1fr; } }
+				.elm-island { border: 1px solid #ddd6fe; border-radius: var(--radius); padding: .65rem; background: #faf5ff; min-height: 12rem; }
+				.elm-island-label { margin-bottom: .35rem; color: var(--elm-dark); font-size: .72rem; font-weight: 850; text-transform: uppercase; }
+				.field-row { display: flex; align-items: baseline; gap: .4rem; margin-bottom: .3rem; }
+				.field-label { min-width: 6.5rem; color: var(--muted); font-size: .75rem; font-weight: 750; }
+				.field-value { color: var(--text); }
+				.badge-ready, .badge-waiting { display: inline-block; border-radius: 999px; padding: .1rem .5rem; font-size: .7rem; font-weight: 850; }
+				.badge-ready { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+				.badge-waiting { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+				.htmx-swap-tag { display: inline-block; background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; border-radius: 4px; padding: .1rem .45rem; font-family: Menlo, Consolas, monospace; font-size: .78rem; }
+				.elm-hint { margin: 0 0 .35rem; font-size: .72rem; color: var(--muted); }
+				.elm-hint.invalid { color: #b91c1c; font-weight: 750; }
+				.elm-history table { font-size: .74rem; }
+				.elm-history td, .elm-history th { padding: .25rem .4rem; }
 
-				/* ── Matrix dial ─────────────────────────────────────────────
-				   Four concentric rings. Each is a conic-gradient disk whose
-				   inner part is covered by the next (smaller) ring, leaving only
-				   a band visible. The band width = the child ring's inset.
-				   Registered custom properties let the fill angle animate
-				   smoothly between the 100ms server updates.                    */
-				@property --d-sub  { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
-				@property --d-sec  { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
-				@property --d-min  { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+				table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+				th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid #f1f5f9; }
+				th { color: var(--muted); font-size: .75rem; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid #e2e8f0; }
+				tr:last-child td { border-bottom: none; }
+				@keyframes flash-update { 0% { background: #fef08a; } 100% { background: transparent; } }
+				.store-row-flash { animation: flash-update .9s ease-out; }
+
+				.stopwatch-card { background: linear-gradient(135deg, #f8fafc, #eef2ff 52%, #fff7ed); }
+				.stopwatch-header { background: rgba(255,255,255,.72); border-bottom-color: #c7d2fe; }
+				.stopwatch-live { display: grid; grid-template-columns: 17rem minmax(0, 1fr); align-items: center; gap: 1rem; border: 1px solid #fdba74; border-radius: var(--radius); padding: .85rem; background: #fff7ed; }
+				@media (max-width: 720px) { .stopwatch-live { grid-template-columns: 1fr; justify-items: center; } }
+				@property --d-sub { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+				@property --d-sec { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+				@property --d-min { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
 				@property --d-hour { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
-
 				#stopwatch-readout { display: grid; place-items: center; }
 				.dial {
-					--matrix: #00ff66;
-					--track: #06281a;
-					position: relative;
-					width: 16rem;
-					aspect-ratio: 1;
-					border-radius: 50%;
-					background: #000;
-					box-shadow:
-						0 0 0 1px #0a3d22,
-						0 0 28px rgba(0, 255, 102, 0.28),
-						inset 0 0 36px rgba(0, 255, 102, 0.10);
-					/* slower rings ease between updates; the fast sub ring steps
-					   (so it resets cleanly each second without a reverse sweep) */
-					transition:
-						--d-sec  0.12s linear,
-						--d-min  0.3s  linear,
-						--d-hour 0.5s  linear;
+					--matrix: #00ff66; --track: #06281a; position: relative; width: 16rem; aspect-ratio: 1;
+					border-radius: 50%; background: #000; box-shadow: 0 0 0 1px #0a3d22, 0 0 28px rgba(0,255,102,.28), inset 0 0 36px rgba(0,255,102,.1);
+					transition: --d-sec .12s linear, --d-min .3s linear, --d-hour .5s linear;
 				}
-				.ring {
-					position: absolute;
-					border-radius: 50%;
-				}
-				/* outer → inner; each child's inset sets the PARENT ring's band
-				   width, so the four bands are 1.1 / 0.9 / 0.8 / 1.4rem wide.
-				   The dial-center is nested in ring-sub and leaves a 3.8rem
-				   black hub for the readout. */
-				.ring-hour { inset: 0;       background: conic-gradient(from -90deg, #00a83e var(--d-hour), var(--track) 0); }
-				.ring-min  { inset: 1.1rem;  background: conic-gradient(from -90deg, #00c853 var(--d-min),  var(--track) 0); }
-				.ring-sec  { inset: 0.9rem;  background: conic-gradient(from -90deg, #00e676 var(--d-sec),  var(--track) 0); }
-				.ring-sub  { inset: 0.8rem;  background: conic-gradient(from -90deg, var(--matrix) var(--d-sub), var(--track) 0); }
-				.dial-center {
-					position: absolute;
-					inset: 1.4rem;
-					border-radius: 50%;
-					background: radial-gradient(circle at 50% 50%, #021006 0 70%, #000 100%);
-					display: grid;
-					place-items: center;
-					gap: 0.3rem;
-					box-shadow: inset 0 0 0 1px #0a3d22;
-				}
-				.dial.paused .ring-hour,
-				.dial.paused .ring-min,
-				.dial.paused .ring-sec,
-				.dial.paused .ring-sub { filter: saturate(0.5) brightness(0.7); }
-				.stopwatch-time {
-					font-family: "SF Mono", Menlo, Consolas, monospace;
-					font-size: 0.92rem;
-					font-weight: 800;
-					letter-spacing: -0.01em;
-					color: var(--matrix);
-					text-shadow: 0 0 8px rgba(0, 255, 102, 0.75), 0 0 18px rgba(0, 255, 102, 0.35);
-					font-variant-numeric: tabular-nums;
-				}
-				.dial.paused .stopwatch-time { color: #2fae5a; text-shadow: 0 0 6px rgba(0, 255, 102, 0.3); }
-				.stopwatch-state {
-					font-family: "SF Mono", Menlo, Consolas, monospace;
-					font-size: 0.62rem;
-					font-weight: 800;
-					text-transform: uppercase;
-					letter-spacing: 0.28em;
-					color: #1f8a4c;
-					padding-left: 0.28em;
-				}
-				.dial:not(.paused) .stopwatch-state { color: var(--matrix); text-shadow: 0 0 8px rgba(0, 255, 102, 0.6); }
-				.stopwatch-live-status {
-					display: inline-flex;
-					width: fit-content;
-					margin-top: 0.6rem;
-					padding: 0.12rem 0.5rem;
-					border-radius: 999px;
-					font-size: 0.72rem;
-					font-weight: 850;
-					background: #e2e8f0;
-					color: #475569;
-				}
-				.stopwatch-live-status.running {
-					background: #dcfce7;
-					color: #166534;
-				}
-				.lap-list {
-					max-height: 12rem;
-					overflow-y: auto;
-					border: 1px solid #e2e8f0;
-					border-radius: var(--radius);
-					background: #fff;
-				}
-				.lap-row {
-					display: grid;
-					grid-template-columns: 4rem 1fr;
-					gap: 0.5rem;
-					padding: 0.45rem 0.6rem;
-					border-bottom: 1px solid #f1f5f9;
-					font-family: Menlo, Consolas, monospace;
-					font-size: 0.8rem;
-				}
-				.lap-row:last-child { border-bottom: none; }
-				.lap-index {
-					color: var(--muted);
-					font-weight: 850;
-				}
+				.ring { position: absolute; border-radius: 50%; }
+				.ring-hour { inset: 0; background: conic-gradient(from -90deg, #00a83e var(--d-hour), var(--track) 0); }
+				.ring-min { inset: 1.1rem; background: conic-gradient(from -90deg, #00c853 var(--d-min), var(--track) 0); }
+				.ring-sec { inset: .9rem; background: conic-gradient(from -90deg, #00e676 var(--d-sec), var(--track) 0); }
+				.ring-sub { inset: .8rem; background: conic-gradient(from -90deg, var(--matrix) var(--d-sub), var(--track) 0); }
+				.dial-center { position: absolute; inset: 1.4rem; border-radius: 50%; background: radial-gradient(circle, #021006 0 70%, #000 100%); display: grid; place-items: center; gap: .3rem; box-shadow: inset 0 0 0 1px #0a3d22; }
+				.dial.paused .ring-hour, .dial.paused .ring-min, .dial.paused .ring-sec, .dial.paused .ring-sub { filter: saturate(.5) brightness(.7); }
+				.stopwatch-time { font-family: Menlo, Consolas, monospace; font-size: .92rem; font-weight: 850; color: var(--matrix); text-shadow: 0 0 8px rgba(0,255,102,.75); font-variant-numeric: tabular-nums; }
+				.stopwatch-state { font-family: Menlo, Consolas, monospace; font-size: .62rem; font-weight: 850; text-transform: uppercase; letter-spacing: .28em; color: #1f8a4c; padding-left: .28em; }
+				.dial:not(.paused) .stopwatch-state { color: var(--matrix); text-shadow: 0 0 8px rgba(0,255,102,.6); }
+				.stopwatch-live-status { display: inline-flex; width: fit-content; margin-top: .6rem; padding: .12rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 850; background: #e2e8f0; color: #475569; }
+				.stopwatch-live-status.running { background: #dcfce7; color: #166534; }
+				.lap-list { max-height: 12rem; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: var(--radius); background: #fff; }
+				.lap-row { display: grid; grid-template-columns: 4rem 1fr; gap: .5rem; padding: .45rem .6rem; border-bottom: 1px solid #f1f5f9; font-family: Menlo, Consolas, monospace; font-size: .8rem; }
+				.lap-index { color: var(--muted); font-weight: 850; }
+				.stopwatch-elm { padding: 1rem; border-top: 1px solid var(--border); }
+				.lap-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: .5rem; }
+				.lap-stat { border: 1px solid #ddd6fe; border-radius: var(--radius); background: #faf5ff; padding: .55rem .65rem; }
+				.lap-stat-label { display: block; color: var(--elm-dark); font-size: .68rem; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
+				.lap-stat-value { display: block; margin-top: .2rem; font-family: Menlo, Consolas, monospace; font-size: 1.05rem; font-weight: 850; color: #1f2937; }
 
-				.stopwatch-elm {
-					padding: 1rem;
-					border-top: 1px solid var(--border);
-				}
-				.lap-stats-grid {
-					display: grid;
-					grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-					gap: 0.5rem;
-				}
-				.lap-stat {
-					border: 1px solid #ddd6fe;
-					border-radius: var(--radius);
-					background: #faf5ff;
-					padding: 0.55rem 0.65rem;
-				}
-				.lap-stat-label {
-					display: block;
-					color: var(--elm-dark);
-					font-size: 0.68rem;
-					font-weight: 850;
-					text-transform: uppercase;
-					letter-spacing: 0.04em;
-				}
-				.lap-stat-value {
-					display: block;
-					margin-top: 0.2rem;
-					font-family: Menlo, Consolas, monospace;
-					font-size: 1.05rem;
-					font-weight: 850;
-					color: #1f2937;
-				}
-
-				.row-actions { text-align: right; }
-				.btn-row-delete {
-					background: #fff;
-					border: 1px solid #fca5a5;
-					color: #b91c1c;
-					font-size: 0.7rem;
-					font-weight: 700;
-					padding: 0.18rem 0.5rem;
-				}
-				.btn-row-delete:hover { background: #fee2e2; opacity: 1; }
-
-				.elm-form {
-					display: flex;
-					gap: 0.4rem;
-					margin: 0.4rem 0 0.2rem;
-				}
-				.elm-form input {
-					flex: 1;
-					min-width: 0;
-					padding: 0.38rem 0.55rem;
-					border: 1px solid #c4b5fd;
-					border-radius: 5px;
-					font-size: 0.8rem;
-				}
-				.elm-form input:focus {
-					outline: 2px solid var(--elm-purple);
-					outline-offset: 1px;
-				}
-				.elm-form button:disabled {
-					opacity: 0.45;
-					cursor: not-allowed;
-					transform: none;
-				}
-				.elm-hint {
-					margin: 0 0 0.35rem;
-					font-size: 0.72rem;
-					color: var(--muted);
-				}
-				.elm-hint.invalid { color: #b91c1c; font-weight: 700; }
-				.elm-history table { font-size: 0.74rem; }
-				.elm-history td, .elm-history th { padding: 0.25rem 0.4rem; }
-
-				.elm-islands-grid {
-					display: grid;
-					grid-template-columns: 1fr 1fr;
-					gap: 0.75rem;
-				}
-				@media (max-width: 720px) {
-					.elm-islands-grid { grid-template-columns: 1fr; }
-				}
-				.elm-island {
-					border: 1px solid #ddd6fe;
-					border-radius: var(--radius);
-					padding: 0.65rem;
-					background: #faf5ff;
-					min-height: 12rem;
-				}
-				.elm-island-label {
-					margin-bottom: 0.35rem;
-					color: var(--elm-dark);
-					font-size: 0.72rem;
-					font-weight: 800;
-					text-transform: uppercase;
-				}
-				.field-row {
-					display: flex;
-					align-items: baseline;
-					gap: 0.4rem;
-					margin-bottom: 0.3rem;
-				}
-				.field-label {
-					min-width: 6.5rem;
-					color: var(--muted);
-					font-size: 0.75rem;
-					font-weight: 700;
-				}
-				.field-value { color: var(--text); }
-				.badge-ready,
-				.badge-waiting {
-					display: inline-block;
-					border-radius: 999px;
-					padding: 0.1rem 0.5rem;
-					font-size: 0.7rem;
-					font-weight: 800;
-				}
-				.badge-ready {
-					background: #dcfce7;
-					color: #166534;
-					border: 1px solid #86efac;
-				}
-				.badge-waiting {
-					background: #fef9c3;
-					color: #854d0e;
-					border: 1px solid #fde047;
-				}
-				.htmx-swap-tag {
-					display: inline-block;
-					background: #e0f2fe;
-					color: #0369a1;
-					border: 1px solid #7dd3fc;
-					border-radius: 4px;
-					padding: 0.1rem 0.45rem;
-					font-family: Menlo, Consolas, monospace;
-					font-size: 0.78rem;
-				}
-
-				table {
-					width: 100%;
-					border-collapse: collapse;
-					font-size: 0.85rem;
-				}
-				th, td {
-					text-align: left;
-					padding: 0.4rem 0.6rem;
-					border-bottom: 1px solid #f1f5f9;
-				}
-				th {
-					color: var(--muted);
-					font-size: 0.75rem;
-					font-weight: 800;
-					text-transform: uppercase;
-					letter-spacing: 0.04em;
-					border-bottom: 2px solid #e2e8f0;
-				}
-				tr:last-child td { border-bottom: none; }
-				@keyframes flash-update {
-					0% { background: #fef08a; }
-					100% { background: transparent; }
-				}
-				.store-row-flash { animation: flash-update 0.9s ease-out; }
-
-				.activity-log {
-					margin: 1rem;
-					background: var(--log-bg);
-					border-radius: var(--radius);
-					padding: 0.6rem 0.75rem;
-					box-shadow: inset 0 1px 3px rgba(0,0,0,.3);
-				}
-				#activity-entries {
-					display: flex;
-					flex-direction: column-reverse;
-					max-height: 155px;
-					overflow-y: auto;
-					color: var(--log-text);
-					font-family: Menlo, Consolas, monospace;
-					font-size: 0.72rem;
-				}
-				.log-entry {
-					display: grid;
-					grid-template-columns: 5.5rem 1fr;
-					gap: 0.5rem;
-					padding: 0.15rem 0;
-					border-bottom: 1px solid #1e293b;
-				}
+				.activity-log { margin: 1rem; background: var(--log-bg); border-radius: var(--radius); padding: .6rem .75rem; box-shadow: inset 0 1px 3px rgba(0,0,0,.3); }
+				#activity-entries { display: flex; flex-direction: column-reverse; max-height: 155px; overflow-y: auto; color: var(--log-text); font-family: Menlo, Consolas, monospace; font-size: .72rem; }
+				.log-entry { display: grid; grid-template-columns: 5.5rem 1fr; gap: .5rem; padding: .15rem 0; border-bottom: 1px solid #1e293b; }
 				.log-time { color: #475569; }
-				.log-from-elm { color: #a78bfa; }
-				.log-from-htmx { color: #38bdf8; }
-				.log-from-sse { color: #34d399; }
-				.log-from-go { color: #fb923c; }
+				.log-from-elm { color: #a78bfa; } .log-from-htmx { color: #38bdf8; }
+				.log-from-sse { color: #34d399; } .log-from-go { color: #fb923c; }
 				.log-from-datastar { color: #fdba74; }
-
-				.explainer {
-					display: grid;
-					grid-template-columns: repeat(4, minmax(0, 1fr));
-					gap: 0.75rem;
-					padding: 0 1rem 1rem;
-				}
-				@media (max-width: 1000px) {
-					.explainer { grid-template-columns: 1fr 1fr; }
-				}
-				@media (max-width: 620px) {
-					.explainer { grid-template-columns: 1fr; }
-				}
-				.explainer-item {
-					border: 1px solid var(--border);
-					border-radius: var(--radius);
-					padding: 0.65rem;
-					background: #fff;
-				}
-				.explainer-item h3 {
-					margin: 0 0 0.35rem;
-					font-size: 0.75rem;
-					font-weight: 800;
-					text-transform: uppercase;
-					letter-spacing: 0.04em;
-					color: var(--muted);
-				}
-				.explainer-item p {
-					margin: 0;
-					color: #475569;
-					font-size: 0.8rem;
-					line-height: 1.45;
-				}
+				.explainer { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; padding: 0 1rem 1rem; }
+				@media (max-width: 1000px) { .explainer { grid-template-columns: 1fr 1fr; } }
+				@media (max-width: 620px) { .explainer { grid-template-columns: 1fr; } }
+				.explainer-item { border: 1px solid var(--border); border-radius: var(--radius); padding: .65rem; background: #fff; }
+				.explainer-item h3 { margin: 0 0 .35rem; font-size: .75rem; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+				.explainer-item p { margin: 0; color: #475569; font-size: .8rem; line-height: 1.45; }
 			</style>
 		</head>
 		<body>
 			<header class="page-header">
-				<h1>Shared Message Workbench</h1>
+				<h1>{ title }</h1>
 				<span class="badge badge-htmx">HTMX</span>
 				<span class="badge badge-datastar">Datastar</span>
 				<span class="badge badge-elm">Elm</span>
@@ -751,278 +248,64 @@ templ Page(stopwatchRunning bool, stopwatchCanLap bool) {
 					<span id="sse-status-text">SSE disconnected</span>
 				</span>
 			</header>
-
-			<main class="workbench">
-				<div class="workbench-header">
-					<h2 class="workbench-title">One shared key: <code>message</code></h2>
-					<div class="flow-line">
-						<span class="flow-tag flow-htmx">HTMX</span>
-						<span>or</span>
-						<span class="flow-tag flow-datastar">Datastar</span>
-						<span>or</span>
-						<span class="flow-tag flow-elm">Elm</span>
-						<span>&rarr;</span>
-						<span class="flow-tag flow-go">Go store</span>
-						<span>&rarr;</span>
-						<span class="flow-tag flow-sse">SSE fan-out</span>
-					</div>
-				</div>
-
-				<section class="live-state">
-					<div class="state-panel">
-						<h2>Current state, rendered by HTMX</h2>
-						<div id="server-message">
-							<p class="muted">Use the Elm HTMX button to swap a server fragment here.</p>
-						</div>
-						<div
-							id="store-entries"
-							hx-get="/api/store/fragment"
-							hx-trigger="load, store-refresh"
-							hx-swap="innerHTML">
-							<p class="muted">Loading store&hellip;</p>
-						</div>
-					</div>
-
-					<div
-						id="datastar-stream"
-						class="state-panel"
-						data-signals="{writes: 0, lastWriter: ''}"
-						data-init="@get('/api/datastar/store/stream')">
-						<h2>Same state, patched by Datastar SSE</h2>
-						<div class="datastar-stats">
-							<span class="datastar-stat" data-text="'Total writes: ' + $writes">Total writes: 0</span>
-							<span
-								class="datastar-stat"
-								data-text="$lastWriter ? 'Last writer: ' + $lastWriter : 'No writes this session'">
-								No writes this session
-							</span>
-						</div>
-						<div class="datastar-live">
-							<div id="datastar-store">
-								<p class="muted">Opening Datastar stream&hellip;</p>
-							</div>
-						</div>
-					</div>
-				</section>
-
-				<section class="controls">
-					<div class="control-group htmx-group">
-						<h2>1. Write with HTMX</h2>
-						<p class="control-note">This form posts normal form data to Go. Go saves <code>message</code>, then SSE refreshes every view. The store table above is pure hypermedia: each row's delete button is a server-rendered <code>hx-delete</code> control.</p>
-						<form
-							class="store-form"
-							hx-post="/api/store"
-							hx-swap="none">
-							<input type="hidden" name="key" value="message"/>
-							<input type="text" name="value" placeholder="Message from HTMX" required/>
-							<button class="btn-htmx" type="submit">Save with HTMX</button>
-						</form>
-					</div>
-
-					<div
-						class="control-group datastar-group"
-						data-signals="{messageDraft: ''}">
-						<h2>2. Write with Datastar</h2>
-						<p class="control-note">These inputs are Datastar signals. Submit sends JSON and receives patch events back. The write counter above is a <em>server-pushed signal patch</em> — no client JS touches it.</p>
-						<form
-							class="store-form"
-							data-on:submit="@post('/api/datastar/store', {payload: {key: 'message', value: $messageDraft}})">
-							<input data-bind:message-draft type="text" name="value" placeholder="Message from Datastar" required/>
-							<button class="btn-datastar" type="submit">Save with Datastar</button>
-						</form>
-						<p
-							class="datastar-preview"
-							data-text="$messageDraft ? 'Datastar will save: ' + $messageDraft : 'Datastar signal preview appears here.'">
-							Datastar signal preview appears here.
-						</p>
-						<div id="datastar-write-result" class="datastar-result"></div>
-					</div>
-
-					<div class="control-group elm-group">
-						<h2>3. Write with Elm</h2>
-						<p class="control-note">App A is a typed draft editor — validation is a real state machine, so invalid drafts can't be submitted. App B is a typed event log fed by the same broker. Both speak to Go only through ports.</p>
-						<div class="elm-islands-grid">
-							<div>
-								<div class="elm-island-label">Elm App A &middot; typed editor</div>
-								<div
-									id="app-a"
-									class="elm-island"
-									data-elm-module="AppA"
-									data-island-id="app-a"
-									data-props="{}">
-								</div>
-							</div>
-							<div>
-								<div class="elm-island-label">Elm App B &middot; typed event log</div>
-								<div
-									id="app-b"
-									class="elm-island"
-									data-elm-module="AppB"
-									data-island-id="app-b"
-									data-props="{}">
-								</div>
-							</div>
-						</div>
-					</div>
-				</section>
-
-				<section class="stopwatch-card">
-					<div class="stopwatch-header">
-						<h2>Hello Stopwatch</h2>
-						<div class="flow-line">
-							<span class="flow-tag flow-htmx">HTMX controls</span>
-							<span>&rarr;</span>
-							<span class="flow-tag flow-go">Go timer</span>
-							<span>&rarr;</span>
-							<span class="flow-tag flow-sse">SSE</span>
-							<span>&rarr;</span>
-							<span class="flow-tag flow-datastar">Datastar readout</span>
-							<span>+</span>
-							<span class="flow-tag flow-elm">Elm analytics</span>
-						</div>
-					</div>
-					<div class="stopwatch-grid">
-						<div class="stopwatch-panel">
-							<h3>HTMX start / stop / reset</h3>
-							<div
-								id="stopwatch-controls"
-								class="stopwatch-controls"
-								hx-get="/api/stopwatch/controls"
-								hx-trigger="stopwatch-state-change from:body"
-								hx-swap="innerHTML">
-								@StopwatchControls(stopwatchRunning, stopwatchCanLap)
-							</div>
-							<p class="control-note" style="margin-top:0.75rem;">
-								These buttons are ordinary <code>hx-post</code> controls. Go
-								owns the timer; when any tab acts, an SSE event re-triggers
-								this fragment in every other tab so the controls never go
-								stale.
-							</p>
-						</div>
-
-						<div
-							class="stopwatch-panel"
-							data-init="@get('/api/stopwatch/stream')">
-							<h3>Datastar live elapsed + laps</h3>
-							<div class="stopwatch-live">
-								<div id="stopwatch-readout">
-									<div class="dial paused" style="--d-sub:0deg;--d-sec:0deg;--d-min:0deg;--d-hour:0deg">
-										<div class="ring ring-hour">
-											<div class="ring ring-min">
-												<div class="ring ring-sec">
-													<div class="ring ring-sub">
-														<div class="dial-center">
-															<div class="stopwatch-time">00:00:00:000</div>
-															<div class="stopwatch-state">paused</div>
-														</div>
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								<div id="stopwatch-laps">
-									<div class="lap-list">
-										<p class="muted">No laps yet. Use the HTMX Lap button once the timer has started.</p>
-									</div>
-									<span class="stopwatch-live-status">paused via Datastar SSE</span>
-								</div>
-							</div>
-							<p class="control-note" style="margin-top:0.75rem;">
-								Go pushes the readout every tick, but the lap list only on
-								state changes — the 10/sec stream stays small.
-							</p>
-						</div>
-					</div>
-
-					<div class="stopwatch-elm">
-						<div class="elm-island-label">Elm lap analytics &middot; typed derivation</div>
-						<div
-							id="lap-stats"
-							class="elm-island"
-							data-elm-module="LapStats"
-							data-island-id="lap-stats"
-							data-props="{}">
-						</div>
-						<p class="control-note" style="margin-top:0.5rem;">
-							This Elm island subscribes to the same stopwatch SSE state and
-							derives fastest / slowest / average / delta laps as a typed
-							state machine — no Go, HTMX, or Datastar computes these.
-						</p>
-					</div>
-				</section>
-
-				<div class="activity-log">
-					<div id="activity-entries">
-						<div class="log-entry">
-							<span class="log-time">--:--:--</span>
-							<span class="log-msg">Waiting for HTMX, Datastar, Elm, Go, and SSE events&hellip;</span>
-						</div>
-					</div>
-				</div>
-
-				<section class="explainer">
-					<div class="explainer-item">
-						<h3>HTMX</h3>
-						<p>Best for small server-rendered request/response interactions.</p>
-					</div>
-					<div class="explainer-item">
-						<h3>Datastar</h3>
-						<p>Best for declarative local signals and server-pushed DOM patches.</p>
-					</div>
-					<div class="explainer-item">
-						<h3>Elm</h3>
-						<p>Best for typed client-side state machines and explicit update logic.</p>
-					</div>
-					<div class="explainer-item">
-						<h3>Fusion</h3>
-						<p>All three write the same Go state, then SSE makes every surface converge.</p>
-					</div>
-				</section>
-			</main>
+			<nav class="example-nav">
+				<a href="/" class={ templpkg.KV("active", active == "") }>
+					<strong>All examples</strong>
+					<span>Render every registered component in the central lattice.</span>
+				</a>
+				for _, item := range nav {
+					<a href={ templpkg.URL("/examples/" + item.Slug) } class={ templpkg.KV("active", active == item.Slug) }>
+						<strong>{ item.Title }</strong>
+						<span>{ item.Description }</span>
+					</a>
+				}
+			</nav>
+			@content
 		</body>
 	</html>
 }
 
-// StopwatchControls renders only the buttons. The page wraps them in a
-// self-refreshing #stopwatch-controls element, and every action swaps this
-// fragment back into that wrapper's innerHTML.
-templ StopwatchControls(running bool, canLap bool) {
-	if running {
-		<button
-			class="btn-stop"
-			hx-post="/api/stopwatch/stop"
-			hx-target="#stopwatch-controls"
-			hx-swap="innerHTML">
-			Stop
-		</button>
-	} else {
-		<button
-			hx-post="/api/stopwatch/start"
-			hx-target="#stopwatch-controls"
-			hx-swap="innerHTML">
-			Start
-		</button>
-	}
-	if canLap {
-		<button
-			hx-post="/api/stopwatch/lap"
-			hx-target="#stopwatch-controls"
-			hx-swap="innerHTML">
-			Lap
-		</button>
-	} else {
-		<button disabled>
-			Lap
-		</button>
-	}
-	<button
-		class="btn-reset"
-		hx-post="/api/stopwatch/reset"
-		hx-target="#stopwatch-controls"
-		hx-swap="innerHTML">
-		Reset
-	</button>
+templ IndexPage(nav []ExampleNav, stopwatchRunning bool, stopwatchCanLap bool) {
+	@Shell("HTMX + Datastar + Elm + Go Examples", "", nav, IndexContent(stopwatchRunning, stopwatchCanLap))
+}
+
+templ IndexContent(stopwatchRunning bool, stopwatchCanLap bool) {
+	<main class="lattice">
+		@examples.MessageWorkbench()
+		@examples.StopwatchExample(stopwatchRunning, stopwatchCanLap)
+		@Explainer()
+	</main>
+}
+
+templ ExamplePage(nav []ExampleNav, active string, title string, content templpkg.Component) {
+	@Shell(title, active, nav, ExampleContent(content))
+}
+
+templ ExampleContent(content templpkg.Component) {
+	<main class="lattice">
+		@content
+	</main>
+}
+
+templ Explainer() {
+	<section class="explainer">
+		<div class="explainer-item">
+			<h3>HTMX</h3>
+			<p>Best for small server-rendered request/response interactions.</p>
+		</div>
+		<div class="explainer-item">
+			<h3>Datastar</h3>
+			<p>Best for declarative local signals and server-pushed DOM patches.</p>
+		</div>
+		<div class="explainer-item">
+			<h3>Elm</h3>
+			<p>Best for typed client-side state machines and explicit update logic.</p>
+		</div>
+		<div class="explainer-item">
+			<h3>Fusion</h3>
+			<p>Each example can run alone or as part of the same lattice.</p>
+		</div>
+	</section>
 }
 
 templ ServerMessage(message string) {
