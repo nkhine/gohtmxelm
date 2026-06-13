@@ -155,12 +155,15 @@ func writeSSE(w http.ResponseWriter, event string, data any) {
 ```
 
 The browser side is equally simple. The `EventSource` API opens the connection
-and fires DOM events as data arrives. From [`demo/static/broker.js`](../demo/static/broker.js):
+and fires events as data arrives. The generic broker
+([`pkg/runtime/gohtmxelm-broker.js`](../pkg/runtime/gohtmxelm-broker.js)) opens
+every source listed in `data-sources` and forwards each named event to islands:
 
 ```js
-const source = new EventSource("/api/events");
-source.addEventListener("store-change", (e) => this.applyStoreEvent(e, true));
-source.addEventListener("store-hydrate", (e) => this.applyStoreEvent(e, false));
+const source = new EventSource(s.url);
+s.names.forEach((name) =>
+  source.addEventListener(name, (event) => this.forwardSSE(name, event))
+);
 ```
 
 ### Why SSE and not WebSockets?

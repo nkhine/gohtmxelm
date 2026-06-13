@@ -188,7 +188,7 @@ untyped chaos goes in one side, only well-typed values come out the other.
 
 Elm doesn't own the whole page here. It runs as **islands** — small `Browser.element`
 apps mounted into specific `<div>`s, each managed by the broker
-([`demo/static/broker.js`](../demo/static/broker.js)) which calls `Elm.AppA.init({ node, flags })`.
+([`pkg/runtime/gohtmxelm-broker.js`](../pkg/runtime/gohtmxelm-broker.js)) which calls `Elm.AppA.init({ node, flags })`.
 Three islands run: the draft editor (App A), an event log (App B), and the lap
 analyzer (LapStats). Each is a self-contained TEA program with its own `Model`,
 `update`, and `view`.

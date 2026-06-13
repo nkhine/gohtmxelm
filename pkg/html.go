@@ -6,7 +6,9 @@ import (
 	"strings"
 )
 
-// BrowserScript returns a script tag for the embedded browser broker.
+// BrowserScript returns a <script> tag that loads the embedded broker runtime
+// and configures it from the supplied Options. SSE sources are serialised into
+// a single data-sources attribute the broker reads on boot.
 func BrowserScript(opts Options) string {
 	if opts.AssetPath == "" {
 		opts.AssetPath = "/gohtmxelm"
@@ -16,15 +18,14 @@ func BrowserScript(opts Options) string {
 	attrs.WriteString(` defer src="`)
 	attrs.WriteString(htmlpkg.EscapeString(strings.TrimRight(opts.AssetPath, "/")))
 	attrs.WriteString(`/gohtmxelm-broker.js"`)
-	if opts.EventStream != "" {
-		attrs.WriteString(` data-events="`)
-		attrs.WriteString(htmlpkg.EscapeString(opts.EventStream))
-		attrs.WriteString(`"`)
-	}
-	if len(opts.EventNames) > 0 {
-		attrs.WriteString(` data-event-names="`)
-		attrs.WriteString(htmlpkg.EscapeString(strings.Join(opts.EventNames, ",")))
-		attrs.WriteString(`"`)
+	if len(opts.Sources) > 0 {
+		// Marshalling can only fail on unsupported types; Source is plain
+		// strings, so the error is unreachable in practice.
+		if b, err := json.Marshal(opts.Sources); err == nil {
+			attrs.WriteString(` data-sources="`)
+			attrs.WriteString(htmlpkg.EscapeString(string(b)))
+			attrs.WriteString(`"`)
+		}
 	}
 	if opts.Debug {
 		attrs.WriteString(` data-debug="true"`)
@@ -32,7 +33,9 @@ func BrowserScript(opts Options) string {
 	return "<script" + attrs.String() + "></script>"
 }
 
-// ElmIsland returns the HTML mount point convention used by the broker.
+// ElmIsland returns the HTML mount point convention used by the broker. The
+// returned string is fully escaped; in templ wrap it with templ.Raw, and with
+// html/template use template.HTML.
 func ElmIsland(id string, module string, props any) (string, error) {
 	propsJSON, err := json.Marshal(props)
 	if err != nil {

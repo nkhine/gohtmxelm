@@ -29,16 +29,23 @@ type Kit struct {
 	opts Options
 }
 
+// Source describes one SSE endpoint the browser broker should connect to and
+// the named events it should forward to islands as TypeSSEEvent.
+type Source struct {
+	URL    string   `json:"url"`
+	Events []string `json:"events"`
+}
+
 // Options configures the reusable browser integration layer.
 type Options struct {
 	// AssetPath is the URL path where Assets is mounted. It is used by
 	// BrowserScript. Defaults to "/gohtmxelm".
 	AssetPath string
-	// EventStream is an optional SSE endpoint consumed by the generic broker.
-	// Named events listed in EventNames are forwarded to Elm as SSE_EVENT.
-	EventStream string
-	// EventNames are the named SSE events the browser broker should listen for.
-	EventNames []string
+	// Sources are the SSE endpoints the broker opens. Each forwarded event is
+	// broadcast to islands as a TypeSSEEvent envelope carrying {event, data}.
+	// Multiple sources are supported, so independent streams (for example a
+	// store stream and a timer stream) can coexist.
+	Sources []Source
 	// Debug enables browser-side runtime logging.
 	Debug bool
 }

@@ -1,7 +1,8 @@
 port module AppB exposing (main)
 
-import BrokerPort exposing (Model, StoreChange, decodeInbound, initialModel, ready, sendStateSet)
+import BrokerPort exposing (Inbound(..), Model, StoreChange, brokerState, decode, initialModel, ready, sendStateSet, storeChangeFromData)
 import Browser
+import Dict
 import Html exposing (Html, button, div, h3, p, span, table, tbody, td, text, th, thead, tr)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
@@ -65,21 +66,28 @@ update msg model =
             )
 
         BrokerIn value ->
-            case decodeInbound value of
-                Ok inbound ->
-                    let
-                        shared =
-                            model.shared
-                    in
+            let
+                shared =
+                    model.shared
+
+                state =
+                    brokerState value
+
+                base =
+                    { shared
+                        | storeState = state
+                        , received = Dict.get "message" state |> Maybe.withDefault shared.received
+                    }
+            in
+            case decode value of
+                BrokerReady ->
+                    ( { model | shared = { base | brokerReady = True } }, Cmd.none )
+
+                Sse "store-change" data ->
                     ( { model
-                        | shared =
-                            { shared
-                                | received = inbound.message
-                                , brokerReady = inbound.brokerReady || shared.brokerReady
-                                , storeState = inbound.storeState
-                            }
+                        | shared = base
                         , history =
-                            case inbound.storeChange of
+                            case storeChangeFromData data of
                                 Just change ->
                                     List.take historyLimit (change :: model.history)
 
@@ -89,12 +97,8 @@ update msg model =
                     , Cmd.none
                     )
 
-                Err err ->
-                    let
-                        _ =
-                            Debug.log "AppB BrokerIn decode error" (Decode.errorToString err)
-                    in
-                    ( model, Cmd.none )
+                _ ->
+                    ( { model | shared = base }, Cmd.none )
 
 
 view : AppModel -> Html Msg
