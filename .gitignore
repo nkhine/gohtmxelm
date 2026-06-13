@@ -2,10 +2,8 @@
 elm-htmx-templ-demo
 gohtmxelm-demo
 
-# Generated Elm bundles
-demo/static/app-a.js
-demo/static/app-b.js
-demo/static/lap-stats.js
+# Generated Elm bundle (built by make)
+demo/static/elm.js
 
 # Vendored third-party JS (downloaded by make)
 demo/static/vendor/

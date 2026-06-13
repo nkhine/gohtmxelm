@@ -1,10 +1,18 @@
 BINARY         ?= gohtmxelm-demo
 PORT           ?= 8091
-ELM_OUT        := demo/static/app-a.js demo/static/app-b.js demo/static/lap-stats.js
+ELM_SRCS       := $(shell find demo/elm -name '*.elm')
+ELM_OUT        := demo/static/elm.js
 TEMPL_SRCS     := $(shell find . -name '*.templ' -not -path './.git/*')
-TEMPL_OUT      := demo/internal/ui/page_templ.go demo/internal/ui/components/message_templ.go demo/internal/ui/components/stopwatch_templ.go
+TEMPL_OUT      := demo/internal/ui/page_templ.go \
+                  demo/internal/ui/components/message_templ.go \
+                  demo/internal/ui/components/stopwatch_templ.go \
+                  demo/internal/ui/components/fragments_templ.go
+HTMX_VERSION   ?= 2.0.4
 HTMX_JS        := demo/static/vendor/htmx.js
-DATASTAR_SRC   ?= /Users/nkhine/go/src/github.com/starfederation/datastar/bundles/datastar.js
+# Datastar is vendored from a pinned release by default. Override DATASTAR_SRC
+# with a local path to copy from disk instead of downloading.
+DATASTAR_VERSION ?= 1.0.0-beta.11
+DATASTAR_SRC   ?=
 DATASTAR_JS    := demo/static/vendor/datastar.js
 GO_SRCS        := $(shell find . -name '*.go' -not -path './.git/*')
 
@@ -26,20 +34,24 @@ go.sum: go.mod
 
 $(HTMX_JS):
 	mkdir -p demo/static/vendor
-	curl -fsSL https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js -o $@
+	curl -fsSL https://unpkg.com/htmx.org@$(HTMX_VERSION)/dist/htmx.min.js -o $@
 
-$(DATASTAR_JS): $(DATASTAR_SRC)
+# Vendor Datastar: copy from DATASTAR_SRC when set, otherwise download a pinned
+# release so the build is portable across machines.
+$(DATASTAR_JS):
 	mkdir -p demo/static/vendor
-	cp $(DATASTAR_SRC) $@
+	@if [ -n "$(DATASTAR_SRC)" ]; then \
+		echo "copying datastar from $(DATASTAR_SRC)"; \
+		cp "$(DATASTAR_SRC)" $@; \
+	else \
+		echo "downloading datastar@$(DATASTAR_VERSION)"; \
+		curl -fsSL https://cdn.jsdelivr.net/gh/starfederation/datastar@v$(DATASTAR_VERSION)/bundles/datastar.js -o $@; \
+	fi
 
-demo/static/app-a.js: demo/elm/AppA.elm demo/elm/BrokerPort.elm demo/elm.json
-	cd demo && elm make elm/AppA.elm --output=static/app-a.js
-
-demo/static/app-b.js: demo/elm/AppB.elm demo/elm/BrokerPort.elm demo/elm.json
-	cd demo && elm make elm/AppB.elm --output=static/app-b.js
-
-demo/static/lap-stats.js: demo/elm/LapStats.elm demo/elm/BrokerPort.elm demo/elm.json
-	cd demo && elm make elm/LapStats.elm --output=static/lap-stats.js
+# All Elm islands compile into one bundle exposing window.Elm.{AppA,AppB,...},
+# which the broker looks up by module name.
+$(ELM_OUT): $(ELM_SRCS) demo/elm.json
+	cd demo && elm make elm/AppA.elm elm/AppB.elm elm/LapStats.elm --output=static/elm.js
 
 $(TEMPL_OUT): $(TEMPL_SRCS)
 	templ generate

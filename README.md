@@ -34,9 +34,10 @@ Mount the embedded browser runtime:
 import gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
 
 kit := gohtmxelm.New(gohtmxelm.Options{
-	AssetPath:   "/gohtmxelm",
-	EventStream: "/api/events",
-	EventNames:  []string{"store-change"},
+	AssetPath: "/gohtmxelm",
+	Sources: []gohtmxelm.Source{
+		{URL: "/api/events", Events: []string{"store-hydrate", "store-change"}},
+	},
 })
 
 mux.Handle("/gohtmxelm/", http.StripPrefix("/gohtmxelm/", kit.Assets()))
@@ -56,15 +57,28 @@ html, err := gohtmxelm.ElmIsland("counter", "Counter", map[string]any{
 })
 ```
 
-Use the server helpers from handlers:
+Stream Server-Sent Events from a handler. A `Stream` bundles the
+`ResponseWriter`, its flusher, and the request context, and flushes on every
+write. Pair it with a `Broadcaster[T]` and `Serve` runs the whole
+subscribe → hydrate → fan-out loop:
 
 ```go
-gohtmxelm.PrepareSSE(w)
-gohtmxelm.WriteSSE(w, "store-change", payload)
-gohtmxelm.WriteDatastarPatchElements(w, html)
-gohtmxelm.WriteDatastarPatchSignals(w, `{"count":1}`)
-gohtmxelm.Trigger(w, "store-refresh")
+func handler(w http.ResponseWriter, r *http.Request) {
+	stream, err := gohtmxelm.NewStream(w, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	gohtmxelm.Serve(stream, store.Events(),
+		func(s *gohtmxelm.Stream) error { return s.Send("store-hydrate", store.Snapshot()) },
+		func(s *gohtmxelm.Stream, e store.Event) error { return s.Send("store-change", e) },
+	)
+}
 ```
+
+Each write method has a direct form too — `s.Send(event, data)`,
+`s.PatchElements(html)`, `s.PatchSignals(data)`, `s.Ping()` — and the lower-level
+`PrepareSSE` / `WriteSSE` / `WriteDatastarPatch*` functions remain available.
 
 ## Architecture
 

@@ -1,18 +1,25 @@
 module BrokerPort exposing
-    ( Inbound
+    ( Inbound(..)
     , Model
     , StoreChange
-    , decodeInbound
+    , brokerState
+    , decode
     , initialModel
     , ready
     , sendHtmxSwap
     , sendMessage
     , sendStateSet
+    , storeChangeFromData
     )
 
 import Dict exposing (Dict)
 import Json.Decode as Decode
 import Json.Encode as Encode
+
+
+protocolVersion : Int
+protocolVersion =
+    1
 
 
 type alias Model =
@@ -28,7 +35,7 @@ type alias Model =
 initialModel : String -> Model
 initialModel islandId =
     { islandId = islandId
-    , received = "Nothing yet"
+    , received = ""
     , brokerReady = False
     , storeState = Dict.empty
     , lastHtmxSwap = Nothing
@@ -36,8 +43,8 @@ initialModel islandId =
     }
 
 
-{-| One store mutation observed via SSE, with attribution: which surface
-(htmx, datastar, app-a, app-b, go) performed it.
+{-| One store mutation, with attribution: which surface (htmx, datastar, app-a,
+app-b, go) performed it.
 -}
 type alias StoreChange =
     { key : String
@@ -47,159 +54,140 @@ type alias StoreChange =
     }
 
 
-type alias Inbound =
-    { message : String
-    , brokerReady : Bool
-    , storeState : Dict String String
-    , htmxSwapTarget : Maybe String
-    , storeChange : Maybe StoreChange
-    }
+{-| Inbound is the typed classification of a broker envelope. Each island
+pattern-matches the cases it cares about and ignores the rest, so the broker
+can grow new event types without breaking existing islands.
+
+  - `BrokerReady` — the handshake reply; the broker is wired to this island.
+  - `Sse name data` — a forwarded Server-Sent Event with its raw JSON data.
+  - `HtmxAfterSwap target` — an htmx fragment swap settled (id of the target).
+  - `StateChanged` — shared broker state was set/patched; read it with `brokerState`.
+  - `Other` — anything not classified above.
+
+-}
+type Inbound
+    = BrokerReady
+    | Sse String Decode.Value
+    | HtmxAfterSwap (Maybe String)
+    | StateChanged
+    | Other
+
+
+{-| Classify an inbound envelope. `brokerState` is always available regardless
+of the case, so callers read shared state separately.
+-}
+decode : Decode.Value -> Inbound
+decode value =
+    case field "type" Decode.string value of
+        Just "BROKER_READY" ->
+            BrokerReady
+
+        Just "SSE_EVENT" ->
+            Sse
+                (at [ "payload", "event" ] Decode.string value |> Maybe.withDefault "")
+                (at [ "payload", "data" ] Decode.value value |> Maybe.withDefault Encode.null)
+
+        Just "HTMX_AFTER_SWAP" ->
+            HtmxAfterSwap (at [ "payload", "targetId" ] Decode.string value)
+
+        Just "STATE_SET" ->
+            StateChanged
+
+        Just "STATE_PATCH" ->
+            StateChanged
+
+        _ ->
+            Other
+
+
+{-| The shared broker state dict, present on every inbound envelope. Non-string
+values are dropped (the reference demo only stores strings).
+-}
+brokerState : Decode.Value -> Dict String String
+brokerState value =
+    at [ "brokerState" ] (Decode.dict Decode.string) value
+        |> Maybe.withDefault Dict.empty
+
+
+{-| Decode one store mutation from forwarded SSE data (a store-change or
+store-hydrate payload).
+-}
+storeChangeFromData : Decode.Value -> Maybe StoreChange
+storeChangeFromData data =
+    case field "key" Decode.string data of
+        Just key ->
+            Just
+                { key = key
+                , value = field "value" Decode.string data |> Maybe.withDefault ""
+                , source = field "source" Decode.string data |> Maybe.withDefault "unknown"
+                , deleted = field "deleted" Decode.bool data |> Maybe.withDefault False
+                }
+
+        Nothing ->
+            Nothing
+
+
+
+-- OUTBOUND
 
 
 ready : (Encode.Value -> Cmd msg) -> Cmd msg
 ready out =
-    out
-        (Encode.object
-            [ ( "version", Encode.int 1 )
-            , ( "type", Encode.string "READY" )
-            , ( "target", Encode.string "broker" )
-            , ( "payload", Encode.object [] )
-            ]
-        )
+    out (envelope "READY" "broker" (Encode.object []))
 
 
-{-| Persist a key/value pair in shared broker state and route to target.
-The change is also mirrored to the Go KV store by broker.js.
+{-| Persist a key/value pair in shared broker state and route to target. The
+host page mirrors the write to its server store.
 -}
 sendStateSet : (Encode.Value -> Cmd msg) -> String -> String -> Encode.Value -> Cmd msg
 sendStateSet out target key value =
     out
-        (Encode.object
-            [ ( "version", Encode.int 1 )
-            , ( "type", Encode.string "STATE_SET" )
-            , ( "target", Encode.string target )
-            , ( "payload"
-              , Encode.object
-                    [ ( "key", Encode.string key )
-                    , ( "value", value )
-                    ]
-              )
-            ]
+        (envelope "STATE_SET"
+            target
+            (Encode.object [ ( "key", Encode.string key ), ( "value", value ) ])
         )
 
 
 {-| Send an ephemeral message to target without mutating broker state.
-Use for one-shot events that should not replay to late-mounting islands.
 -}
 sendMessage : (Encode.Value -> Cmd msg) -> String -> Encode.Value -> Cmd msg
 sendMessage out target payload =
-    out
-        (Encode.object
-            [ ( "version", Encode.int 1 )
-            , ( "type", Encode.string "SEND" )
-            , ( "target", Encode.string target )
-            , ( "payload", payload )
-            ]
-        )
+    out (envelope "SEND" target payload)
 
 
-{-| Gap 1: ask broker.js to perform an htmx.ajax GET swap on a DOM element,
-without any Elm→server round-trip.
-selector is a CSS selector (e.g. "#server-message").
-url is the HTMX fragment endpoint (e.g. "/message").
+{-| Ask the broker to run an htmx.ajax GET swap on a CSS selector, with no
+Elm→server round-trip.
 -}
 sendHtmxSwap : (Encode.Value -> Cmd msg) -> String -> String -> Cmd msg
 sendHtmxSwap out selector url =
     out
-        (Encode.object
-            [ ( "version", Encode.int 1 )
-            , ( "type", Encode.string "HTMX_SWAP" )
-            , ( "target", Encode.string "broker" )
-            , ( "payload"
-              , Encode.object
-                    [ ( "selector", Encode.string selector )
-                    , ( "url", Encode.string url )
-                    ]
-              )
-            ]
+        (envelope "HTMX_SWAP"
+            "broker"
+            (Encode.object [ ( "selector", Encode.string selector ), ( "url", Encode.string url ) ])
         )
 
 
-decodeInbound : Decode.Value -> Result Decode.Error Inbound
-decodeInbound =
-    Decode.decodeValue
-        (Decode.map5 Inbound
-            -- message: read from shared broker state
-            (Decode.oneOf
-                [ Decode.field "brokerState" (Decode.field "message" Decode.string)
-                , Decode.succeed "No message in broker state"
-                ]
-            )
-            -- brokerReady: true only on the BROKER_READY handshake event
-            (Decode.oneOf
-                [ Decode.field "type" Decode.string
-                    |> Decode.andThen (\t -> Decode.succeed (t == "BROKER_READY"))
-                , Decode.succeed False
-                ]
-            )
-            -- storeState: full broker state dict; falls back to empty if any
-            -- value is non-string (shouldn't happen in the reference demo)
-            (Decode.oneOf
-                [ Decode.field "brokerState" (Decode.dict Decode.string)
-                , Decode.succeed Dict.empty
-                ]
-            )
-            -- htmxSwapTarget: Gap 2 — present only on HTMX_AFTER_SWAP events
-            (Decode.oneOf
-                [ Decode.field "type" Decode.string
-                    |> Decode.andThen
-                        (\t ->
-                            if t == "HTMX_AFTER_SWAP" then
-                                Decode.oneOf
-                                    [ Decode.at [ "payload", "targetId" ] (Decode.nullable Decode.string)
-                                    , Decode.succeed Nothing
-                                    ]
-
-                            else
-                                Decode.succeed Nothing
-                        )
-                , Decode.succeed Nothing
-                ]
-            )
-            -- storeChange: present only on STORE_CHANGE events; carries
-            -- attribution so islands know who wrote without trusting the DOM
-            (Decode.oneOf
-                [ Decode.field "type" Decode.string
-                    |> Decode.andThen
-                        (\t ->
-                            if t == "STORE_CHANGE" then
-                                Decode.map Just decodeStoreChange
-
-                            else
-                                Decode.succeed Nothing
-                        )
-                , Decode.succeed Nothing
-                ]
-            )
-        )
+envelope : String -> String -> Encode.Value -> Encode.Value
+envelope type_ target payload =
+    Encode.object
+        [ ( "version", Encode.int protocolVersion )
+        , ( "type", Encode.string type_ )
+        , ( "target", Encode.string target )
+        , ( "payload", payload )
+        ]
 
 
-decodeStoreChange : Decode.Decoder StoreChange
-decodeStoreChange =
-    Decode.map4 StoreChange
-        (Decode.at [ "payload", "key" ] Decode.string)
-        (Decode.oneOf
-            [ Decode.at [ "payload", "value" ] Decode.string
-            , Decode.succeed ""
-            ]
-        )
-        (Decode.oneOf
-            [ Decode.at [ "payload", "source" ] Decode.string
-            , Decode.succeed "unknown"
-            ]
-        )
-        (Decode.oneOf
-            [ Decode.at [ "payload", "deleted" ] Decode.bool
-            , Decode.succeed False
-            ]
-        )
+
+-- DECODE HELPERS
+
+
+field : String -> Decode.Decoder a -> Decode.Value -> Maybe a
+field name decoder value =
+    Decode.decodeValue (Decode.field name decoder) value
+        |> Result.toMaybe
+
+
+at : List String -> Decode.Decoder a -> Decode.Value -> Maybe a
+at path decoder value =
+    Decode.decodeValue (Decode.at path decoder) value
+        |> Result.toMaybe
