@@ -260,6 +260,42 @@ templ Shell(title string, active string, nav []ExampleNav, content templpkg.Comp
 				.localization-facts div { display: grid; grid-template-columns: minmax(5.2rem, .7fr) minmax(0, 1fr); gap: .5rem; align-items: baseline; }
 				.localization-facts dt { color: var(--muted); font-size: .72rem; font-weight: 850; }
 				.localization-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; color: #0f172a; font-weight: 750; }
+				.edge-card { background: linear-gradient(135deg, #f8fafc, #fff7ed 55%, #ecfdf5); }
+				.edge-subtitle { margin: .25rem 0 0; color: var(--muted); font-size: .8rem; line-height: 1.35; }
+				.edge-subtitle code { font-family: Menlo, Consolas, monospace; background: rgba(0,0,0,.06); padding: 0 .25rem; border-radius: 3px; }
+				.edge-body { padding: 1rem; display: grid; gap: .75rem; }
+				.edge-signal-strip { display: flex; gap: .45rem; flex-wrap: wrap; }
+				.edge-pill {
+					display: inline-flex; align-items: center; min-height: 1.7rem; padding: .18rem .6rem;
+					border: 1px solid #fdba74; border-radius: 999px; background: #fff7ed; color: var(--datastar-dark);
+					font-size: .74rem; font-weight: 800; font-variant-numeric: tabular-nums;
+				}
+				.edge-live-panel {
+					display: grid; gap: .55rem; border: 1px solid var(--border); border-radius: var(--radius);
+					background: #fff; padding: .8rem; min-height: 10.5rem;
+				}
+				.edge-live-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+				.edge-live-head strong { color: #0f172a; }
+				.edge-step {
+					display: inline-flex; align-items: center; justify-content: center; min-width: 2.5rem;
+					border-radius: 6px; background: #0f172a; color: #fff; font-family: Menlo, Consolas, monospace;
+					font-size: .78rem; font-weight: 850; padding: .18rem .45rem;
+				}
+				.edge-live-panel p { margin: 0; color: #334155; line-height: 1.45; }
+				.edge-live-edge { border-color: #7dd3fc; background: #f0f9ff; }
+				.edge-live-signals { border-color: #fdba74; background: #fff7ed; }
+				.edge-live-morph { border-color: #c4b5fd; background: #faf5ff; }
+				.edge-live-rebound { border-color: #86efac; background: #f0fdf4; }
+				.edge-rebind-proof { display: grid; grid-template-columns: minmax(9rem, .45fr) minmax(0, 1fr); gap: .55rem; align-items: center; }
+				@media (max-width: 640px) { .edge-rebind-proof { grid-template-columns: 1fr; } }
+				.edge-rebind-proof span { color: var(--muted); font-size: .75rem; font-weight: 750; }
+				.edge-rebind-proof code {
+					min-width: 0; overflow-wrap: anywhere; border: 1px dashed #94a3b8; border-radius: 5px;
+					background: rgba(255,255,255,.75); color: #0f172a; padding: .35rem .45rem;
+					font-family: Menlo, Consolas, monospace; font-size: .78rem;
+				}
+				.edge-local-btn { justify-self: start; width: fit-content; background: var(--datastar-orange); }
+				.edge-clicks { color: #166534; font-size: .78rem; font-weight: 800; }
 				.statement-card { background: linear-gradient(135deg, #f8fafc, #ecfdf5 60%, #eff6ff); }
 				.statement-summary-panel { margin: 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; padding: .85rem; }
 				.statement-summary-panel h3 { margin: 0 0 .65rem; font-size: .78rem; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
@@ -497,6 +533,7 @@ templ IndexContent(stopwatchRunning bool, stopwatchCanLap bool, localization com
 		@components.StatementExample()
 		@components.SeedExample()
 		@components.LocalizationExample(localization)
+		@components.EdgeDatastarExample()
 		@Explainer()
 	</main>
 }

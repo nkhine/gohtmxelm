@@ -1,0 +1,50 @@
+package components
+
+templ EdgeDatastarExample() {
+	<section
+		id="edge-datastar-card"
+		class="workbench edge-card"
+		data-signals="{edgeSeq: 0, edgeStatus: 'idle', edgeMessage: 'waiting for the edge stream', edgeRebind: 'not bound yet', edgeDone: false, edgeClicks: 0}"
+		data-init="@get('/api/edge-datastar/stream')"
+	>
+		<div class="workbench-header">
+			<div>
+				<h2 class="workbench-title">Datastar over SSE through the edge</h2>
+				<p class="edge-subtitle">Same-origin <code>/api/*</code> opens an SSE stream that sends Datastar signal and element patches.</p>
+			</div>
+			<div class="flow-line">
+				<span class="flow-tag flow-go">gohtmxelm.Serve</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-sse">Lambda stream</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-htmx">API Gateway</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-datastar">Datastar</span>
+			</div>
+		</div>
+
+		<div class="edge-body">
+			<div class="edge-signal-strip">
+				<span class="edge-pill" data-text="'seq ' + $edgeSeq">seq 0</span>
+				<span class="edge-pill" data-text="$edgeStatus">idle</span>
+				<span class="edge-pill" data-text="$edgeDone ? 'stream complete' : 'streaming'">streaming</span>
+			</div>
+
+			<div id="edge-datastar-panel" class="edge-live-panel edge-live-idle">
+				<div class="edge-live-head">
+					<span class="edge-step">#0</span>
+					<strong data-text="'Status: ' + $edgeStatus">Status: idle</strong>
+				</div>
+				<p data-text="$edgeMessage">waiting for the edge stream</p>
+				<div class="edge-rebind-proof">
+					<span>morph payload contains fresh bindings</span>
+					<code data-text="$edgeRebind">not bound yet</code>
+				</div>
+				<button type="button" class="edge-local-btn" data-on:click="$edgeClicks = $edgeClicks + 1">
+					local Datastar click
+				</button>
+				<span class="edge-clicks" data-text="$edgeClicks + ' local clicks survived rebinding'">0 local clicks survived rebinding</span>
+			</div>
+		</div>
+	</section>
+}

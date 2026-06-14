@@ -1,6 +1,7 @@
 # Binary
 elm-htmx-templ-demo
 gohtmxelm-demo
+dist/
 
 # Generated Elm bundle (built by make)
 demo/static/elm.js

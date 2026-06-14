@@ -1,0 +1,24 @@
+config:
+  aws:region: eu-west-1
+  aws:accessKey: test
+  aws:secretKey: test
+  aws:s3UsePathStyle: "true"
+  aws:skipCredentialsValidation: "true"
+  aws:skipMetadataApiCheck: "true"
+  aws:skipRegionValidation: "true"
+  aws:skipRequestingAccountId: "true"
+  aws:endpoints:
+    - apigateway: http://localhost:4566
+      cloudwatch: http://localhost:4566
+      cloudwatchlogs: http://localhost:4566
+      iam: http://localhost:4566
+      lambda: http://localhost:4566
+      logs: http://localhost:4566
+      sts: http://localhost:4566
+  gohtmxelm-edge-demo:lambdaArtifact: ../dist/edge-datastar-lambda.zip
+  gohtmxelm-edge-demo:tags:
+    Tier: Local
+    BusinessUnit: DevOps
+    Description: gohtmxelm Datastar edge SSE local stack
+    TechnicalOwner: dev@local
+encryptionsalt: v1:ly/+EfGFVvs=:v1:gmz0GSfb23X3Se7v:wW9V1o+cZ/e8qhFwJE5itQEnIFZUmg==

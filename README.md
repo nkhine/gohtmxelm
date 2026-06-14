@@ -174,6 +174,12 @@ library pattern in a real Go app. It includes:
   Datastar to bind localized date/money signals, and Elm island flags built via
   `gohtmxelm.LocalizedProps`. The example intentionally keeps catalogue and
   formatting policy in `demo/internal/localize`, not in the reusable package.
+- an **Edge Datastar SSE** card that opens same-origin
+  `/api/edge-datastar/stream`, then proves Datastar applies
+  `datastar-patch-signals` and `datastar-patch-elements` frames and re-binds
+  signal/click handlers inside a morphed element. The same handler is wrapped by
+  a Go Lambda response-streaming entrypoint and a floci/Pulumi local API Gateway
+  stack under `infra/`.
 - a **Contract simulator** that runs the `pkg/simnet` harness live: it replays a
   deterministic run over the library's own `Broadcaster` and visualises the full
   request path (Go → Broadcaster → SSE → `bridge.js` → Elm/HTMX/Datastar) under
@@ -188,6 +194,10 @@ Run it:
 ```sh
 make dev
 ```
+
+`make dev` and `make watch` only build local browser/server assets and run the
+Go demo app. They do not start floci, Pulumi, API Gateway, or Lambda resources.
+Use `make edge-infra-up` only when you want the local AWS edge stack.
 
 Run with rebuild/restart while editing Go, templ, Elm, or browser assets:
 
@@ -210,8 +220,20 @@ Routes:
 /examples/statement bank-statement view only
 /examples/seed      seed transfers only
 /examples/localization i18n/l10n boundary only
+/examples/edge-datastar Datastar SSE through the edge only
 /examples/simulator contract simulator only
 ```
+
+Run the local floci/API Gateway Lambda streaming stack:
+
+```sh
+make edge-infra-up
+make edge-infra-output
+```
+
+See [Datastar over SSE through the edge](./docs/11-edge-sse.md) for the
+Starbase `/api/*` origin wiring, SigV4 direct-call requirement, and Lambda
+response streaming notes.
 
 The Makefile copies Datastar from:
 
