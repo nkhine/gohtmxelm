@@ -24,6 +24,7 @@ model.
 | 7 | [React and the SPA tax](./07-react-and-the-spa-tax.md) | Tradeoffs this pattern avoids and tradeoffs it keeps. |
 | 8 | [Svelte and compiler-driven UI](./08-svelte-the-compiler.md) | How compiler-oriented UI compares to this ownership model. |
 | 9 | [Testing the contract](./09-testing-the-contract.md) | The convergence invariant, deterministic simulation (`pkg/simnet`), real-code `synctest` tests, and the live simulator. |
+| 10 | [Localization boundary](./10-localization-boundary.md) | Where i18n/l10n policy lives, and what the library carries as neutral props. |
 
 ## Core Model
 

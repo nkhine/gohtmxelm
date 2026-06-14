@@ -57,6 +57,38 @@ html, err := gohtmxelm.ElmIsland("counter", "Counter", map[string]any{
 })
 ```
 
+Pass locale metadata and a scoped message bundle into an island without making
+the library own your translation system:
+
+```go
+locale := gohtmxelm.LocalePropsFrom("en-GB", "Europe/London", "GBP", translator,
+	"common.save",
+	"counter.title",
+)
+props, err := gohtmxelm.LocalizedProps(map[string]any{"initial": 0}, locale)
+if err != nil {
+	// base props must encode as a JSON object
+}
+html, err := gohtmxelm.ElmIsland("counter", "Counter", props)
+```
+
+`gohtmxelm` only defines the transport convention:
+
+```json
+{
+  "locale": "en-GB",
+  "timezone": "Europe/London",
+  "currency": "GBP",
+  "messages": {
+    "common.save": "Save"
+  }
+}
+```
+
+The host application still owns locale resolution, supported locales, catalogue
+loading, fallback rules, interpolation, pluralisation, persistence, and
+date/money formatting.
+
 Stream Server-Sent Events from a handler. A `Stream` bundles the
 `ResponseWriter`, its flusher, and the request context, and flushes on every
 write. Pair it with a `Broadcaster[T]` and `Serve` runs the whole
@@ -137,6 +169,11 @@ library pattern in a real Go app. It includes:
   Docker/AWS). Submitting the form writes the rows and broadcasts the change, so
   the statement's HTMX table, Datastar summary, and Elm picker all update — the
   statement data is generated at runtime, not hard-coded.
+- a **Localization boundary** card with a demo-owned TOML-style catalogue and
+  locale registry. Changing the language uses HTMX to re-render server copy,
+  Datastar to bind localized date/money signals, and Elm island flags built via
+  `gohtmxelm.LocalizedProps`. The example intentionally keeps catalogue and
+  formatting policy in `demo/internal/localize`, not in the reusable package.
 - a **Contract simulator** that runs the `pkg/simnet` harness live: it replays a
   deterministic run over the library's own `Broadcaster` and visualises the full
   request path (Go → Broadcaster → SSE → `bridge.js` → Elm/HTMX/Datastar) under
@@ -172,6 +209,7 @@ Routes:
 /examples/stopwatch stopwatch only
 /examples/statement bank-statement view only
 /examples/seed      seed transfers only
+/examples/localization i18n/l10n boundary only
 /examples/simulator contract simulator only
 ```
 
