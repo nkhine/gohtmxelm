@@ -1,5 +1,8 @@
 BINARY         ?= gohtmxelm-demo
 PORT           ?= 8091
+STARBASE_DIR   ?= /Users/nkhine/go/src/github.com/Shieldpay/starbase
+FLOCI_ENDPOINT ?= http://localhost:4566
+EDGE_LAMBDA_ZIP := dist/edge-datastar-lambda.zip
 ELM_SRCS       := $(shell find demo/elm -name '*.elm')
 ELM_OUT        := demo/static/elm.js
 TEMPL_SRCS     := $(shell find . -name '*.templ' -not -path './.git/*')
@@ -7,7 +10,8 @@ TEMPL_OUT      := demo/internal/ui/page_templ.go \
                   demo/internal/ui/components/message_templ.go \
                   demo/internal/ui/components/stopwatch_templ.go \
                   demo/internal/ui/components/fragments_templ.go \
-                  demo/internal/ui/components/localization_templ.go
+                  demo/internal/ui/components/localization_templ.go \
+                  demo/internal/ui/components/edge_datastar_templ.go
 HTMX_VERSION   ?= 2.0.4
 HTMX_JS        := demo/static/vendor/htmx.js
 # Datastar is vendored from a pinned release by default. Override DATASTAR_SRC
@@ -17,7 +21,7 @@ DATASTAR_SRC   ?=
 DATASTAR_JS    := demo/static/vendor/datastar.js
 GO_SRCS        := $(shell find . -name '*.go' -not -path './.git/*')
 
-.PHONY: local build clean test dev watch
+.PHONY: local build clean test dev watch package-edge-lambda floci-preflight edge-infra-up edge-enable-streaming edge-infra-down edge-infra-output
 
 ## local: build everything then start the server
 local: $(BINARY) $(HTMX_JS) $(DATASTAR_JS)
@@ -73,6 +77,43 @@ watch:
 	fi
 	PORT=$(PORT) air -c .air.toml
 
+## package-edge-lambda: build the Datastar SSE Lambda bootstrap zip
+package-edge-lambda: go.sum
+	mkdir -p dist
+	rm -f dist/bootstrap $(EDGE_LAMBDA_ZIP)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o dist/bootstrap ./cmd/edge-datastar-apigw-lambda
+	cd dist && zip -q edge-datastar-lambda.zip bootstrap
+	rm -f dist/bootstrap
+
+## floci-preflight: ensure the Starbase floci edge is listening
+floci-preflight:
+	@if curl -fsS "$(FLOCI_ENDPOINT)/_localstack/health" >/dev/null 2>&1; then \
+		echo "floci is available at $(FLOCI_ENDPOINT)"; \
+	elif [ -d "$(STARBASE_DIR)" ]; then \
+		echo "starting floci via $(STARBASE_DIR)"; \
+		$(MAKE) -C "$(STARBASE_DIR)" ddb-up; \
+	else \
+		echo "floci is not reachable at $(FLOCI_ENDPOINT), and STARBASE_DIR=$(STARBASE_DIR) does not exist"; \
+		exit 1; \
+	fi
+
+## edge-infra-up: deploy the local API Gateway + Lambda streaming demo to floci
+edge-infra-up: package-edge-lambda floci-preflight
+	cd infra && (pulumi stack select local || pulumi stack init local)
+	cd infra && pulumi up --yes --stack local
+
+## edge-enable-streaming: patch API Gateway responseTransferMode=STREAM
+edge-enable-streaming:
+	cd infra && cmd=$$(pulumi stack output edge:streamingPatchCommand --stack local); echo "$$cmd"; case "$$cmd" in AWS_ACCESS_KEY_ID=*) eval "$$cmd";; *) true;; esac
+
+## edge-infra-output: print the local edge stack outputs
+edge-infra-output:
+	cd infra && pulumi stack output --stack local
+
+## edge-infra-down: destroy the local edge stack
+edge-infra-down:
+	cd infra && pulumi destroy --yes --stack local
+
 ## clean: remove all build artefacts
 clean:
-	rm -f $(BINARY) $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS)
+	rm -f $(BINARY) $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS) $(EDGE_LAMBDA_ZIP) dist/bootstrap

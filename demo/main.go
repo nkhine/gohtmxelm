@@ -26,6 +26,7 @@ import (
 	"github.com/nkhine/gohtmxelm/demo/internal/store"
 	"github.com/nkhine/gohtmxelm/demo/internal/ui"
 	"github.com/nkhine/gohtmxelm/demo/internal/ui/components"
+	"github.com/nkhine/gohtmxelm/internal/edgedatastar"
 	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
 	"github.com/nkhine/gohtmxelm/pkg/simnet"
 )
@@ -132,6 +133,14 @@ func main() {
 			Description: "HTMX swaps copy while Datastar and Elm receive locale props.",
 			Render: func(stopwatch.Snapshot) templ.Component {
 				return components.LocalizationExample(components.BuildLocalizationVM(locales, "en-GB"))
+			},
+		},
+		{
+			Slug:        "edge-datastar",
+			Title:       "Edge Datastar SSE",
+			Description: "Datastar patches over same-origin /api/* through the edge.",
+			Render: func(stopwatch.Snapshot) templ.Component {
+				return components.EdgeDatastarExample()
 			},
 		},
 		{
@@ -332,6 +341,8 @@ func main() {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
+
+	r.Get("/api/edge-datastar/stream", edgedatastar.Handler().ServeHTTP)
 
 	// Single multiplexed broker stream. The browser broker holds one EventSource
 	// open per source; carrying every domain's events on one connection keeps

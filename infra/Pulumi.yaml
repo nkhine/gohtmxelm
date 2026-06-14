@@ -1,0 +1,8 @@
+name: gohtmxelm-edge-demo
+runtime:
+  name: go
+  options:
+    binary: ""
+description: "Datastar SSE over API Gateway Lambda response streaming for gohtmxelm"
+config:
+  gohtmxelm-edge-demo:lambdaArtifact: ../dist/edge-datastar-lambda.zip
