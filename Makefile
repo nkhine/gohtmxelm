@@ -6,7 +6,8 @@ TEMPL_SRCS     := $(shell find . -name '*.templ' -not -path './.git/*')
 TEMPL_OUT      := demo/internal/ui/page_templ.go \
                   demo/internal/ui/components/message_templ.go \
                   demo/internal/ui/components/stopwatch_templ.go \
-                  demo/internal/ui/components/fragments_templ.go
+                  demo/internal/ui/components/fragments_templ.go \
+                  demo/internal/ui/components/localization_templ.go
 HTMX_VERSION   ?= 2.0.4
 HTMX_JS        := demo/static/vendor/htmx.js
 # Datastar is vendored from a pinned release by default. Override DATASTAR_SRC
@@ -51,7 +52,7 @@ $(DATASTAR_JS):
 # All Elm islands compile into one bundle exposing window.Elm.{AppA,AppB,...},
 # which the broker looks up by module name.
 $(ELM_OUT): $(ELM_SRCS) demo/elm.json
-	cd demo && elm make elm/AppA.elm elm/AppB.elm elm/LapStats.elm elm/RangePicker.elm elm/Simulator.elm --output=static/elm.js
+	cd demo && elm make elm/AppA.elm elm/AppB.elm elm/LapStats.elm elm/RangePicker.elm elm/Simulator.elm elm/LocaleEcho.elm --output=static/elm.js
 
 $(TEMPL_OUT): $(TEMPL_SRCS)
 	templ generate

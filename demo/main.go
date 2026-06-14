@@ -19,6 +19,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/nkhine/gohtmxelm/demo/internal/localize"
 	"github.com/nkhine/gohtmxelm/demo/internal/simviz"
 	"github.com/nkhine/gohtmxelm/demo/internal/statement"
 	"github.com/nkhine/gohtmxelm/demo/internal/stopwatch"
@@ -52,6 +53,7 @@ func main() {
 	go sw.Run(ctx)
 
 	stmt := statement.New(time.Now)
+	locales := localize.MustStore()
 
 	// The simulator card runs the simnet contract harness live: a deterministic
 	// run is recorded, then replayed frame-by-frame over the library's own
@@ -125,6 +127,14 @@ func main() {
 			},
 		},
 		{
+			Slug:        "localization",
+			Title:       "Localization boundary",
+			Description: "HTMX swaps copy while Datastar and Elm receive locale props.",
+			Render: func(stopwatch.Snapshot) templ.Component {
+				return components.LocalizationExample(components.BuildLocalizationVM(locales, "en-GB"))
+			},
+		},
+		{
 			Slug:        "simulator",
 			Title:       "Contract simulator",
 			Description: "Watch simnet drop, delay & partition SSE while invariants hold.",
@@ -161,7 +171,7 @@ func main() {
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		snap := sw.Snapshot()
-		if err := ui.IndexPage(exampleNav, snap.Running, snap.CanLap()).Render(r.Context(), w); err != nil {
+		if err := ui.IndexPage(exampleNav, snap.Running, snap.CanLap(), components.BuildLocalizationVM(locales, "en-GB")).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
@@ -314,6 +324,13 @@ func main() {
 		}
 		_ = stream.PatchElements(render(components.DatastarWriteResult(fmt.Sprintf("Saved %q via Datastar.", key), false)))
 		_ = stream.PatchSignals(map[string]any{"messageDraft": ""})
+	})
+
+	r.Post("/api/localization/locale", func(w http.ResponseWriter, r *http.Request) {
+		tag := r.FormValue("locale")
+		if err := components.LocalizationExample(components.BuildLocalizationVM(locales, tag)).Render(r.Context(), w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	})
 
 	// Single multiplexed broker stream. The browser broker holds one EventSource
