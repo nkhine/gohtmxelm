@@ -1,0 +1,60 @@
+package components
+
+import "github.com/nkhine/gohtmxelm/demo/internal/presence"
+
+templ PresenceDot() {
+	@PresenceDotWith(presence.Snapshot{State: presence.Offline})
+}
+
+// PresenceDotWith renders the stable htmx-controlled wrapper. It swaps its own
+// innerHTML (never outerHTML) so the element carrying the `load` trigger is
+// never replaced — otherwise each refetch would re-insert a `load`-triggered
+// element and fire an unbounded request loop.
+templ PresenceDotWith(snapshot presence.Snapshot) {
+	<span
+		class="presence-dot-wrap"
+		hx-get="/api/auth/presence-dot"
+		hx-trigger="load, auth-presence from:body"
+		hx-swap="innerHTML"
+	>
+		@PresenceDotInner(snapshot)
+	</span>
+}
+
+// PresenceDotInner is the swappable payload: just the dot, with the live label.
+// The /api/auth/presence-dot endpoint renders this alone.
+templ PresenceDotInner(snapshot presence.Snapshot) {
+	<span
+		class={ "presence-dot", presenceClass(snapshot) }
+		title={ presenceLabel(snapshot) }
+		aria-label={ presenceLabel(snapshot) }
+	></span>
+}
+
+templ AuthPresencePanel(snapshot presence.Snapshot) {
+	<div
+		id="auth-presence-panel"
+		class="sso-presence-panel"
+		data-signals={ "{authPresence: '" + presenceSignalState(snapshot) + "', authEmail: '" + presenceSignalEmail(snapshot) + "'}" }
+		data-init="@get('/api/auth/presence-stream')"
+	>
+		<div class="sso-presence-live">
+			<span
+				class="sso-presence-live-dot"
+				data-class="{online: $authPresence === 'online', idle: $authPresence === 'idle', offline: $authPresence === 'offline'}"
+			></span>
+			<strong data-text="$authPresence === 'online' ? 'online' : ($authPresence === 'idle' ? 'idle' : 'logged out')">
+				{ presenceSignalState(snapshot) }
+			</strong>
+			<code data-text="$authEmail ? $authEmail : 'no active session'">{ presenceSignalEmail(snapshot) }</code>
+		</div>
+		<div class="elm-island-label">Elm auth presence &middot; typed broker event</div>
+		<div
+			id="auth-presence-elm"
+			class="elm-island sso-presence-elm"
+			data-elm-module="AuthPresence"
+			data-island-id="auth-presence-elm"
+			data-props="{}">
+		</div>
+	</div>
+}

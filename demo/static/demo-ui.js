@@ -58,7 +58,15 @@
     if (event === "store-change") return applyStore(data, true);
     if (event === "stopwatch-state") return applyStopwatch(data);
     if (event === "statement-range-change") return applyStatementRange(data);
+    if (event === "auth-presence") return applyAuthPresence(data);
   });
+
+  function applyAuthPresence(data) {
+    const state = data && data.state ? data.state : "offline";
+    const email = data && data.email ? ` ${data.email}` : "";
+    log("sse", "htmx", `AUTH_PRESENCE ${state}${email}`);
+    if (window.htmx) window.htmx.trigger(document.body, "auth-presence");
+  }
 
   function applyStatementRange(data) {
     const label = data && data.label ? data.label : "range";

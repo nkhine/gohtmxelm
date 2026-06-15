@@ -175,11 +175,19 @@ library pattern in a real Go app. It includes:
   `gohtmxelm.LocalizedProps`. The example intentionally keeps catalogue and
   formatting policy in `demo/internal/localize`, not in the reusable package.
 - an **Edge Datastar SSE** card that opens same-origin
-  `/api/edge-datastar/stream`, then proves Datastar applies
-  `datastar-patch-signals` and `datastar-patch-elements` frames and re-binds
-  signal/click handlers inside a morphed element. The same handler is wrapped by
-  a Go Lambda response-streaming entrypoint and a floci/Pulumi local API Gateway
-  stack under `infra/`.
+  `/api/edge-datastar/stream`, loops a visual browser-to-edge-to-Lambda trace,
+  and proves Datastar applies `datastar-patch-signals` and
+  `datastar-patch-elements` frames and re-binds signal/click handlers inside a
+  morphed element. The same handler is wrapped by a Go Lambda
+  response-streaming entrypoint and a floci/Pulumi local API Gateway stack under
+  `infra/`.
+- a **Local SSO login** card that runs a complete local browser redirect flow:
+  `/api/sso/start` sets state, a fixture identity-provider form issues a
+  one-use code after approval, `/api/sso/callback` validates state and writes an HttpOnly
+  session cookie, and HTMX rehydrates the signed-in claims panel. Successful
+  login/logout also drives a demo-wide auth presence signal: every card header
+  shows red logged-out, green online, or orange idle, while the SSO card renders
+  the same state through HTMX, Datastar signal patches, and an Elm island.
 - a **Contract simulator** that runs the `pkg/simnet` harness live: it replays a
   deterministic run over the library's own `Broadcaster` and visualises the full
   request path (Go → Broadcaster → SSE → `bridge.js` → Elm/HTMX/Datastar) under
@@ -198,6 +206,15 @@ make dev
 `make dev` and `make watch` only build local browser/server assets and run the
 Go demo app. They do not start floci, Pulumi, API Gateway, or Lambda resources.
 Use `make edge-infra-up` only when you want the local AWS edge stack.
+
+By default the dev server runs over HTTP/2 with a self-signed localhost
+certificate (`https://localhost:8091`). HTTP/2 multiplexes every SSE stream and
+request over a single connection, which matters on the `/` gallery page: it
+opens one SSE stream per card plus the broker stream, and over plain HTTP/1.1
+that hits the browser's ~6-connections-per-host limit and starves htmx requests
+(e.g. the SSO logout POST hangs). Your browser will warn once about the
+self-signed cert — accept it for the session. To fall back to plain HTTP, pass
+`TLS=0` (e.g. `make watch TLS=0`).
 
 Run with rebuild/restart while editing Go, templ, Elm, or browser assets:
 
@@ -221,6 +238,7 @@ Routes:
 /examples/seed      seed transfers only
 /examples/localization i18n/l10n boundary only
 /examples/edge-datastar Datastar SSE through the edge only
+/examples/sso-local local SSO redirect/session demo only
 /examples/simulator contract simulator only
 ```
 
@@ -234,6 +252,9 @@ make edge-infra-output
 See [Datastar over SSE through the edge](./docs/11-edge-sse.md) for the
 Starbase `/api/*` origin wiring, SigV4 direct-call requirement, and Lambda
 response streaming notes.
+
+The local SSO simulator is built into `make dev`; it does not require floci or
+Alcove. See [Local SSO login simulator](./docs/12-local-sso.md).
 
 The Makefile copies Datastar from:
 

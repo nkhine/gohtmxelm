@@ -1,0 +1,136 @@
+package components
+
+import (
+	"github.com/nkhine/gohtmxelm/demo/internal/localsso"
+	"github.com/nkhine/gohtmxelm/demo/internal/presence"
+)
+
+templ LocalSSOExample() {
+	<section id="local-sso-card" class="workbench sso-card">
+		<div class="workbench-header">
+			<div>
+				<h2 class="workbench-title">Local SSO login</h2>
+				<p class="sso-subtitle">A same-origin auth redirect flow with a local identity provider and an HttpOnly session cookie.</p>
+			</div>
+			<div class="flow-line">
+				@PresenceDot()
+				<span class="flow-tag flow-htmx">browser</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-go">/api/sso/start</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-elm">local IdP</span>
+				<span>&rarr;</span>
+				<span class="flow-tag flow-sse">callback</span>
+			</div>
+		</div>
+
+		<div class="sso-body">
+			<div class="sso-flow" aria-label="Local SSO redirect path">
+				<div class="sso-flow-line"></div>
+				<div class="sso-flow-node sso-flow-browser">
+					<strong>Browser</strong>
+					<span>GET /api/sso/start</span>
+				</div>
+				<div class="sso-flow-node sso-flow-start">
+					<strong>Go start</strong>
+					<span>state cookie + redirect</span>
+				</div>
+				<div class="sso-flow-node sso-flow-idp">
+					<strong>Local IdP</strong>
+					<span>fixture user login</span>
+				</div>
+				<div class="sso-flow-node sso-flow-callback">
+					<strong>Callback</strong>
+					<span>code + state verified</span>
+				</div>
+				<div class="sso-flow-node sso-flow-session">
+					<strong>Session</strong>
+					<span>HttpOnly cookie</span>
+				</div>
+			</div>
+
+			@AuthPresencePanel(presence.Snapshot{State: presence.Offline})
+
+			<div
+				id="local-sso-session"
+				class="sso-session"
+				hx-get="/api/sso/session"
+				hx-trigger="load"
+				hx-swap="innerHTML"
+			>
+				@LocalSSOSession(false, localsso.Claims{})
+			</div>
+
+			<div class="sso-terminal" aria-label="Local SSO request log">
+				<div class="sso-terminal-bar">
+					<span class="edge-term-dot"></span>
+					<span class="edge-term-dot"></span>
+					<span class="edge-term-dot"></span>
+					<strong>sso trace</strong>
+					<code>same-origin local</code>
+				</div>
+				<div class="sso-log-list">
+					<div class="sso-log-row active">
+						<span>01</span>
+						<strong>Browser</strong>
+						<code>GET /api/sso/start</code>
+					</div>
+					<div class="sso-log-row active">
+						<span>02</span>
+						<strong>Go handler</strong>
+						<code>Set-Cookie: gohtmxelm_sso_state; Location: /api/sso/idp/login</code>
+					</div>
+					<div class="sso-log-row active">
+						<span>03</span>
+						<strong>Local IdP</strong>
+						<code>approve fixture user, issue one-use code</code>
+					</div>
+					<div class="sso-log-row active">
+						<span>04</span>
+						<strong>Callback</strong>
+						<code>validate state + code, mint session</code>
+					</div>
+					<div class="sso-log-row active">
+						<span>05</span>
+						<strong>Demo UI</strong>
+						<code>GET /api/sso/session renders claims from cookie</code>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+}
+
+templ LocalSSOSession(authenticated bool, claims localsso.Claims) {
+	if authenticated {
+		<div class="sso-session-head signed-in">
+			<span class="sso-status-dot"></span>
+			<strong>Signed in</strong>
+			<code>{ claims.Email }</code>
+		</div>
+		<dl class="sso-claims">
+			<div><dt>Subject</dt><dd>{ claims.Subject }</dd></div>
+			<div><dt>Name</dt><dd>{ claims.Name }</dd></div>
+			<div><dt>Org</dt><dd>{ claims.Org }</dd></div>
+			<div><dt>Groups</dt><dd>{ ssoGroups(claims) }</dd></div>
+			<div><dt>Auth time</dt><dd>{ ssoAuthTime(claims) }</dd></div>
+		</dl>
+		<button
+			type="button"
+			class="sso-logout-btn"
+			hx-post="/api/sso/logout"
+			hx-target="#local-sso-session"
+			hx-swap="innerHTML"
+		>
+			Log out
+		</button>
+	} else {
+		<div class="sso-session-head">
+			<span class="sso-status-dot"></span>
+			<strong>Signed out</strong>
+			<code>no session cookie</code>
+		</div>
+		<p class="sso-session-copy">Start the local SSO redirect flow and approve a fixture user in the IdP simulator.</p>
+		<a class="sso-login-btn" href="/api/sso/start">Sign in with Local SSO</a>
+	}
+}

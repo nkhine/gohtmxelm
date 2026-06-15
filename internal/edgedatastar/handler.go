@@ -2,6 +2,7 @@ package edgedatastar
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
@@ -17,6 +18,7 @@ var ErrComplete = errors.New("edge datastar stream complete")
 // Event is the authoritative state pushed to the Datastar island.
 type Event struct {
 	Seq     int
+	Cycle   int
 	Status  string
 	Message string
 	Last    bool
@@ -30,7 +32,21 @@ func Handler() http.Handler {
 
 // HandlerWithDelay exposes the tick delay for tests.
 func HandlerWithDelay(delay time.Duration) http.Handler {
+	return handler(delay, 0)
+}
+
+// HandlerWithCycles exposes a finite loop count for tests and buffered adapters.
+func HandlerWithCycles(delay time.Duration, cycles int) http.Handler {
+	return handler(delay, cycles)
+}
+
+func handler(delay time.Duration, cycles int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if stopRequested(r) {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		stream, err := gohtmxelm.NewStream(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -42,20 +58,21 @@ func HandlerWithDelay(delay time.Duration) http.Handler {
 			func(s *gohtmxelm.Stream) error {
 				initial := Event{
 					Seq:     0,
+					Cycle:   0,
 					Status:  "connected",
 					Message: "hydrated by gohtmxelm.Serve",
 				}
 				if err := writePatch(s, initial); err != nil {
 					return err
 				}
-				go publish(r.Context(), events, delay)
+				go publish(r.Context(), events, delay, cycles)
 				return s.Ping()
 			},
 			func(s *gohtmxelm.Stream, ev Event) error {
 				if err := writePatch(s, ev); err != nil {
 					return err
 				}
-				if ev.Last {
+				if cycles > 0 && ev.Last && ev.Cycle >= cycles {
 					return ErrComplete
 				}
 				return nil
@@ -67,21 +84,39 @@ func HandlerWithDelay(delay time.Duration) http.Handler {
 	})
 }
 
-func publish(ctx context.Context, events *gohtmxelm.Broadcaster[Event], delay time.Duration) {
-	steps := []Event{
-		{Seq: 1, Status: "edge", Message: "SSE entered through /api/* and Lambda streaming"},
-		{Seq: 2, Status: "signals", Message: "datastar-patch-signals updated the live signal region"},
-		{Seq: 3, Status: "morph", Message: "datastar-patch-elements morphed the panel by id"},
-		{Seq: 4, Status: "rebound", Message: "bindings in the morphed element are live again", Last: true},
-	}
-	for _, ev := range steps {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(delay):
-			events.Publish(ev)
+func publish(ctx context.Context, events *gohtmxelm.Broadcaster[Event], delay time.Duration, cycles int) {
+	seq := 1
+	for cycle := 1; cycles == 0 || cycle <= cycles; cycle++ {
+		steps := []Event{
+			{Seq: seq, Cycle: cycle, Status: "connected", Message: fmt.Sprintf("loop %d opened EventSource", cycle)},
+			{Seq: seq + 1, Cycle: cycle, Status: "edge", Message: "SSE entered through /api/* and Lambda streaming"},
+			{Seq: seq + 2, Cycle: cycle, Status: "signals", Message: "datastar-patch-signals updated the live signal region"},
+			{Seq: seq + 3, Cycle: cycle, Status: "morph", Message: "datastar-patch-elements morphed the panel by id"},
+			{Seq: seq + 4, Cycle: cycle, Status: "rebound", Message: "bindings in the morphed element are live again", Last: true},
 		}
+		for _, ev := range steps {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(delay):
+				events.Publish(ev)
+			}
+		}
+		seq += len(steps)
 	}
+}
+
+func stopRequested(r *http.Request) bool {
+	raw := r.URL.Query().Get("datastar")
+	if raw == "" {
+		return false
+	}
+	var signals map[string]any
+	if err := json.Unmarshal([]byte(raw), &signals); err != nil {
+		return false
+	}
+	edgeRun, ok := signals["edgeRun"].(bool)
+	return ok && !edgeRun
 }
 
 func writePatch(s *gohtmxelm.Stream, ev Event) error {
@@ -93,12 +128,35 @@ func writePatch(s *gohtmxelm.Stream, ev Event) error {
 
 // Signals returns the signal object patched by datastar-patch-signals.
 func Signals(ev Event) map[string]any {
+	node, recv, send, frame := trace(ev)
 	return map[string]any{
 		"edgeSeq":     ev.Seq,
+		"edgeCycle":   ev.Cycle,
 		"edgeStatus":  ev.Status,
 		"edgeMessage": ev.Message,
 		"edgeRebind":  fmt.Sprintf("bound after morph #%d", ev.Seq),
 		"edgeDone":    ev.Last,
+		"edgeNode":    node,
+		"edgeRecv":    recv,
+		"edgeSend":    send,
+		"edgeFrame":   frame,
+	}
+}
+
+func trace(ev Event) (node, recv, send, frame string) {
+	switch ev.Status {
+	case "connected":
+		return "Datastar island", "start signal true", "GET /api/edge-datastar/stream", fmt.Sprintf("EventSource loop %d", ev.Cycle)
+	case "edge":
+		return "Starbase edge", "GET /api/edge-datastar/stream", "signed upstream GET to API Gateway", "edge request"
+	case "signals":
+		return "API Gateway", "SigV4 GET /api/edge-datastar/stream", "Lambda proxy invoke", "APIGatewayProxyRequest"
+	case "morph":
+		return "Go Lambda", "APIGatewayProxyRequest", "datastar-patch-elements #edge-datastar-panel", "element morph"
+	case "rebound":
+		return "Datastar island", "datastar-patch-elements + datastar-patch-signals", "morph DOM, patch signals, re-bind handlers", "browser apply"
+	default:
+		return "idle", "waiting", "waiting", "idle"
 	}
 }
 

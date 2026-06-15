@@ -20,6 +20,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/nkhine/gohtmxelm/demo/internal/localize"
+	"github.com/nkhine/gohtmxelm/demo/internal/localsso"
+	"github.com/nkhine/gohtmxelm/demo/internal/presence"
 	"github.com/nkhine/gohtmxelm/demo/internal/simviz"
 	"github.com/nkhine/gohtmxelm/demo/internal/statement"
 	"github.com/nkhine/gohtmxelm/demo/internal/stopwatch"
@@ -55,6 +57,10 @@ func main() {
 
 	stmt := statement.New(time.Now)
 	locales := localize.MustStore()
+	sso := localsso.New()
+	authPresence := presence.New(20 * time.Second)
+	sso.OnLogin = func(claims localsso.Claims) { authPresence.Online(claims.Email) }
+	sso.OnLogout = authPresence.Logout
 
 	// The simulator card runs the simnet contract harness live: a deterministic
 	// run is recorded, then replayed frame-by-frame over the library's own
@@ -141,6 +147,14 @@ func main() {
 			Description: "Datastar patches over same-origin /api/* through the edge.",
 			Render: func(stopwatch.Snapshot) templ.Component {
 				return components.EdgeDatastarExample()
+			},
+		},
+		{
+			Slug:        "sso-local",
+			Title:       "Local SSO login",
+			Description: "Browser redirect, local IdP, callback, and session cookie.",
+			Render: func(stopwatch.Snapshot) templ.Component {
+				return components.LocalSSOExample()
 			},
 		},
 		{
@@ -344,6 +358,46 @@ func main() {
 
 	r.Get("/api/edge-datastar/stream", edgedatastar.Handler().ServeHTTP)
 
+	r.Get("/api/sso/start", sso.Start)
+	r.Get("/api/sso/idp/login", sso.IdPLogin)
+	r.Post("/api/sso/idp/login", sso.IdPLogin)
+	r.Get("/api/sso/callback", sso.Callback)
+	r.Get("/api/sso/session", func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := sso.Session(r)
+		if ok {
+			authPresence.Touch()
+		}
+		if err := components.LocalSSOSession(ok, claims).Render(r.Context(), w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+	r.Post("/api/sso/logout", func(w http.ResponseWriter, r *http.Request) {
+		sso.Logout(w, r)
+		if err := components.LocalSSOSession(false, localsso.Claims{}).Render(r.Context(), w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+	r.Get("/api/auth/presence-dot", func(w http.ResponseWriter, r *http.Request) {
+		if err := components.PresenceDotInner(authPresence.Snapshot()).Render(r.Context(), w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+	r.Get("/api/auth/presence-stream", func(w http.ResponseWriter, r *http.Request) {
+		stream, err := gohtmxelm.NewStream(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		_ = gohtmxelm.Serve(
+			stream,
+			authPresence.Events(),
+			func(s *gohtmxelm.Stream) error { return s.PatchSignals(presenceSignals(authPresence.Snapshot())) },
+			func(s *gohtmxelm.Stream, snapshot presence.Snapshot) error {
+				return s.PatchSignals(presenceSignals(snapshot))
+			},
+		)
+	})
+
 	// Single multiplexed broker stream. The browser broker holds one EventSource
 	// open per source; carrying every domain's events on one connection keeps
 	// the page well under the ~6-connection HTTP/1.1 limit even when several
@@ -367,6 +421,8 @@ func main() {
 		defer stmt.Events().Unsubscribe(stCh)
 		simCh := sim.Events().Subscribe()
 		defer sim.Events().Unsubscribe(simCh)
+		presenceCh := authPresence.Events().Subscribe()
+		defer authPresence.Events().Unsubscribe(presenceCh)
 
 		// Hydrate every domain on connect.
 		for _, state := range kv.AllStates() {
@@ -378,6 +434,7 @@ func main() {
 		rng := stmt.Range()
 		_ = stream.Send("statement-range-change", rangePayload(rng, stmt.Summary(rng)))
 		_ = stream.Send("sim-frame", sim.Current())
+		_ = stream.Send("auth-presence", authPresence.Snapshot())
 
 		for {
 			select {
@@ -407,6 +464,13 @@ func main() {
 					return
 				}
 				if stream.Send("sim-frame", f) != nil {
+					return
+				}
+			case snapshot, ok := <-presenceCh:
+				if !ok {
+					return
+				}
+				if stream.Send("auth-presence", snapshot) != nil {
 					return
 				}
 			case <-stream.Done():
@@ -636,9 +700,34 @@ func main() {
 		BaseContext: func(net.Listener) context.Context { return ctx },
 	}
 
+	// TLS opt-in (GOHTMXELM_TLS=1) serves the dev server over HTTP/2. Browsers
+	// only negotiate HTTP/2 over TLS, and HTTP/2 multiplexes every SSE stream
+	// and request over one connection — so the gallery page's many per-card SSE
+	// streams no longer exhaust the HTTP/1.1 ~6-connections-per-host limit and
+	// starve htmx requests like the SSO logout POST.
+	tlsEnabled := os.Getenv("GOHTMXELM_TLS") == "1"
+	scheme := "http"
+	if tlsEnabled {
+		tlsConfig, err := devTLSConfig()
+		if err != nil {
+			logger.Error("could not create dev TLS config", "error", err)
+			os.Exit(1)
+		}
+		server.TLSConfig = tlsConfig
+		scheme = "https"
+	}
+
 	go func() {
-		logger.Info("server started", "addr", addr)
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logger.Info("server started", "addr", addr, "url", scheme+"://localhost"+addr)
+		var err error
+		if tlsEnabled {
+			// Cert/key are supplied in-memory via server.TLSConfig; plain-HTTP
+			// requests on this port are redirected to https rather than failing.
+			err = serveTLSWithRedirect(server)
+		} else {
+			err = server.ListenAndServe()
+		}
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("server failed", "error", err)
 			os.Exit(1)
 		}
@@ -761,6 +850,17 @@ func render(c templ.Component) string {
 	var b strings.Builder
 	_ = c.Render(context.Background(), &b)
 	return b.String()
+}
+
+func presenceSignals(snapshot presence.Snapshot) map[string]any {
+	state := snapshot.State
+	if state == "" {
+		state = presence.Offline
+	}
+	return map[string]any{
+		"authPresence": string(state),
+		"authEmail":    snapshot.Email,
+	}
 }
 
 // parseStoreBody reads key, value, source, and optional version from either a

@@ -26,6 +26,7 @@ model.
 | 9 | [Testing the contract](./09-testing-the-contract.md) | The convergence invariant, deterministic simulation (`pkg/simnet`), real-code `synctest` tests, and the live simulator. |
 | 10 | [Localization boundary](./10-localization-boundary.md) | Where i18n/l10n policy lives, and what the library carries as neutral props. |
 | 11 | [Datastar over SSE through the edge](./11-edge-sse.md) | Lambda response streaming, API Gateway, Starbase `/api/*`, and Datastar rebinding. |
+| 12 | [Local SSO login simulator](./12-local-sso.md) | Browser redirects, callback validation, HttpOnly session cookies, HTMX rehydration, and shared auth presence. |
 
 ## Core Model
 

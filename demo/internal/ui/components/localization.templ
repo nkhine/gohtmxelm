@@ -12,6 +12,7 @@ templ LocalizationExample(vm LocalizationVM) {
 				<p class="localization-subtitle">{ vm.Subtitle }</p>
 			</div>
 			<div class="flow-line">
+				@PresenceDot()
 				<span class="flow-tag flow-go">Go resolves locale</span>
 				<span>&rarr;</span>
 				<span class="flow-tag flow-htmx">HTMX swaps copy</span>

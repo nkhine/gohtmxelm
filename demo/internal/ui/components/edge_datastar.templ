@@ -4,7 +4,7 @@ templ EdgeDatastarExample() {
 	<section
 		id="edge-datastar-card"
 		class="workbench edge-card"
-		data-signals="{edgeSeq: 0, edgeStatus: 'idle', edgeMessage: 'waiting for the edge stream', edgeRebind: 'not bound yet', edgeDone: false, edgeClicks: 0}"
+		data-signals="{edgeRun: true, edgeSeq: 0, edgeCycle: 0, edgeStatus: 'idle', edgeMessage: 'waiting for the edge stream', edgeRebind: 'not bound yet', edgeDone: false, edgeClicks: 0, edgeNode: 'idle', edgeRecv: 'waiting', edgeSend: 'waiting', edgeFrame: 'idle'}"
 		data-init="@get('/api/edge-datastar/stream')"
 	>
 		<div class="workbench-header">
@@ -13,6 +13,7 @@ templ EdgeDatastarExample() {
 				<p class="edge-subtitle">Same-origin <code>/api/*</code> opens an SSE stream that sends Datastar signal and element patches.</p>
 			</div>
 			<div class="flow-line">
+				@PresenceDot()
 				<span class="flow-tag flow-go">gohtmxelm.Serve</span>
 				<span>&rarr;</span>
 				<span class="flow-tag flow-sse">Lambda stream</span>
@@ -24,26 +25,147 @@ templ EdgeDatastarExample() {
 		</div>
 
 		<div class="edge-body">
-			<div class="edge-signal-strip">
-				<span class="edge-pill" data-text="'seq ' + $edgeSeq">seq 0</span>
-				<span class="edge-pill" data-text="$edgeStatus">idle</span>
-				<span class="edge-pill" data-text="$edgeDone ? 'stream complete' : 'streaming'">streaming</span>
+			<div class="edge-toolbar">
+				<div class="edge-signal-strip">
+					<span class="edge-pill" data-text="'loop ' + $edgeCycle + ' / seq ' + $edgeSeq">loop 0 / seq 0</span>
+					<span class="edge-pill" data-text="$edgeRun ? $edgeStatus : 'stopped'">idle</span>
+					<span class="edge-pill" data-text="$edgeRun ? 'looping stream' : 'stream paused'">looping stream</span>
+				</div>
+				<div class="edge-controls" aria-label="SSE stream controls">
+					<button
+						type="button"
+						class="edge-control edge-control-start"
+						data-class="{active: $edgeRun}"
+						data-on:click="$edgeRun = true; $edgeDone = false; $edgeNode = 'Datastar island'; $edgeRecv = 'manual start'; $edgeSend = 'GET /api/edge-datastar/stream'; $edgeFrame = 'EventSource restart'; @get('/api/edge-datastar/stream')"
+					>
+						Start
+					</button>
+					<button
+						type="button"
+						class="edge-control edge-control-stop"
+						data-class="{active: !$edgeRun}"
+						data-on:click="$edgeRun = false; $edgeDone = true; $edgeStatus = 'stopped'; $edgeNode = 'Datastar island'; $edgeRecv = 'manual stop'; $edgeSend = '204 No Content closes stream'; $edgeFrame = 'stream stopped'; @get('/api/edge-datastar/stream')"
+					>
+						Stop
+					</button>
+				</div>
 			</div>
 
-			<div id="edge-datastar-panel" class="edge-live-panel edge-live-idle">
-				<div class="edge-live-head">
-					<span class="edge-step">#0</span>
-					<strong data-text="'Status: ' + $edgeStatus">Status: idle</strong>
+			<div class="edge-grid">
+				<div class="edge-flow-stage" data-class="{paused: !$edgeRun}" aria-label="Datastar edge request path">
+					<div class="edge-flow-line"></div>
+					<div class="edge-flow-packet edge-flow-request"></div>
+					<div class="edge-flow-packet edge-flow-response"></div>
+					<div
+						class="edge-flow-node edge-flow-browser"
+						data-class="{active: $edgeSeq >= 0, done: $edgeDone}"
+					>
+						<strong>Datastar island</strong>
+						<span>{ "@get('/api/...')" }</span>
+					</div>
+					<div
+						class="edge-flow-node edge-flow-edge"
+						data-class="{active: $edgeStatus === 'edge' || $edgeSeq > 1, done: $edgeDone}"
+					>
+						<strong>Starbase edge</strong>
+						<span>same-origin /api/*</span>
+					</div>
+					<div
+						class="edge-flow-node edge-flow-gateway"
+						data-class="{active: $edgeStatus === 'signals' || $edgeStatus === 'morph' || $edgeStatus === 'rebound', done: $edgeDone}"
+					>
+						<strong>API Gateway</strong>
+						<span>SigV4 + Lambda proxy</span>
+					</div>
+					<div
+						class="edge-flow-node edge-flow-lambda"
+						data-class="{active: $edgeStatus === 'morph' || $edgeStatus === 'rebound', done: $edgeDone}"
+					>
+						<strong>Go Lambda</strong>
+						<span>gohtmxelm.Serve</span>
+					</div>
+					<div class="edge-flow-return">
+						<span>datastar-patch-elements</span>
+						<span>datastar-patch-signals</span>
+					</div>
 				</div>
-				<p data-text="$edgeMessage">waiting for the edge stream</p>
-				<div class="edge-rebind-proof">
-					<span>morph payload contains fresh bindings</span>
-					<code data-text="$edgeRebind">not bound yet</code>
+
+				<div id="edge-datastar-panel" class="edge-live-panel edge-live-idle">
+					<div class="edge-live-head">
+						<span class="edge-step">#0</span>
+						<strong data-text="'Status: ' + $edgeStatus">Status: idle</strong>
+					</div>
+					<p data-text="$edgeMessage">waiting for the edge stream</p>
+					<div class="edge-rebind-proof">
+						<span>morph payload contains fresh bindings</span>
+						<code data-text="$edgeRebind">not bound yet</code>
+					</div>
+					<button type="button" class="edge-local-btn" data-on:click="$edgeClicks = $edgeClicks + 1">
+						local Datastar click
+					</button>
+					<span class="edge-clicks" data-text="$edgeClicks + ' local clicks survived rebinding'">0 local clicks survived rebinding</span>
 				</div>
-				<button type="button" class="edge-local-btn" data-on:click="$edgeClicks = $edgeClicks + 1">
-					local Datastar click
-				</button>
-				<span class="edge-clicks" data-text="$edgeClicks + ' local clicks survived rebinding'">0 local clicks survived rebinding</span>
+
+				<div class="edge-terminal" aria-label="Edge request and SSE patch logs">
+					<div class="edge-terminal-bar">
+						<span class="edge-term-dot"></span>
+						<span class="edge-term-dot"></span>
+						<span class="edge-term-dot"></span>
+						<strong>edge trace</strong>
+						<code data-text="($edgeRun ? 'loop ' + $edgeCycle : 'stopped') + ' / ' + $edgeNode">loop 0 / idle</code>
+					</div>
+					<div class="edge-log-list">
+						<div class="edge-log-row" data-class="{active: $edgeRun && $edgeSeq >= 0}">
+							<span class="edge-log-index">01</span>
+							<span class="edge-log-node">Datastar island</span>
+							<div class="edge-log-payload">
+								<code><span>recv</span><b data-text="$edgeRun ? 'DOMContentLoaded + data-init' : 'manual stop signal'">waiting</b></code>
+								<code><span>send</span><b data-text="$edgeRun ? 'GET /api/edge-datastar/stream' : 'GET /api/edge-datastar/stream datastar=edgeRun:false'">waiting</b></code>
+							</div>
+						</div>
+						<div class="edge-log-row" data-class="{active: $edgeRun && ($edgeStatus === 'edge' || $edgeSeq > 1)}">
+							<span class="edge-log-index">02</span>
+							<span class="edge-log-node">Starbase edge</span>
+							<div class="edge-log-payload">
+								<code><span>recv</span><b data-text="$edgeSeq >= 1 ? 'same-origin GET /api/*' : 'pending'">pending</b></code>
+								<code><span>send</span><b data-text="$edgeSeq >= 1 ? 'signed upstream request' : 'pending'">pending</b></code>
+							</div>
+						</div>
+						<div class="edge-log-row" data-class="{active: $edgeRun && ($edgeStatus === 'signals' || $edgeStatus === 'morph' || $edgeStatus === 'rebound')}">
+							<span class="edge-log-index">03</span>
+							<span class="edge-log-node">API Gateway</span>
+							<div class="edge-log-payload">
+								<code><span>recv</span><b data-text="$edgeSeq >= 2 ? 'SigV4 GET /edge-datastar/stream' : 'pending'">pending</b></code>
+								<code><span>send</span><b data-text="$edgeSeq >= 2 ? 'Lambda proxy invoke' : 'pending'">pending</b></code>
+							</div>
+						</div>
+						<div class="edge-log-row" data-class="{active: $edgeRun && ($edgeStatus === 'morph' || $edgeStatus === 'rebound')}">
+							<span class="edge-log-index">04</span>
+							<span class="edge-log-node">Go Lambda</span>
+							<div class="edge-log-payload">
+								<code><span>recv</span><b data-text="$edgeSeq >= 3 ? 'APIGatewayProxyRequest' : 'pending'">pending</b></code>
+								<code><span>send</span><b data-text="$edgeSeq >= 3 ? $edgeFrame + ': ' + $edgeMessage : 'pending'">pending</b></code>
+							</div>
+						</div>
+						<div class="edge-log-row" data-class="{active: $edgeRun && $edgeDone}">
+							<span class="edge-log-index">05</span>
+							<span class="edge-log-node">Datastar apply</span>
+							<div class="edge-log-payload">
+								<code><span>recv</span><b data-text="$edgeDone ? 'datastar-patch-elements + datastar-patch-signals' : 'pending'">pending</b></code>
+								<code><span>send</span><b data-text="$edgeDone ? 'DOM morph + signal patch + handler rebind' : 'pending'">pending</b></code>
+							</div>
+						</div>
+						<div class="edge-log-row edge-log-current">
+							<span class="edge-log-index">live</span>
+							<span class="edge-log-node" data-text="$edgeNode">idle</span>
+							<div class="edge-log-payload">
+								<code><span>recv</span><b data-text="$edgeRecv">waiting</b></code>
+								<code><span>send</span><b data-text="$edgeSend">waiting</b></code>
+								<code><span>frame</span><b data-text="$edgeFrame">idle</b></code>
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	</section>
