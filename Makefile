@@ -1,5 +1,9 @@
 BINARY         ?= gohtmxelm-demo
 PORT           ?= 8091
+# TLS=1 serves the dev server over HTTP/2 (self-signed localhost cert) so the
+# browser multiplexes every SSE stream over one connection instead of hitting
+# the HTTP/1.1 ~6-connections-per-host limit. Set TLS=0 for plain HTTP.
+TLS            ?= 1
 STARBASE_DIR   ?= /Users/nkhine/go/src/github.com/Shieldpay/starbase
 FLOCI_ENDPOINT ?= http://localhost:4566
 EDGE_LAMBDA_ZIP := dist/edge-datastar-lambda.zip
@@ -25,7 +29,7 @@ GO_SRCS        := $(shell find . -name '*.go' -not -path './.git/*')
 
 ## local: build everything then start the server
 local: $(BINARY) $(HTMX_JS) $(DATASTAR_JS)
-	PORT=$(PORT) ./$(BINARY)
+	GOHTMXELM_TLS=$(TLS) PORT=$(PORT) ./$(BINARY)
 
 ## build: compile generated assets and Go binary
 build: $(BINARY)
@@ -56,7 +60,7 @@ $(DATASTAR_JS):
 # All Elm islands compile into one bundle exposing window.Elm.{AppA,AppB,...},
 # which the broker looks up by module name.
 $(ELM_OUT): $(ELM_SRCS) demo/elm.json
-	cd demo && elm make elm/AppA.elm elm/AppB.elm elm/LapStats.elm elm/RangePicker.elm elm/Simulator.elm elm/LocaleEcho.elm --output=static/elm.js
+	cd demo && elm make elm/AppA.elm elm/AppB.elm elm/LapStats.elm elm/RangePicker.elm elm/Simulator.elm elm/LocaleEcho.elm elm/AuthPresence.elm --output=static/elm.js
 
 $(TEMPL_OUT): $(TEMPL_SRCS)
 	templ generate
@@ -67,7 +71,7 @@ test:
 
 ## dev: build generated files and run without compiling a binary
 dev: go.sum $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS)
-	PORT=$(PORT) go run ./demo
+	GOHTMXELM_TLS=$(TLS) PORT=$(PORT) go run ./demo
 
 ## watch: rebuild generated assets and restart the server on source changes
 watch:
@@ -75,7 +79,7 @@ watch:
 		echo "Port $(PORT) is already in use. Stop that process or run: PORT=8092 make watch"; \
 		exit 1; \
 	fi
-	PORT=$(PORT) air -c .air.toml
+	GOHTMXELM_TLS=$(TLS) PORT=$(PORT) air -c .air.toml
 
 ## package-edge-lambda: build the Datastar SSE Lambda bootstrap zip
 package-edge-lambda: go.sum

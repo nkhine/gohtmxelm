@@ -4,7 +4,7 @@ tmp_dir = ".air"
 [build]
 cmd = "make build BINARY=.air/gohtmxelm-demo"
 bin = ".air/gohtmxelm-demo"
-full_bin = "sh -c 'PORT=${PORT:-8091} exec ./.air/gohtmxelm-demo'"
+full_bin = "sh -c 'PORT=${PORT:-8091} GOHTMXELM_TLS=${GOHTMXELM_TLS:-1} exec ./.air/gohtmxelm-demo'"
 delay = 700
 include_ext = ["go", "templ", "elm", "js", "mod", "sum"]
 exclude_dir = [

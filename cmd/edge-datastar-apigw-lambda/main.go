@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -30,7 +31,7 @@ func handle(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIG
 	}
 
 	rec := httptest.NewRecorder()
-	edgedatastar.Handler().ServeHTTP(rec, httpReq)
+	edgedatastar.HandlerWithCycles(450*time.Millisecond, 1).ServeHTTP(rec, httpReq)
 
 	headers := map[string]string{
 		"Content-Type":      "text/event-stream",

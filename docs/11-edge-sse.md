@@ -21,7 +21,9 @@ The reference demo adds:
 
 - `/examples/edge-datastar`: a Datastar signal region with a morph target.
 - `/api/edge-datastar/stream`: a `gohtmxelm.Serve` handler that hydrates, then
-  sends `datastar-patch-elements` and `datastar-patch-signals` frames.
+  loops through `datastar-patch-elements` and `datastar-patch-signals` frames.
+  The demo exposes Start/Stop controls by sending the `edgeRun` Datastar signal
+  with the GET request.
 - `cmd/edge-datastar-apigw-lambda`: a floci/API Gateway-compatible Lambda
   adapter returning `events.APIGatewayProxyResponse` with an SSE body.
 - `cmd/edge-datastar-lambda`: a Go Lambda response-streaming adapter returning
@@ -40,6 +42,12 @@ The server sends the element patch first and the signal patch second. If the
 `data-text` value inside the newly morphed element updates, Datastar applied the
 patch and re-bound the new subtree. Clicking the button after morphs confirms
 local `data-on:*` handlers were re-bound too.
+
+The live browser demo keeps the stream open and repeats the edge path so the
+terminal trace is continuously updated. Stop flips `edgeRun` to false and issues
+the same `@get('/api/edge-datastar/stream')` action; Datastar's default request
+cancellation aborts the active stream, and the new request returns `204 No
+Content`. Start flips `edgeRun` back to true and opens a fresh stream.
 
 ## Local floci deployment
 
@@ -83,13 +91,12 @@ The floci local stack uses the `edge-datastar-apigw-lambda` adapter because this
 floci build returns headers but drops the body for
 `APIGatewayProxyStreamingResponse` through REST API Gateway. The adapter still
 runs the same `gohtmxelm.Serve` handler and returns the same Datastar SSE frames;
-it buffers the finite demo stream into the Lambda proxy response body so floci's
-API Gateway data plane can return it.
+it buffers a one-cycle demo stream into the Lambda proxy response body so
+floci's API Gateway data plane can return it.
 
 For AWS response streaming, package `cmd/edge-datastar-lambda`, use the
 `/response-streaming-invocations` integration URI, and set API Gateway's
 integration `responseTransferMode` to `STREAM`.
-```
 
 ## Local app smoke test
 
