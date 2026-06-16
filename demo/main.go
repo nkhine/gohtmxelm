@@ -30,7 +30,7 @@ import (
 	"github.com/nkhine/gohtmxelm/demo/internal/ui"
 	"github.com/nkhine/gohtmxelm/demo/internal/ui/components"
 	"github.com/nkhine/gohtmxelm/internal/edgedatastar"
-	"github.com/nkhine/gohtmxelm/simnet"
+	"github.com/nkhine/gohtmxelm/internal/simnet"
 )
 
 type exampleRoute struct {
