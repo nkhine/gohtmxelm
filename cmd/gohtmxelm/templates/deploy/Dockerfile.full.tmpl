@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+
+# Build the Elm bundle on the host or in CI before `docker build`: Elm has no
+# reliable in-container cross-arch compiler, so static/elm.js must already exist
+# in the build context. Run `make build` (or `make elm`) first. templ and Go
+# are built here.
+FROM golang:1.25 AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go tool templ generate
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/server .
+
+# distroless static: a tiny, non-root final image. The broker runtime is
+# embedded in the binary via go:embed; only the compiled Elm bundle is a
+# runtime file, copied below.
+FROM gcr.io/distroless/static-debian12:nonroot
+WORKDIR /app
+COPY --from=build /out/server ./server
+COPY --from=build /src/static ./static
+# SSE works straight from the Go server — it sets the streaming headers
+# (including X-Accel-Buffering: no) and flushes every event. If you front this
+# with a reverse proxy, disable response buffering or streaming will break.
+ENV PORT=8080
+EXPOSE 8080
+USER nonroot:nonroot
+ENTRYPOINT ["./server"]

@@ -1,0 +1,42 @@
+# Deploying
+
+This app is a plain Go HTTP server that serves **Server-Sent Events**. It runs
+anywhere a container runs — the scaffolding here is intentionally
+platform-neutral.
+
+## Build and run locally
+
+```sh
+docker compose up --build       # http://localhost:8080
+```
+
+The image compiles the Go binary itself; there are no extra build steps.
+
+## Continuous delivery
+
+`.github/workflows/deploy.yml` runs on every push and pull request:
+
+1. **test** — `go vet` and `go test`.
+2. **image** — on pushes to `main` and `v*` tags, builds the container and
+   pushes it to **GitHub Container Registry** at `ghcr.io/<owner>/<repo>`.
+
+It authenticates with the built-in `GITHUB_TOKEN`, so there are no secrets to
+configure. Pull the published image and run it on any host:
+
+```sh
+docker run -p 8080:8080 ghcr.io/<owner>/<repo>:latest
+```
+
+## SSE: the one thing to get right
+
+The page holds a long-lived SSE connection. Whatever you put in front of the
+container **must not buffer responses**:
+
+- The server already sends `Cache-Control: no-cache` and `X-Accel-Buffering: no`
+  and flushes after every event.
+- For proxies that ignore that, disable response buffering explicitly (e.g.
+  nginx `proxy_buffering off;`).
+- Allow long idle timeouts; SSE streams stay open between events.
+- If your platform scales to zero, expect idle clients to reconnect.
+
+`PORT` is read from the environment (default `8080`).

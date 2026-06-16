@@ -48,6 +48,23 @@ Flags: `--module <path>` (module path for a new project), `--minimal`,
 `--no-build` (write files only), `--force` (overwrite). After upgrading the
 library, re-sync the Elm contract with `gohtmxelm vendor-elm`.
 
+### Optional: deploy scaffolding
+
+Add a streaming-correct container setup and CI with `--deploy` at init time, or
+`gohtmxelm deploy` on an existing scaffold:
+
+```sh
+gohtmxelm init myapp --deploy     # scaffold + Dockerfile + CI
+gohtmxelm deploy                  # add it to an app you already scaffolded
+```
+
+This writes a multi-stage `Dockerfile` (distroless, non-root), `.dockerignore`,
+`docker-compose.yml`, a GitHub Actions workflow that builds, tests, and pushes
+the image to **GitHub Container Registry** (`ghcr.io/<owner>/<repo>`) using the
+built-in `GITHUB_TOKEN`, and a `DEPLOY.md` covering the SSE-specific gotchas
+(disable proxy response buffering, long idle timeouts, prefer HTTP/2). It is
+template-only — it never runs a deploy or handles credentials.
+
 ## Use In A Go App
 
 Mount the embedded browser runtime:

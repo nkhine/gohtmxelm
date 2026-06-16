@@ -24,6 +24,13 @@ bumps that constant rather than the module version.
 - `gohtmxelm vendor-elm [dir]` (re)writes `BrokerPort.elm` to re-sync the Elm
   contract after a library upgrade.
 - `gohtmxelm doctor` now distinguishes required (`go`) from optional tools.
+- `gohtmxelm deploy` (and `gohtmxelm init --deploy`) emit optional, template-only
+  deploy scaffolding: a multi-stage distroless `Dockerfile`, `.dockerignore`,
+  `docker-compose.yml`, a GitHub Actions workflow that builds/tests and pushes
+  the image to GitHub Container Registry via the built-in `GITHUB_TOKEN`, and a
+  `DEPLOY.md` documenting the SSE-specific proxy/timeout/HTTP-2 considerations.
+  Full and minimal scaffolds get matching variants. Nothing is ever deployed and
+  no credentials are handled.
 - The CLI now has structured help (`gohtmxelm help`, `gohtmxelm help init`,
   `init -h`) and a polished init experience: a banner, grouped phases (Creating
   files / Installing dependencies / Building assets), and an animated spinner

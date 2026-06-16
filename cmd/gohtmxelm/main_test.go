@@ -85,6 +85,39 @@ func TestWriteTreeFlavours(t *testing.T) {
 	}
 }
 
+func TestEmitDeploy(t *testing.T) {
+	cases := []struct {
+		minimal     bool
+		mustContain string // in the Dockerfile
+		mustAbsent  string
+	}{
+		{false, "templ generate", ""}, // full builds templ + copies static
+		{true, "", "templ generate"},  // minimal is Go-only
+	}
+	want := []string{"Dockerfile", ".dockerignore", "docker-compose.yml", "DEPLOY.md", filepath.Join(".github", "workflows", "deploy.yml")}
+	for _, c := range cases {
+		dir := t.TempDir()
+		if err := emitDeploy(dir, c.minimal, false); err != nil {
+			t.Fatalf("emitDeploy(minimal=%v): %v", c.minimal, err)
+		}
+		for _, f := range want {
+			if !fileExists(filepath.Join(dir, f)) {
+				t.Errorf("minimal=%v: missing %s", c.minimal, f)
+			}
+		}
+		df, err := os.ReadFile(filepath.Join(dir, "Dockerfile"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.mustContain != "" && !strings.Contains(string(df), c.mustContain) {
+			t.Errorf("minimal=%v: Dockerfile missing %q", c.minimal, c.mustContain)
+		}
+		if c.mustAbsent != "" && strings.Contains(string(df), c.mustAbsent) {
+			t.Errorf("minimal=%v: Dockerfile should not contain %q", c.minimal, c.mustAbsent)
+		}
+	}
+}
+
 func TestWriteFileNoClobber(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "go.mod")

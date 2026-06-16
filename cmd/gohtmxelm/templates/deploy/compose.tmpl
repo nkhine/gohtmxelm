@@ -1,0 +1,10 @@
+# Local container run: `docker compose up --build`, then http://localhost:8080.
+# For the full (Elm) scaffold, build the bundle first with `make build` so
+# static/elm.js exists in the build context.
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
