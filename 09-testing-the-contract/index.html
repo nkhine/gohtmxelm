@@ -1405,7 +1405,7 @@ deterministically.</p>
   asserts the same <code>simnet.CheckConvergence</code> the model uses.</li>
 </ul>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>./...<span class="w"> </span>-race<span class="w">          </span><span class="c1"># both layers, race detector on</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>./simnet/<span class="w">        </span><span class="c1"># the contract model only</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>./internal/simnet/<span class="w">        </span><span class="c1"># the contract model only</span>
 </span></code></pre></div>
 <hr />
 <h2 id="96-the-simulator-watching-the-contract-hold-or-break">9.6 The simulator: watching the contract hold (or break)<a class="headerlink" href="#96-the-simulator-watching-the-contract-hold-or-break" title="Permanent link">&para;</a></h2>
