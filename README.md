@@ -390,3 +390,7 @@ Datastar v1.0.2 compiles declarative expressions such as `data-signals`,
 `data-text`, and `@post(...)` in the browser. If you use those expressions,
 your CSP needs to allow that evaluation path. The reference demo currently uses
 `script-src 'self' 'unsafe-eval'` for this reason.
+
+## License
+
+[MIT](./LICENSE) © Norman Khine.

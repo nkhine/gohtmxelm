@@ -12,6 +12,7 @@ bumps that constant rather than the module version.
 
 ### Added
 
+- MIT `LICENSE` (© Norman Khine) and a License section in the README.
 - The `docs/` notes are now published as a site built with
   [Zensical](https://zensical.org) and deployed to GitHub Pages by
   `.github/workflows/docs.yml` (on pushes touching `docs/**` or `zensical.toml`).
