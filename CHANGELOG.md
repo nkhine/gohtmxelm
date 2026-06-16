@@ -10,6 +10,20 @@ bumps that constant rather than the module version.
 
 ## [Unreleased]
 
+### Added
+
+- The `docs/` notes are now published as a site built with
+  [Zensical](https://zensical.org) and deployed to GitHub Pages by
+  `.github/workflows/docs.yml` (on pushes touching `docs/**` or `zensical.toml`).
+  Added a Getting Started page (CLI scaffolder + deploy), a `zensical.toml` with
+  grouped navigation, and converted cross-directory source links to absolute
+  GitHub URLs so they resolve on the published site.
+
+### Fixed
+
+- Corrected a stale docs link to `BrokerPort.elm` (moved to the repository root
+  in 0.1.0) and a lingering `pkg/` package reference in the docs index.
+
 ## [0.2.0] - 2026-06-16
 
 A CLI release: `gohtmxelm init` becomes a real scaffolder, with optional deploy

@@ -88,12 +88,12 @@ the architecture in one click.
 The broker is split in two so the reusable transport is never entangled with
 one app's policy:
 
-- [`runtime/gohtmxelm-broker.js`](../runtime/gohtmxelm-broker.js) — the
+- [`runtime/gohtmxelm-broker.js`](https://github.com/nkhine/gohtmxelm/blob/main/runtime/gohtmxelm-broker.js) — the
   **generic** broker shipped by the package. It knows envelopes, routing,
   shared state, island mounting, and how to bridge *any* SSE source. It contains
   no store endpoints, no optimistic locking, no activity log. It exposes its
   activity as `gohtmxelm:*` DOM events.
-- [`demo/static/demo-ui.js`](../demo/static/demo-ui.js) — the **demo's** glue. It
+- [`demo/static/demo-ui.js`](https://github.com/nkhine/gohtmxelm/blob/main/demo/static/demo-ui.js) — the **demo's** glue. It
   listens to those DOM events and adds the app-specific behaviour: mirroring Elm
   writes to the Go store with optimistic versioning, driving HTMX refreshes, and
   rendering the teaching activity log.

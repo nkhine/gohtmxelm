@@ -61,7 +61,7 @@ The handler never touches shared state directly; it just drains its own channel.
 
 ## 2.2 The key-value store: one source of truth, with pub/sub
 
-[`demo/internal/store/store.go`](../demo/internal/store/store.go) is the heart of the app.
+[`demo/internal/store/store.go`](https://github.com/nkhine/gohtmxelm/blob/main/demo/internal/store/store.go) is the heart of the app.
 It is a thread-safe map with three powers layered on top: **versioning**,
 **attribution**, and **change notification**.
 
@@ -201,7 +201,7 @@ by the next hydrate, so the stream is allowed to be lossy under pressure.
 
 ## 2.4 The stopwatch: a server-owned clock that does no idle work
 
-The stopwatch (in [`demo/main.go`](../demo/main.go)) is the app's other piece of live
+The stopwatch (in [`demo/main.go`](https://github.com/nkhine/gohtmxelm/blob/main/demo/main.go)) is the app's other piece of live
 state. It teaches a few more server patterns.
 
 ### Inject the clock; never call `time.Now()` directly in logic

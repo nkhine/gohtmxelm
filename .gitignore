@@ -29,3 +29,7 @@ node_modules/
 
 # simulator violation log (runtime artifact)
 sim-violations.jsonl
+
+# Zensical docs build output and local docs venv
+site/
+.venv-docs/

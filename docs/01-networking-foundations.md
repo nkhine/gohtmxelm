@@ -114,7 +114,7 @@ the connection closes).
 In Go, you almost never write chunk headers by hand. When you write to an
 `http.ResponseWriter` without setting `Content-Length` and then call
 `Flusher.Flush()`, the standard library switches to chunked encoding and writes
-the framing for you. You'll see exactly that in [`demo/main.go`](../demo/main.go).
+the framing for you. You'll see exactly that in [`demo/main.go`](https://github.com/nkhine/gohtmxelm/blob/main/demo/main.go).
 
 ---
 
@@ -146,7 +146,7 @@ Rules:
 - Lines beginning with `:` are comments (often used as keep-alive "pings").
 
 That's the entire protocol. `gohtmxelm` wraps the formatting so handlers do not
-repeat it. From [`demo/main.go`](../demo/main.go):
+repeat it. From [`demo/main.go`](https://github.com/nkhine/gohtmxelm/blob/main/demo/main.go):
 
 ```go
 func writeSSE(w http.ResponseWriter, event string, data any) {
@@ -156,7 +156,7 @@ func writeSSE(w http.ResponseWriter, event string, data any) {
 
 The browser side is equally simple. The `EventSource` API opens the connection
 and fires events as data arrives. The generic broker
-([`runtime/gohtmxelm-broker.js`](../runtime/gohtmxelm-broker.js)) opens
+([`runtime/gohtmxelm-broker.js`](https://github.com/nkhine/gohtmxelm/blob/main/runtime/gohtmxelm-broker.js)) opens
 every source listed in `data-sources` and forwards each named event to islands:
 
 ```js

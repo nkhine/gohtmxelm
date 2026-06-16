@@ -6,15 +6,26 @@ multiple runtimes fight over the same DOM.
 
 The `demo/` app is the reference implementation used throughout the docs. It is
 not the library API; it is a concrete example of the ownership rules and bridge
-patterns that the `pkg/` package supports.
+patterns that the `github.com/nkhine/gohtmxelm` package supports.
+
+```sh
+go install github.com/nkhine/gohtmxelm/cmd/gohtmxelm@latest
+gohtmxelm init myapp && cd myapp && make dev   # http://localhost:8080
+```
 
 Read these in order if you want the deeper rationale behind the integration
-model.
+model. These pages are also published as a site (built with
+[Zensical](https://zensical.org) and deployed to GitHub Pages by
+`.github/workflows/docs.yml`).
+
+New to the project? Start with **[Getting Started](./getting-started.md)** —
+install, scaffold, run, and deploy.
 
 ## Reading Order
 
 | # | Doc | Focus |
 |---|-----|-------|
+| — | [Getting Started](./getting-started.md) | Install the CLI, scaffold a project, run it, and deploy. |
 | 1 | [Networking foundations](./01-networking-foundations.md) | TCP, HTTP/1.1, chunked transfer encoding, and Server-Sent Events. |
 | 2 | [Go backend patterns](./02-go-backend.md) | Streaming handlers, goroutines, channels, graceful shutdown, and server-owned state. |
 | 3 | [HTMX hypermedia](./03-htmx-hypermedia.md) | Server-rendered fragments, request/response interactions, and HTML over the wire. |

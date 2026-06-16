@@ -1,0 +1,52 @@
+[project]
+site_name = "gohtmxelm"
+description = "A Go-first way to use HTMX, Datastar, Elm islands, and Server-Sent Events together."
+docs_dir = "docs"
+site_dir = "site"
+
+nav = [
+  { Home = "README.md" },
+  { "Getting Started" = "getting-started.md" },
+
+  { Concepts = [
+      { "Networking foundations" = "01-networking-foundations.md" },
+      { "Go backend patterns" = "02-go-backend.md" },
+      { "HTMX hypermedia" = "03-htmx-hypermedia.md" },
+      { "Datastar signals" = "04-datastar-signals.md" },
+      { "Elm islands" = "05-elm-types.md" },
+      { "The fusion pattern" = "06-fusion-pattern.md" },
+      { "React and the SPA tax" = "07-react-and-the-spa-tax.md" },
+      { "Svelte and compiler-driven UI" = "08-svelte-the-compiler.md" }
+    ] },
+
+  { "Contracts & Testing" = [
+      { "Testing the contract" = "09-testing-the-contract.md" },
+      { "Integration contracts" = "13-contracts.md" },
+      { "Server-rendered interactions" = "14-interactions.md" }
+    ] },
+
+  { Guides = [
+      { "Localization boundary" = "10-localization-boundary.md" },
+      { "Datastar over SSE through the edge" = "11-edge-sse.md" },
+      { "Local SSO login simulator" = "12-local-sso.md" }
+    ] }
+]
+
+[project.theme]
+palette = [
+  { scheme = "default", primary = "indigo", accent = "teal", toggle = { icon = "material/brightness-7", name = "Switch to dark mode" } },
+  { scheme = "slate",   primary = "indigo", accent = "teal", toggle = { icon = "material/brightness-4", name = "Switch to light mode" } },
+]
+font = { text = "Inter", code = "JetBrains Mono" }
+features = [
+  "navigation.tabs",
+  "navigation.tabs.sticky",
+  "navigation.tracking",
+  "navigation.instant",
+  "navigation.top",
+  "navigation.indexes",
+  "search.suggest",
+  "search.highlight",
+  "content.code.copy",
+  "toc.follow",
+]

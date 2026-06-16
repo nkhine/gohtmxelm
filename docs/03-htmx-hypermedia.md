@@ -38,7 +38,7 @@ into the page.
 ## 3.2 How HTMX works, on the wire
 
 HTMX adds a few HTML attributes. Here is the HTMX write form from the reference demo
-([`demo/internal/ui/page.templ`](../demo/internal/ui/page.templ)):
+([`demo/internal/ui/page.templ`](https://github.com/nkhine/gohtmxelm/blob/main/demo/internal/ui/page.templ)):
 
 ```html
 <form hx-post="/api/store" hx-swap="none">
