@@ -48,8 +48,15 @@
 //
 // # Stability
 //
-// The Go API and the wire contract are versioned independently: the Go surface
-// follows module semver, while the on-the-wire format is gated by
-// [ProtocolVersion]. The simnet subpackage is a testing aid and is not part of
-// the stability promise yet.
+// The exported Go API of this package follows semantic versioning: within a
+// major version, releases stay backwards compatible, and any breaking change
+// requires a new major version. The on-the-wire broker format is versioned
+// independently by [ProtocolVersion]; a change islands or the broker must
+// interpret differently bumps that constant rather than the module version.
+//
+// The gohtmxelm command (cmd/gohtmxelm) is a development tool — the code it
+// scaffolds is a starting point you own, not part of this API surface. Packages
+// under internal/ (including the simnet test harness) carry no compatibility
+// promise. The supported Go version is the one declared in go.mod. See
+// STABILITY.md for the full policy.
 package gohtmxelm
