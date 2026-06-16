@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"embed"
 	"flag"
 	"fmt"
@@ -31,6 +32,9 @@ func run(args []string) error {
 	}
 	switch args[0] {
 	case "help", "-h", "--help":
+		if len(args) > 1 {
+			return helpFor(args[1])
+		}
 		usage()
 		return nil
 	case "init":
@@ -44,22 +48,78 @@ func run(args []string) error {
 	}
 }
 
+func helpFor(cmd string) error {
+	switch cmd {
+	case "init":
+		helpInit()
+	case "vendor-elm", "doctor", "help":
+		usage()
+	default:
+		return fmt.Errorf("unknown command %q", cmd)
+	}
+	return nil
+}
+
 func usage() {
-	fmt.Println(`gohtmxelm wires Go, HTMX, Datastar, Elm, and SSE.
+	h := func(s string) string { return bold(s) }
+	fmt.Printf(`
+  %s — wire Go, HTMX, Datastar, Elm, and SSE
 
-Usage:
-  gohtmxelm init [dir] [flags]   scaffold a project (or integrate into an existing one)
-  gohtmxelm vendor-elm [dir]     (re)write BrokerPort.elm to keep the Elm contract in sync
-  gohtmxelm doctor               check the local toolchain
+  %s
+    gohtmxelm <command> [dir] [flags]
 
-init flags:
-  --module <path>   module path for a new project (default: target directory name)
-  --minimal         scaffold an SSE-only example (no Elm, no build step)
-  --no-build        only write files; skip go get / templ generate / elm make
-  --force           overwrite existing files
+  %s
+    %s   scaffold a runnable project, or integrate into an existing module
+    %s   (re)write BrokerPort.elm to keep the Elm contract in sync
+    %s   check the local toolchain
+    %s   show help for a command (e.g. gohtmxelm help init)
 
-Run inside a directory that already has a go.mod and init adds a mountable
-gohtmxelmkit/ package instead of a standalone app.`)
+  %s
+    --module <path>   module path for a new project (default: directory name)
+    --minimal         SSE-only example: no Elm, no build step
+    --no-build        write files only; skip go get / templ generate / elm make
+    --force           overwrite existing files
+
+  %s
+    gohtmxelm init myapp              new Elm-island app in ./myapp
+    gohtmxelm init myapp --minimal    SSE-only, runs with `+"`go run .`"+`
+    gohtmxelm init                    add gohtmxelmkit/ to the current module
+    gohtmxelm vendor-elm elm          refresh elm/BrokerPort.elm
+
+`,
+		cyan(bold("◆ gohtmxelm")),
+		h("USAGE"), h("COMMANDS"),
+		bold("init      "), bold("vendor-elm"), bold("doctor    "), bold("help      "),
+		h("INIT FLAGS"), h("EXAMPLES"),
+	)
+}
+
+func helpInit() {
+	h := func(s string) string { return bold(s) }
+	fmt.Printf(`
+  %s — scaffold a gohtmxelm project
+
+  %s
+    gohtmxelm init [dir] [flags]
+
+  In an empty directory, init generates a complete, runnable example: a chi +
+  templ server, an SSE-backed Broadcaster, and a sample Elm island wired through
+  the vendored BrokerPort contract — then installs deps and builds the assets.
+
+  Run it where a %s already exists and it instead drops a self-contained,
+  mountable %s package and prints the chi wiring snippet, never
+  touching your existing code.
+
+  %s
+    --module <path>   module path for a new project (default: directory name)
+    --minimal         SSE-only example: no Elm, no build step
+    --no-build        write files only; skip go get / templ generate / elm make
+    --force           overwrite existing files
+
+`,
+		cyan(bold("◆ gohtmxelm init")), h("USAGE"),
+		bold("go.mod"), bold("gohtmxelmkit/"), h("FLAGS"),
+	)
 }
 
 // ---- init ----
@@ -73,6 +133,7 @@ type initOptions struct {
 
 func initCmd(args []string) error {
 	fset := flag.NewFlagSet("init", flag.ContinueOnError)
+	fset.Usage = helpInit
 	var opts initOptions
 	fset.StringVar(&opts.module, "module", "", "module path for a new project")
 	fset.BoolVar(&opts.minimal, "minimal", false, "scaffold an SSE-only example")
@@ -82,12 +143,18 @@ func initCmd(args []string) error {
 	// std flag package stops at the first non-flag argument, so we consume the
 	// leading flags, lift out dir, then parse any trailing flags.
 	if err := fset.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return nil
+		}
 		return err
 	}
 	dir := "."
 	if rest := fset.Args(); len(rest) > 0 {
 		dir = rest[0]
 		if err := fset.Parse(rest[1:]); err != nil {
+			if err == flag.ErrHelp {
+				return nil
+			}
 			return err
 		}
 	}
@@ -113,72 +180,81 @@ func initNew(dir string, opts initOptions) error {
 	if module == "" {
 		module = sanitizeModule(filepath.Base(dir))
 	}
-
+	kind := "Elm-island app"
 	set := "new"
 	if opts.minimal {
-		set = "minimal"
+		kind, set = "SSE-only app", "minimal"
 	}
-	if err := writeTree(filepath.Join("templates", set), dir, opts.force); err != nil {
-		return err
-	}
-	if !opts.minimal {
-		if err := vendorElm(filepath.Join(dir, "elm"), opts.force); err != nil {
-			return err
-		}
-	}
-	if err := writeFile(filepath.Join(dir, "README.md"), newReadme(module, opts.minimal), opts.force); err != nil {
-		return err
-	}
-	// Write go.mod directly (offline) so the directory is a valid module even
-	// under --no-build; `go mod tidy` later fills in requirements and sums.
-	if err := writeFile(filepath.Join(dir, "go.mod"), goModFile(module), opts.force); err != nil {
-		return err
-	}
+	banner(fmt.Sprintf("new %s  %s  %s", kind, cyan("→"), bold(relOrDir(dir))))
 
-	fmt.Printf("scaffolded %s in %s\n", describe(opts.minimal), dir)
+	phase("Creating files")
+	if err := step("project files", func() (string, error) {
+		if err := writeTree(filepath.Join("templates", set), dir, opts.force); err != nil {
+			return "", err
+		}
+		if !opts.minimal {
+			if err := vendorElm(filepath.Join(dir, "elm"), opts.force); err != nil {
+				return "", err
+			}
+		}
+		if err := writeFile(filepath.Join(dir, "README.md"), newReadme(module, opts.minimal), opts.force); err != nil {
+			return "", err
+		}
+		// Write go.mod directly (offline) so the directory is a valid module even
+		// under --no-build; `go mod tidy` later fills in requirements and sums.
+		return "", writeFile(filepath.Join(dir, "go.mod"), goModFile(module), opts.force)
+	}); err != nil {
+		return err
+	}
 
 	if opts.noBuild {
-		printNextSteps(dir, module, opts.minimal, true)
+		printNextSteps(dir, opts.minimal, true)
 		return nil
 	}
 
-	// Bring the module to a buildable state. Each step is best-effort: a failure
+	// Bring the module to a buildable state. Each task is best-effort: a failure
 	// (commonly: offline) is reported and the equivalent manual command printed.
-	steps := buildSteps(dir, opts.minimal)
-	failed := runSteps(dir, steps)
-	printNextSteps(dir, module, opts.minimal, failed)
+	failed := runTasks(dir, buildTasks(dir, opts.minimal))
+	printNextSteps(dir, opts.minimal, failed)
 	return nil
 }
 
 func initExisting(dir string, opts initOptions) error {
 	module := modulePath(filepath.Join(dir, "go.mod"))
-	target := filepath.Join(dir, "gohtmxelmkit")
-	if err := writeTree(filepath.Join("templates", "existing"), target, opts.force); err != nil {
-		return err
+	moduleLabel := module
+	if moduleLabel == "" {
+		moduleLabel = "this module"
 	}
-	if err := vendorElm(filepath.Join(target, "elm"), opts.force); err != nil {
+	target := filepath.Join(dir, "gohtmxelmkit")
+	banner(fmt.Sprintf("integrate into  %s", bold(moduleLabel)))
+
+	phase("Creating files")
+	if err := step("gohtmxelmkit/ package", func() (string, error) {
+		if err := writeTree(filepath.Join("templates", "existing"), target, opts.force); err != nil {
+			return "", err
+		}
+		return "", vendorElm(filepath.Join(target, "elm"), opts.force)
+	}); err != nil {
 		return err
 	}
 
-	fmt.Printf("added gohtmxelmkit/ to the existing module %q\n", module)
-	fmt.Println()
 	importPath := "gohtmxelmkit"
 	if module != "" {
 		importPath = module + "/gohtmxelmkit"
 	}
-	fmt.Println("Wire it into your chi router:")
-	fmt.Printf("\n    import \"%s\"\n\n", importPath)
+	fmt.Println()
+	phase("Wire it into your chi router")
+	fmt.Printf("    import %q\n\n", importPath)
 	fmt.Println("    kit := gohtmxelmkit.New(\"/counter\") // any prefix, or \"\" for root")
 	fmt.Println("    kit.Mount(r)                        // r is your chi.Router")
 	fmt.Println()
-	fmt.Println("Then build the assets and run your server:")
-	fmt.Println("\n    go get github.com/nkhine/gohtmxelm@latest github.com/go-chi/chi/v5")
+	phase("Then build and run")
+	fmt.Println("    go get github.com/nkhine/gohtmxelm@latest github.com/go-chi/chi/v5")
 	fmt.Println("    go get -tool github.com/a-h/templ/cmd/templ")
 	fmt.Println("    make -C gohtmxelmkit build")
-	fmt.Println("    go run .   # then open /counter")
-	fmt.Println()
-	fmt.Println("Note: gohtmxelmkit serves its Elm bundle from ./gohtmxelmkit/static")
-	fmt.Println("relative to the working directory; run from your module root.")
+	fmt.Printf("    go run .   %s\n\n", dim("# then open /counter"))
+	fmt.Printf("  %s the Elm bundle is served from ./gohtmxelmkit/static relative to the\n", dim("note:"))
+	fmt.Printf("        working directory — run from your module root.\n\n")
 	return nil
 }
 
@@ -192,7 +268,7 @@ func vendorElmCmd(args []string) error {
 	if err := vendorElm(dir, true); err != nil {
 		return err
 	}
-	fmt.Printf("wrote %s\n", filepath.Join(dir, "BrokerPort.elm"))
+	ok(fmt.Sprintf("wrote %s", filepath.Join(dir, "BrokerPort.elm")))
 	return nil
 }
 
@@ -206,56 +282,54 @@ func vendorElm(dir string, force bool) error {
 
 // ---- build orchestration ----
 
-type step struct {
-	desc    string
-	dir     string
-	name    string
-	args    []string
-	manual  string
-	skipErr bool // tool-missing is fine (e.g. elm not installed)
+type task struct {
+	phase    string
+	label    string
+	name     string
+	args     []string
+	optional bool // a missing tool (e.g. elm) is reported, not fatal
 }
 
-func buildSteps(dir string, minimal bool) []step {
-	steps := []step{
-		{desc: "go get gohtmxelm", dir: dir, name: "go", args: []string{"get", "github.com/nkhine/gohtmxelm@latest"}, manual: "go get github.com/nkhine/gohtmxelm@latest"},
-		{desc: "go get chi", dir: dir, name: "go", args: []string{"get", "github.com/go-chi/chi/v5"}, manual: "go get github.com/go-chi/chi/v5"},
+func buildTasks(dir string, minimal bool) []task {
+	const deps, assets = "Installing dependencies", "Building assets"
+	tasks := []task{
+		{deps, "gohtmxelm", "go", []string{"get", "github.com/nkhine/gohtmxelm@latest"}, false},
+		{deps, "chi router", "go", []string{"get", "github.com/go-chi/chi/v5"}, false},
 	}
 	if !minimal {
-		steps = append(steps,
-			step{desc: "go get -tool templ", dir: dir, name: "go", args: []string{"get", "-tool", "github.com/a-h/templ/cmd/templ"}, manual: "go get -tool github.com/a-h/templ/cmd/templ"},
-		)
+		tasks = append(tasks, task{deps, "templ tool", "go", []string{"get", "-tool", "github.com/a-h/templ/cmd/templ"}, false})
 	}
-	steps = append(steps, step{desc: "go mod tidy", dir: dir, name: "go", args: []string{"mod", "tidy"}, manual: "go mod tidy"})
+	tasks = append(tasks, task{deps, "resolving modules", "go", []string{"mod", "tidy"}, false})
 	if !minimal {
-		steps = append(steps,
-			step{desc: "templ generate", dir: dir, name: "go", args: []string{"tool", "templ", "generate"}, manual: "go tool templ generate"},
-			step{desc: "elm make", dir: dir, name: "elm", args: []string{"make", "elm/Counter.elm", "--output=static/elm.js"}, manual: "elm make elm/Counter.elm --output=static/elm.js", skipErr: true},
+		tasks = append(tasks,
+			task{assets, "generating templ components", "go", []string{"tool", "templ", "generate"}, false},
+			task{assets, "compiling Elm bundle", "elm", []string{"make", "elm/Counter.elm", "--output=static/elm.js"}, true},
 		)
 	}
-	return steps
+	return tasks
 }
 
-// runSteps executes steps in order, stopping the build chain on the first hard
-// failure. It returns true if any step failed (so the caller prints manual
-// fallbacks).
-func runSteps(dir string, steps []step) bool {
+// runTasks runs each task under a spinner, printing a phase header when it
+// changes. It stops the chain on the first hard failure (later tasks depend on
+// earlier ones) and returns true if anything failed or was skipped.
+func runTasks(dir string, tasks []task) bool {
 	failed := false
-	for _, s := range steps {
-		if s.name == "elm" && !hasTool("elm") {
-			fmt.Printf("  skip   %-18s (elm not installed)\n", s.desc)
+	current := ""
+	for _, t := range tasks {
+		if t.phase != current {
+			current = t.phase
+			fmt.Println()
+			phase(current)
+		}
+		if t.name == "elm" && !hasTool("elm") {
+			skipped(t.label, "elm not installed")
 			failed = true
 			continue
 		}
-		fmt.Printf("  run    %s\n", s.desc)
-		cmd := exec.Command(s.name, s.args...)
-		cmd.Dir = s.dir
-		cmd.Stdout = os.Stderr
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("  fail   %s: %v\n", s.desc, err)
+		err := step(t.label, func() (string, error) { return runCmd(dir, t.name, t.args) })
+		if err != nil {
 			failed = true
-			if !s.skipErr {
-				// Later steps depend on this one; stop the chain.
+			if !t.optional {
 				return failed
 			}
 		}
@@ -263,30 +337,39 @@ func runSteps(dir string, steps []step) bool {
 	return failed
 }
 
-func printNextSteps(dir, module string, minimal, needManual bool) {
+// runCmd runs a command in dir, capturing combined output so the spinner stays
+// clean; the output is surfaced only when the command fails.
+func runCmd(dir, name string, args []string) (string, error) {
+	cmd := exec.Command(name, args...)
+	cmd.Dir = dir
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+	return buf.String(), cmd.Run()
+}
+
+func printNextSteps(dir string, minimal, needManual bool) {
 	rel := relOrDir(dir)
 	fmt.Println()
 	if needManual {
-		fmt.Println("Finish setup manually:")
-		fmt.Printf("\n    cd %s\n", rel)
+		phase("Finish setup")
 		if minimal {
-			fmt.Println("    go mod tidy")
-			fmt.Println("    go run .")
-		} else {
-			fmt.Println("    go get github.com/nkhine/gohtmxelm@latest github.com/go-chi/chi/v5")
-			fmt.Println("    go get -tool github.com/a-h/templ/cmd/templ")
-			fmt.Println("    make dev   # tidy, templ generate, elm make, go run")
+			fmt.Printf("    cd %s && go run .\n\n", rel)
+			return
 		}
-		fmt.Println()
+		fmt.Printf("    cd %s\n", rel)
+		fmt.Println("    go get github.com/nkhine/gohtmxelm@latest github.com/go-chi/chi/v5")
+		fmt.Println("    go get -tool github.com/a-h/templ/cmd/templ")
+		fmt.Printf("    make dev\n\n")
 		return
 	}
-	fmt.Println("Ready. Start it with:")
+	startCmd := "make dev"
 	if minimal {
-		fmt.Printf("\n    cd %s && go run .\n\n", rel)
-	} else {
-		fmt.Printf("\n    cd %s && make dev\n\n", rel)
+		startCmd = "go run ."
 	}
-	fmt.Println("Then open http://localhost:8080")
+	fmt.Printf("  %s %s\n", green("✔"), bold("Ready"))
+	fmt.Printf("    %s cd %s && %s\n", cyan("→"), rel, startCmd)
+	fmt.Printf("    %s open http://localhost:8080\n\n", cyan("→"))
 }
 
 // ---- file helpers ----
@@ -387,13 +470,6 @@ func goModFile(module string) string {
 	return "module " + module + "\n\ngo 1.25\n"
 }
 
-func describe(minimal bool) string {
-	if minimal {
-		return "a minimal SSE-only app"
-	}
-	return "an Elm-island app"
-}
-
 func newReadme(module string, minimal bool) string {
 	if minimal {
 		return "# " + module + `
@@ -446,31 +522,34 @@ After upgrading gohtmxelm, re-vendor the Elm contract so it matches the broker:
 // ---- doctor ----
 
 func doctor() error {
+	banner("toolchain check")
+	phase("Tools")
 	type tool struct {
 		name     string
 		required bool
 		note     string
 	}
 	tools := []tool{
-		{"go", true, "the compiler and module tooling"},
-		{"elm", false, "Elm island compiler (optional; full scaffold)"},
-		{"templ", false, "optional: the full scaffold uses `go tool templ` instead"},
-		{"air", false, "optional: live reload"},
+		{"go", true, "compiler and module tooling"},
+		{"elm", false, "Elm island compiler (full scaffold)"},
+		{"templ", false, "optional — the scaffold uses `go tool templ`"},
+		{"air", false, "optional — live reload"},
 	}
 	var missingRequired []string
 	for _, t := range tools {
 		path, err := exec.LookPath(t.name)
 		if err != nil {
-			tag := "optional"
 			if t.required {
-				tag = "MISSING "
 				missingRequired = append(missingRequired, t.name)
+				fail(fmt.Sprintf("%-6s %s", t.name, t.note), "")
+			} else {
+				skipped(fmt.Sprintf("%-6s", t.name), t.note)
 			}
-			fmt.Printf("%-9s %-6s %s\n", tag, t.name, t.note)
 			continue
 		}
-		fmt.Printf("found     %-6s %s\n", t.name, path)
+		ok(fmt.Sprintf("%-6s %s", t.name, dim(path)))
 	}
+	fmt.Println()
 	if len(missingRequired) > 0 {
 		return fmt.Errorf("missing required tools: %s", strings.Join(missingRequired, ", "))
 	}
