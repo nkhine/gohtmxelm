@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
+	"github.com/nkhine/gohtmxelm"
 )
 
 // Snapshot is a render-ready view of the stopwatch at one instant.

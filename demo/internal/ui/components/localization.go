@@ -6,8 +6,8 @@ import (
 
 	"github.com/a-h/templ"
 
+	"github.com/nkhine/gohtmxelm"
 	"github.com/nkhine/gohtmxelm/demo/internal/localize"
-	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
 )
 
 type LocalizationVM struct {

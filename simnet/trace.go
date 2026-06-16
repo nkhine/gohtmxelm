@@ -32,7 +32,7 @@ type Action struct {
 // SurfaceState is a lean per-surface snapshot for the visualiser.
 type SurfaceState struct {
 	Label      string `json:"label"`
-	Kind       string `json:"kind"` // transport tag from Config.Kinds (elm|htmx|datastar|"")
+	Kind       string `json:"kind"`   // transport tag from Config.Kinds (elm|htmx|datastar|"")
 	Status     string `json:"status"` // synced | behind | gap | partitioned
 	Version    int    `json:"version"`
 	BufferUsed int    `json:"bufferUsed"`

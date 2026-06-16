@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
-	"github.com/nkhine/gohtmxelm/pkg/simnet"
+	"github.com/nkhine/gohtmxelm"
+	"github.com/nkhine/gohtmxelm/simnet"
 )
 
 const (

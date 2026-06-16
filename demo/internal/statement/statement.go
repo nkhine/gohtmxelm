@@ -17,8 +17,8 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 
+	"github.com/nkhine/gohtmxelm"
 	"github.com/nkhine/gohtmxelm/demo/internal/dynamo"
-	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
 )
 
 // dateTimeLocal is the layout produced by an <input type="datetime-local">.
