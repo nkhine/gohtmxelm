@@ -1,0 +1,1537 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../05-elm-types/">
+      
+      
+        <link rel="next" href="../07-react-and-the-spa-tax/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.45">
+    
+    
+      
+        <title>6. The fusion pattern: three front-ends, one truth - gohtmxelm</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.fba56155.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.dfe2e883.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#6-the-fusion-pattern-three-front-ends-one-truth" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="gohtmxelm" class="md-header__button md-logo" aria-label="gohtmxelm" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            gohtmxelm
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              6. The fusion pattern: three front-ends, one truth
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+    </div>
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../01-networking-foundations/" class="md-tabs__link">
+          
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../09-testing-the-contract/" class="md-tabs__link">
+          
+  
+  Contracts & Testing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../10-localization-boundary/" class="md-tabs__link">
+          
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="gohtmxelm" class="md-nav__button md-logo" aria-label="gohtmxelm" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    gohtmxelm
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Concepts
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Concepts
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-networking-foundations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Networking foundations
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-go-backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Go backend patterns
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-htmx-hypermedia/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  HTMX hypermedia
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-datastar-signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Datastar signals
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-elm-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Elm islands
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  The fusion pattern
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  The fusion pattern
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#61-the-one-rule-that-makes-it-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.1 The one rule that makes it work
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#62-ownership-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.2 Ownership map
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#63-the-convergence-loop-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.3 The convergence loop, end to end
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#64-the-broker-a-generic-typed-message-bus" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.4 The broker: a generic typed message bus
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#65-why-this-is-a-genuinely-strong-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.5 Why this is a genuinely strong pattern
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#66-when-not-to-reach-for-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.6 When NOT to reach for this
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#67-what-to-take-away" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.7 What to take away
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-react-and-the-spa-tax/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  React and the SPA tax
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-svelte-the-compiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Svelte and compiler-driven UI
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Contracts & Testing
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Contracts & Testing
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-testing-the-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Testing the contract
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Integration contracts
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14-interactions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Server-rendered interactions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guides
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Guides
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10-localization-boundary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Localization boundary
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11-edge-sse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Datastar over SSE through the edge
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12-local-sso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Local SSO login simulator
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#61-the-one-rule-that-makes-it-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.1 The one rule that makes it work
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#62-ownership-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.2 Ownership map
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#63-the-convergence-loop-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.3 The convergence loop, end to end
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#64-the-broker-a-generic-typed-message-bus" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.4 The broker: a generic typed message bus
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#65-why-this-is-a-genuinely-strong-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.5 Why this is a genuinely strong pattern
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#66-when-not-to-reach-for-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.6 When NOT to reach for this
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#67-what-to-take-away" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.7 What to take away
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+<h1 id="6-the-fusion-pattern-three-front-ends-one-truth">6. The fusion pattern: three front-ends, one truth<a class="headerlink" href="#6-the-fusion-pattern-three-front-ends-one-truth" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Now we assemble the pieces. The interesting claim of this whole project is that
+HTMX, Datastar, and Elm can share a single page <strong>without conflict</strong> — not by
+compromise, but because each owns a clearly bounded job and they communicate
+only through <strong>shared server state</strong> and the <strong>browser event system</strong>, never by
+mutating each other's DOM.</p>
+</blockquote>
+<hr />
+<h2 id="61-the-one-rule-that-makes-it-work">6.1 The one rule that makes it work<a class="headerlink" href="#61-the-one-rule-that-makes-it-work" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>No library may patch the DOM that another library owns.</strong></p>
+</blockquote>
+<p>That's it. Everything else follows. HTMX swaps its fragments; Datastar morphs its
+regions; Elm renders its islands. The boundaries are physical — different DOM
+subtrees — and they are never crossed. When two reactivity systems write to the
+same nodes, you get the classic disaster: each clobbers the other's changes, you
+get flicker, lost input, and bugs no one can reproduce. The reference demo avoids the whole
+category by <strong>partitioning the DOM</strong> and forbidding overlap.</p>
+<p>So how do the surfaces ever agree on anything? They don't talk to each other at
+all. They each talk to the <strong>server</strong>, and the server tells everyone the new
+truth over SSE. Convergence is a <em>consequence</em> of shared truth, not a negotiation
+between front-ends.</p>
+<hr />
+<h2 id="62-ownership-map">6.2 Ownership map<a class="headerlink" href="#62-ownership-map" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Owner</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Server-rendered store table (+ delete buttons)</td>
+<td><strong>HTMX</strong></td>
+<td><code>hx-get</code>/<code>hx-delete</code>, fragment swaps</td>
+</tr>
+<tr>
+<td>Live-patched store region + write counter</td>
+<td><strong>Datastar</strong></td>
+<td><code>datastar-patch-elements</code> / <code>-signals</code> over SSE</td>
+</tr>
+<tr>
+<td>Stopwatch control buttons</td>
+<td><strong>HTMX</strong></td>
+<td><code>hx-post</code>, self-refresh via <code>hx-trigger</code></td>
+</tr>
+<tr>
+<td>Stopwatch live readout + lap list</td>
+<td><strong>Datastar</strong></td>
+<td>id-addressed patches over SSE</td>
+</tr>
+<tr>
+<td>Typed draft editor, event log, lap analytics</td>
+<td><strong>Elm</strong></td>
+<td>islands, ports, decoders</td>
+</tr>
+<tr>
+<td>The KV store, the stopwatch, all SSE endpoints</td>
+<td><strong>Go</strong></td>
+<td>the single source of truth</td>
+</tr>
+</tbody>
+</table>
+<p>Each row is a different DOM region and a different tool. No region appears twice.</p>
+<hr />
+<h2 id="63-the-convergence-loop-end-to-end">6.3 The convergence loop, end to end<a class="headerlink" href="#63-the-convergence-loop-end-to-end" title="Permanent link">&para;</a></h2>
+<p>Trace a single write — say, a user typing into the Elm draft editor and clicking
+Save. This one path exercises every layer in the project:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>1. Elm (App A)  classifyDraft → Valid &quot;hello&quot;
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                update returns sendStateSet over the brokerOut PORT
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                                  │
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>2. broker.js    receives the port message, stamps the source as &quot;app-a&quot;,
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>                POSTs JSON to /api/store with the known version
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                                  │
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>3. Go           SetIf(&quot;message&quot;, &quot;hello&quot;, &quot;app-a&quot;, version)
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                → store mutates, seq++, fan-out on every subscriber channel
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                                  │
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        ┌─────────────────────────┴───────────────────────────┐
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        ▼                          ▼                            ▼
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>4a. /api/events           4b. /api/datastar/...        (all from ONE store change)
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    JSON store-change          datastar-patch-elements
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        │                          + datastar-patch-signals
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        ▼                          ▼
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>   broker.js applies          Datastar morphs its region,
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>   it, fires HTMX             updates $writes / $lastWriter
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>   &quot;store-refresh&quot;,
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>   broadcasts STORE_CHANGE
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>   to Elm islands
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>        │
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        ▼
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>5. HTMX re-fetches /api/store/fragment → fresh server-rendered table
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>   Elm App B appends the change to its typed event log
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>   Elm App A shows &quot;last write by: app-a&quot;
+</span></code></pre></div>
+<p>Every surface now shows <code>message = "hello"</code>, attributed to <code>app-a</code> — the HTML
+table, the Datastar region, the Elm islands — and they got there <strong>independently
+from the same broadcast</strong>, not by copying from one another. The write originated
+in Elm, traveled out through a port, became authoritative in Go, and came back to
+<em>all three</em> front-ends through the stream. That round trip is the entire thesis of
+the architecture in one click.</p>
+<hr />
+<h2 id="64-the-broker-a-generic-typed-message-bus">6.4 The broker: a generic typed message bus<a class="headerlink" href="#64-the-broker-a-generic-typed-message-bus" title="Permanent link">&para;</a></h2>
+<p>The broker is split in two so the reusable transport is never entangled with
+one app's policy:</p>
+<ul>
+<li><a href="https://github.com/nkhine/gohtmxelm/blob/main/runtime/gohtmxelm-broker.js"><code>runtime/gohtmxelm-broker.js</code></a> — the
+  <strong>generic</strong> broker shipped by the package. It knows envelopes, routing,
+  shared state, island mounting, and how to bridge <em>any</em> SSE source. It contains
+  no store endpoints, no optimistic locking, no activity log. It exposes its
+  activity as <code>gohtmxelm:*</code> DOM events.</li>
+<li><a href="https://github.com/nkhine/gohtmxelm/blob/main/demo/static/demo-ui.js"><code>demo/static/demo-ui.js</code></a> — the <strong>demo's</strong> glue. It
+  listens to those DOM events and adds the app-specific behaviour: mirroring Elm
+  writes to the Go store with optimistic versioning, driving HTMX refreshes, and
+  rendering the teaching activity log.</li>
+</ul>
+<p>The generic broker does a handful of well-defined jobs, and its design is worth
+studying as a small systems exercise:</p>
+<ul>
+<li><strong>Mounts/unmounts Elm islands</strong> by scanning for <code>data-elm-module</code> and calling
+  <code>Elm.&lt;Module&gt;.init</code>. A <code>MutationObserver</code> unmounts islands when their DOM is
+  removed, preventing leaks.</li>
+<li><strong>Speaks one versioned envelope</strong> for every message:
+  <code>{ version, type, source, target, payload }</code>. The <code>version</code> field is checked on
+  every message — an explicit, forward-compatible contract rather than ad-hoc
+  objects. A malformed or wrong-version message is rejected, not guessed at.</li>
+<li><strong>Routes</strong> by <code>target</code>: a specific island, <code>broadcast</code> (everyone), <code>others</code>
+  (everyone but the sender), or <code>broker</code> (handled internally). The sender never
+  names itself — the broker <strong>stamps <code>source</code></strong>, so an island can't lie about who
+  it is.</li>
+<li><strong>Bridges any SSE source to islands</strong>: it opens every <code>EventSource</code> listed in
+  <code>data-sources</code>, forwards each named event to islands as a generic <code>SSE_EVENT</code>
+  envelope <code>{ event, data }</code>, and <strong>caches the last value per event name</strong>,
+  replaying it to islands that mount late so a fresh analyzer is immediately
+  correct.</li>
+<li><strong>Emits <code>gohtmxelm:*</code> DOM events</strong> for everything it does (mounted, sse,
+  state-set, source-open/error, htmx-swap), so host pages layer their own policy
+  without forking it.</li>
+</ul>
+<p>The <strong>demo's</strong> glue (<code>demo-ui.js</code>) is what mirrors Elm writes to Go with
+optimistic versioning (translating an HTTP 409 into a no-op — see
+<a href=".././02-go-backend/">doc 2</a>), applies <code>seq</code> stale-dropping, and drives the HTMX
+refreshes. Keeping that in the host means the broker stays a pure, reusable
+translator between "Elm port message," "SSE event," and "DOM event." Each
+front-end stays ignorant of the others; the broker plus its host glue is the
+single translator.</p>
+<hr />
+<h2 id="65-why-this-is-a-genuinely-strong-pattern">6.5 Why this is a genuinely strong pattern<a class="headerlink" href="#65-why-this-is-a-genuinely-strong-pattern" title="Permanent link">&para;</a></h2>
+<p>It's easy to dismiss "three frameworks on a page" as a stunt. It isn't — the
+underlying architecture is one that scales and ages well, for reasons that apply
+far beyond this toy:</p>
+<ol>
+<li>
+<p><strong>Single source of truth.</strong> State lives in exactly one place (the Go store).
+   There is no client/server state-synchronization problem because the client
+   holds <strong>no authoritative state</strong> — only a cache that the server refreshes. The
+   single hardest problem in front-end engineering ("keep these two copies of the
+   truth in sync") is <em>defined out of existence</em>.</p>
+</li>
+<li>
+<p><strong>Boundaries are physical and enforced.</strong> Each tool owns disjoint DOM. You can
+   reason about, test, and replace any one surface without touching the others.
+   The store table could be rewritten in raw JS tomorrow and nothing else would
+   notice, because it communicates only through the store and the stream.</p>
+</li>
+<li>
+<p><strong>Right tool, right job.</strong> Request/response → HTMX. Live push + local signals →
+   Datastar. Complex typed client logic → Elm. None is stretched past what it's
+   good at, so none accumulates the workarounds that come from misuse.</p>
+</li>
+<li>
+<p><strong>The transport is uniform.</strong> <em>Everything</em> converges through one mechanism: a
+   write to Go, then an SSE broadcast. Adding a fourth surface tomorrow means
+   subscribing to the same stream — not inventing a new sync path. The system
+   grows by addition, not by multiplying integration points.</p>
+</li>
+<li>
+<p><strong>Failure is recoverable by design.</strong> Drops, conflicts, and stale data are
+   handled by hydrate-on-connect and <code>seq</code> ordering, not by hoping the network is
+   perfect. Reconnection is just connection.</p>
+</li>
+</ol>
+<p>The generalizable principle: <strong>let the server own the truth, give each part of
+the UI a bounded job, and make all of them converge through one broadcast
+channel.</strong> You don't need three frameworks to use this pattern — you need <em>one
+source of truth and clear ownership</em>. The three frameworks are just a vivid proof
+that the pattern is robust enough to absorb radically different UI philosophies at
+once.</p>
+<hr />
+<h2 id="66-when-not-to-reach-for-this">6.6 When NOT to reach for this<a class="headerlink" href="#66-when-not-to-reach-for-this" title="Permanent link">&para;</a></h2>
+<p>Honesty matters more than advocacy. This architecture is a poor fit when:</p>
+<ul>
+<li><strong>The UI is genuinely offline-first or local-first.</strong> If the client must be the
+  source of truth (an offline notes app, a collaborative editor with CRDTs), a
+  server-authoritative model fights you.</li>
+<li><strong>Latency to the server dominates the interaction.</strong> A drawing canvas or a game
+  needs sub-frame local response; a server round-trip per change is wrong. (Note:
+  the reference demo already pushes such cases to Elm's <em>local</em> state — the boundary is the
+  same one in miniature.)</li>
+<li><strong>You have no server, or a purely static deploy.</strong> This pattern assumes a live
+  server holding state and connections.</li>
+</ul>
+<p>The skill is recognizing which parts of <em>your</em> app are server-authoritative
+request/response (most CRUD), which are server-pushed live views (dashboards,
+readouts), and which are genuinely client-stateful (complex editors) — and then
+applying HTMX / Datastar / Elm-style boundaries accordingly. The lesson isn't
+"use these three libraries." It's "<strong>find the boundaries, assign owners, converge
+through one truth.</strong>"</p>
+<hr />
+<h2 id="67-what-to-take-away">6.7 What to take away<a class="headerlink" href="#67-what-to-take-away" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The enabling rule: <strong>no library patches another's DOM.</strong> Boundaries are physical
+  DOM subtrees.</li>
+<li>Front-ends don't coordinate with each other; they each talk to the <strong>server</strong>,
+  which broadcasts the new truth. Convergence is a side effect of shared truth.</li>
+<li>The <strong>broker</strong> is the single translator between Elm ports, Go HTTP, and SSE —
+  one place that knows the wiring, keeping every surface ignorant of the others.</li>
+<li>The client holds <strong>no authoritative state</strong>, which eliminates the
+  client/server sync problem entirely.</li>
+<li>The pattern generalizes far past this demo: <strong>one source of truth, bounded
+  ownership, one convergence channel.</strong> The three frameworks are proof of its
+  robustness, not the point of it.</li>
+</ul>
+<p>"Convergence is a side effect of shared truth" is a claim, not a hope — and it
+is testable. <a href=".././09-testing-the-contract/">Chapter 9</a> shows how convergence is
+verified deterministically under a hostile network, and why it depends on
+reconnect-and-rehydrate rather than on the (deliberately lossy) stream.</p>
+<p>Next: <a href=".././07-react-and-the-spa-tax/">the contrast case — React and the cost of putting the truth in the browser →</a></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.tracking","navigation.instant","navigation.top","navigation.indexes","search.suggest","search.highlight","content.code.copy","toc.follow"],"search":"../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.6e5f0216.min.js"></script>
+      
+    
+  </body>
+</html>

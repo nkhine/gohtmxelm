@@ -1,0 +1,1589 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../07-react-and-the-spa-tax/">
+      
+      
+        <link rel="next" href="../09-testing-the-contract/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.45">
+    
+    
+      
+        <title>8. Svelte: the framework that compiles itself away - gohtmxelm</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.fba56155.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.dfe2e883.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#8-svelte-the-framework-that-compiles-itself-away" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="gohtmxelm" class="md-header__button md-logo" aria-label="gohtmxelm" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            gohtmxelm
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              8. Svelte: the framework that compiles itself away
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+    </div>
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../01-networking-foundations/" class="md-tabs__link">
+          
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../09-testing-the-contract/" class="md-tabs__link">
+          
+  
+  Contracts & Testing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../10-localization-boundary/" class="md-tabs__link">
+          
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="gohtmxelm" class="md-nav__button md-logo" aria-label="gohtmxelm" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    gohtmxelm
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Concepts
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Concepts
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-networking-foundations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Networking foundations
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-go-backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Go backend patterns
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-htmx-hypermedia/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  HTMX hypermedia
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-datastar-signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Datastar signals
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-elm-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Elm islands
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-fusion-pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  The fusion pattern
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-react-and-the-spa-tax/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  React and the SPA tax
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Svelte and compiler-driven UI
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Svelte and compiler-driven UI
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#81-the-core-insight-do-the-work-at-build-time-not-run-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.1 The core insight: do the work at build time, not run time
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#82-what-this-buys-small-runtime-small-bundles" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.2 What this buys: small runtime, small bundles
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#83-reactivity-and-how-svelte-5-became-a-signals-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.3 Reactivity, and how Svelte 5 became a signals system
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8.3 Reactivity, and how Svelte 5 became a signals system">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#svelte-3-4-compiler-instrumented-assignments" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Svelte 3 / 4: compiler-instrumented assignments
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#svelte-5-runes-explicit-fine-grained-signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Svelte 5: runes — explicit, fine-grained signals
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#84-sveltekit-the-full-stack-story" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.4 SvelteKit: the full-stack story
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#85-the-honest-part-which-taxes-svelte-avoids-and-which-it-doesnt" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.5 The honest part: which taxes Svelte avoids, and which it doesn't
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#86-where-svelte-sits-among-the-five-approaches" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.6 Where Svelte sits among the five approaches
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#87-what-to-take-away" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.7 What to take away
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Contracts & Testing
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Contracts & Testing
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-testing-the-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Testing the contract
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Integration contracts
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14-interactions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Server-rendered interactions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guides
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Guides
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10-localization-boundary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Localization boundary
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11-edge-sse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Datastar over SSE through the edge
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12-local-sso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Local SSO login simulator
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#81-the-core-insight-do-the-work-at-build-time-not-run-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.1 The core insight: do the work at build time, not run time
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#82-what-this-buys-small-runtime-small-bundles" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.2 What this buys: small runtime, small bundles
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#83-reactivity-and-how-svelte-5-became-a-signals-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.3 Reactivity, and how Svelte 5 became a signals system
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8.3 Reactivity, and how Svelte 5 became a signals system">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#svelte-3-4-compiler-instrumented-assignments" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Svelte 3 / 4: compiler-instrumented assignments
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#svelte-5-runes-explicit-fine-grained-signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Svelte 5: runes — explicit, fine-grained signals
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#84-sveltekit-the-full-stack-story" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.4 SvelteKit: the full-stack story
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#85-the-honest-part-which-taxes-svelte-avoids-and-which-it-doesnt" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.5 The honest part: which taxes Svelte avoids, and which it doesn't
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#86-where-svelte-sits-among-the-five-approaches" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.6 Where Svelte sits among the five approaches
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#87-what-to-take-away" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        8.7 What to take away
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+<h1 id="8-svelte-the-framework-that-compiles-itself-away">8. Svelte: the framework that compiles itself away<a class="headerlink" href="#8-svelte-the-framework-that-compiles-itself-away" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Svelte isn't used in the reference demo, but its core idea is one of the most genuinely
+interesting in front-end engineering and it connects directly to two tools we
+<em>do</em> use. Where React ships a runtime that interprets your components in the
+browser, <strong>Svelte is a compiler</strong>: it reads your components at build time and
+emits plain, imperative JavaScript that updates the DOM directly. The framework,
+in large part, <em>disappears</em> before the browser ever sees it.</p>
+</blockquote>
+<hr />
+<h2 id="81-the-core-insight-do-the-work-at-build-time-not-run-time">8.1 The core insight: do the work at build time, not run time<a class="headerlink" href="#81-the-core-insight-do-the-work-at-build-time-not-run-time" title="Permanent link">&para;</a></h2>
+<p>React's model is <em>runtime</em>. You ship React + ReactDOM to the browser, and at run
+time they interpret your component tree, build a <strong>virtual DOM</strong>, diff it against
+the previous virtual DOM on every update, and apply the minimal real-DOM changes.
+That diffing machinery is powerful and general — and it's pure overhead that every
+user downloads and every update pays.</p>
+<p>Svelte asks a different question: <em>why do this work in the browser at all?</em> Your
+component's structure is known at build time. So Svelte's compiler reads:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>&lt;script&gt;
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  let count = 0;
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>&lt;/script&gt;
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>&lt;button on:click={() =&gt; count += 1}&gt;
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  clicked {count} times
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>&lt;/button&gt;
+</span></code></pre></div>
+<p>…and emits JavaScript that, in essence, says: <em>"create a button; when clicked,
+increment <code>count</code>; when <code>count</code> changes, set this exact text node's content."</em>
+There is <strong>no virtual DOM, no diff, no reconciliation at run time</strong> — just direct,
+surgical instructions to update the specific nodes that depend on the specific
+data that changed. The "framework" became a handful of tailored DOM operations
+baked into your component.</p>
+<p>This is the same philosophy as <strong>Elm</strong> (<a href=".././05-elm-types/">doc 5</a>): a compiler
+that processes your code ahead of time and produces lean output, rather than a
+runtime that interprets it. Elm compiles for <em>type safety and dead-code
+elimination</em>; Svelte compiles for <em>eliminating the runtime and the virtual DOM</em>.
+Different goals, same insight — <strong>move work from the browser to the build.</strong></p>
+<hr />
+<h2 id="82-what-this-buys-small-runtime-small-bundles">8.2 What this buys: small runtime, small bundles<a class="headerlink" href="#82-what-this-buys-small-runtime-small-bundles" title="Permanent link">&para;</a></h2>
+<p>Because the framework compiles away, what ships is mostly <em>your component logic
+plus a tiny shared helper runtime</em>, not a general-purpose rendering engine:</p>
+<ul>
+<li>There is no ~45 KB React + ReactDOM baseline to amortize. A small Svelte app's
+  JavaScript can be a few KB.</li>
+<li>The cost scales with <em>your</em> code, not with a framework you happen to use one
+  feature of.</li>
+<li>Updates are direct DOM writes, so there's no per-update diffing cost on the
+  main thread.</li>
+</ul>
+<p>This directly attacks <strong>Tax #2 (bundle bloat)</strong> from
+<a href=".././07-react-and-the-spa-tax/">doc 7</a>. Svelte is one of the clearest answers to
+"the framework shouldn't be the biggest thing you ship." (We'll see in §8.5 that
+it does <em>not</em> escape all four taxes — only some.)</p>
+<hr />
+<h2 id="83-reactivity-and-how-svelte-5-became-a-signals-system">8.3 Reactivity, and how Svelte 5 became a signals system<a class="headerlink" href="#83-reactivity-and-how-svelte-5-became-a-signals-system" title="Permanent link">&para;</a></h2>
+<p>How does Svelte know that "<code>count</code> changed → update this text node"? This is where
+Svelte's story has two distinct chapters, and the second one connects straight to
+<a href=".././04-datastar-signals/">Datastar</a>.</p>
+<h3 id="svelte-3-4-compiler-instrumented-assignments">Svelte 3 / 4: compiler-instrumented assignments<a class="headerlink" href="#svelte-3-4-compiler-instrumented-assignments" title="Permanent link">&para;</a></h3>
+<p>In early Svelte, reactivity was driven by the compiler watching <strong>assignments</strong>.
+When you wrote <code>count += 1</code>, the compiler <em>rewrote</em> that statement to also call an
+"invalidate <code>count</code>" function that schedules the dependent DOM updates. Derived
+values used a special label syntax:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>let count = 0;
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>$: doubled = count * 2;   // recompute whenever `count` changes
+</span></code></pre></div>
+<p>This was elegant but a little magical — reactivity was tied to the <em>syntax of
+assignment</em>, which led to sharp edges (mutating an array in place didn't trigger
+an update because there was no assignment to instrument; you had to write
+<code>arr = [...arr, x]</code>).</p>
+<h3 id="svelte-5-runes-explicit-fine-grained-signals">Svelte 5: runes — explicit, fine-grained signals<a class="headerlink" href="#svelte-5-runes-explicit-fine-grained-signals" title="Permanent link">&para;</a></h3>
+<p>Svelte 5 reworked reactivity around <strong>runes</strong>: explicit function-like markers that
+make a value reactive. Under the hood, this is a <strong>signals</strong> system — the same
+fine-grained reactive-primitive model as SolidJS and, conceptually, as Datastar's
+signals:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>&lt;script&gt;
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  let count = $state(0);          // a reactive signal
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  let doubled = $derived(count * 2); // recomputes automatically when count changes
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  $effect(() =&gt; console.log(count)); // runs when its dependencies change
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>&lt;/script&gt;
+</span></code></pre></div>
+<ul>
+<li><code>$state(...)</code> creates a reactive value (a signal).</li>
+<li><code>$derived(...)</code> is a computed value that tracks its dependencies automatically
+  and recomputes only when they change.</li>
+<li><code>$effect(...)</code> runs side effects when the things it reads change.</li>
+</ul>
+<p>The important conceptual point: a <strong>signal</strong> tracks, at a fine grain, exactly
+which pieces of UI read it, so a change updates <em>only</em> those pieces — no component
+re-render, no diff. This is precisely the model behind Datastar's <code>$messageDraft</code>
+and <code>data-text</code> expressions (<a href=".././04-datastar-signals/">doc 4, §4.2</a>). The
+difference is <em>where the reactivity lives</em>:</p>
+<ul>
+<li><strong>Datastar</strong> puts signals in <strong>HTML attributes</strong>, interpreted in the browser
+  (<code>data-signals</code>, <code>data-text</code>), with the server able to push signal updates over
+  SSE.</li>
+<li><strong>Svelte</strong> puts signals in a <strong>component file</strong>, and a <em>compiler</em> turns them
+  into direct DOM-update code at build time.</li>
+</ul>
+<p>Two routes to the same fine-grained reactivity: one declarative-and-server-pushed,
+one compiled. The industry has broadly converged on signals as the right
+reactive primitive — Svelte 5, Solid, Vue's refs, Angular signals, Preact signals,
+and Datastar are all variations on it. Seeing the same idea arrive from a
+compiler, a runtime library, and a set of HTML attributes is a good lesson in
+<em>separating an idea from its implementation.</em></p>
+<hr />
+<h2 id="84-sveltekit-the-full-stack-story">8.4 SvelteKit: the full-stack story<a class="headerlink" href="#84-sveltekit-the-full-stack-story" title="Permanent link">&para;</a></h2>
+<p>Svelte the language/compiler is paired with <strong>SvelteKit</strong>, the application
+framework: routing, server-side rendering, data loading, form actions, and
+endpoints — the equivalent of Next.js for React or Remix. SvelteKit can render on
+the server and <strong>hydrate</strong> on the client, exactly like the SPA frameworks in
+<a href=".././07-react-and-the-spa-tax/">doc 7</a>. It also supports "form actions" that
+progressively enhance ordinary HTML <code>&lt;form&gt;</code>s — a nod toward the hypermedia ideas
+in <a href=".././03-htmx-hypermedia/">doc 3</a>. So Svelte spans a spectrum: you can use it for
+a thin sprinkle of compiled interactivity, or for a full client-state SPA.</p>
+<hr />
+<h2 id="85-the-honest-part-which-taxes-svelte-avoids-and-which-it-doesnt">8.5 The honest part: which taxes Svelte avoids, and which it doesn't<a class="headerlink" href="#85-the-honest-part-which-taxes-svelte-avoids-and-which-it-doesnt" title="Permanent link">&para;</a></h2>
+<p>It's tempting to file Svelte under "solved it." It solves <em>some</em> of the SPA taxes
+and shares <em>others</em>, and being precise about which is the whole value of putting
+it next to this project's architecture:</p>
+<p><strong>Avoided / reduced:</strong>
+- <strong>Bundle bloat (Tax #2):</strong> strongly reduced — the framework compiles away, so
+  there's no large runtime baseline. This is Svelte's headline win.
+- <strong>Virtual-DOM diffing cost:</strong> eliminated entirely. Updates are direct.
+- <strong>State-management sprawl (Tax #4):</strong> reduced — runes give a clean, built-in
+  fine-grained reactivity model, so you reach for fewer external state libraries
+  than a typical React app.</p>
+<p><strong>Still present (because Svelte/SvelteKit is still a client-state model):</strong>
+- <strong>The synchronization problem (Tax #1):</strong> if your Svelte app holds authoritative
+  client state and talks to a JSON API, you still have two copies of the truth to
+  keep in sync — and SvelteKit apps reach for data-loading/caching patterns to
+  manage it, just as React apps reach for React Query. Putting reactivity in a
+  compiler doesn't change <em>where the truth lives</em>.
+- <strong>Hydration (Tax #3):</strong> SvelteKit SSR + client hydration has the same "rendered
+  twice, interactive-after-a-gap, mismatch-is-an-error" seam as any SSR framework.
+- <strong>Types:</strong> Svelte uses TypeScript, so types are <strong>advisory and erasable</strong>
+  (<a href=".././07-react-and-the-spa-tax/">doc 7, §7.6</a>) — not the <em>guaranteed</em> safety of
+  Elm. (Svelte's compiler does add real template-level checks TypeScript alone
+  wouldn't, which is a genuine plus.)</p>
+<p>So Svelte attacks the <strong>bundle and runtime</strong> axis brilliantly while remaining, by
+default, on the <strong>truth-in-the-browser</strong> side of the line that
+<a href=".././06-fusion-pattern/">doc 6</a> and <a href=".././07-react-and-the-spa-tax/">doc 7</a> draw.
+That's not a criticism — it's a precise placement. The deepest cost of the SPA
+model (synchronization) comes from the <em>location of the truth</em>, not the <em>size of
+the runtime</em>, and that's an architectural choice Svelte leaves to you.</p>
+<hr />
+<h2 id="86-where-svelte-sits-among-the-five-approaches">8.6 Where Svelte sits among the five approaches<a class="headerlink" href="#86-where-svelte-sits-among-the-five-approaches" title="Permanent link">&para;</a></h2>
+<p>Putting all the tools from these docs on one axis — <em>where does the work happen,
+and where does the truth live?</em></p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>DOM update strategy</th>
+<th>Where reactivity/work happens</th>
+<th>Where truth lives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>React</strong></td>
+<td>Virtual DOM diff at run time</td>
+<td>Browser runtime</td>
+<td>Browser (+ server)</td>
+</tr>
+<tr>
+<td><strong>Svelte</strong></td>
+<td>Compiled, direct DOM ops; signals (v5)</td>
+<td><strong>Build-time compiler</strong></td>
+<td>Browser (+ server)</td>
+</tr>
+<tr>
+<td><strong>Elm</strong></td>
+<td>Virtual DOM, but compiled + pure</td>
+<td>Build-time compiler (types) + runtime</td>
+<td>Browser (<code>Model</code>), as islands here</td>
+</tr>
+<tr>
+<td><strong>Datastar</strong></td>
+<td>Morph by id; signals in attributes</td>
+<td>Browser, <strong>server can push</strong></td>
+<td><strong>Server</strong> (in the reference demo)</td>
+</tr>
+<tr>
+<td><strong>HTMX</strong></td>
+<td>Swap server-rendered HTML fragments</td>
+<td><strong>Server</strong></td>
+<td><strong>Server</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Two independent axes are doing the work here, and Svelte is interesting precisely
+because it sits at a distinctive corner:</p>
+<ol>
+<li><strong>Compile-time vs run-time</strong> — Svelte and Elm compile; React and Datastar
+   interpret in the browser; HTMX needs almost no client logic at all.</li>
+<li><strong>Truth in browser vs truth on server</strong> — React, Svelte, and (locally) Elm lean
+   browser; HTMX and the reference demo's Datastar usage lean server.</li>
+</ol>
+<p>Svelte's "interesting technology" is its answer to axis 1 (compile the framework
+away). This project's architecture is mostly a strong opinion about axis 2 (keep
+the truth on the server). They're <em>orthogonal</em> — which is why you could absolutely
+build a Svelte island, like the Elm islands here, that subscribes to the same Go
+SSE stream and renders a compiled, signals-driven view of server-owned truth. The
+compiler approach and the server-authoritative approach are not in tension; they
+answer different questions.</p>
+<hr />
+<h2 id="87-what-to-take-away">8.7 What to take away<a class="headerlink" href="#87-what-to-take-away" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Svelte is a compiler, not a runtime.</strong> It turns components into direct,
+  imperative DOM-update code at build time — <strong>no virtual DOM, no run-time
+  diffing</strong> — so the framework largely <em>disappears</em> from what ships.</li>
+<li>This shares Elm's "do the work at build time" philosophy, applied to a different
+  goal: eliminating the runtime and shrinking the bundle.</li>
+<li><strong>Svelte 5 runes</strong> (<code>$state</code>, <code>$derived</code>, <code>$effect</code>) are a <strong>signals</strong> system —
+  the same fine-grained reactive primitive as Datastar's signals, Solid, and
+  others. The whole industry converged on signals; seeing them arrive via a
+  compiler, a library, and HTML attributes shows how an idea outlives any one
+  implementation.</li>
+<li>Svelte strongly reduces the <strong>bundle/runtime tax</strong>, but a default SvelteKit app
+  still lives on the <strong>truth-in-the-browser</strong> side, so it still faces the
+  <strong>synchronization</strong> and <strong>hydration</strong> taxes (<a href=".././07-react-and-the-spa-tax/">doc 7</a>).</li>
+<li>The two axes — <em>compile-time vs run-time</em> and <em>truth-in-browser vs
+  truth-on-server</em> — are independent. Svelte is a great answer to the first; this
+  project is a strong opinion about the second.</li>
+</ul>
+<p>Back to the <a href=".././">index →</a></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.tracking","navigation.instant","navigation.top","navigation.indexes","search.suggest","search.highlight","content.code.copy","toc.follow"],"search":"../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.6e5f0216.min.js"></script>
+      
+    
+  </body>
+</html>

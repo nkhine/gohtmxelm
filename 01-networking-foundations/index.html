@@ -1,0 +1,1671 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../getting-started/">
+      
+      
+        <link rel="next" href="../02-go-backend/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.45">
+    
+    
+      
+        <title>1. Networking foundations - gohtmxelm</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.fba56155.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.dfe2e883.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#1-networking-foundations" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="gohtmxelm" class="md-header__button md-logo" aria-label="gohtmxelm" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            gohtmxelm
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              1. Networking foundations
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+    </div>
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="././" class="md-tabs__link">
+          
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../09-testing-the-contract/" class="md-tabs__link">
+          
+  
+  Contracts & Testing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../10-localization-boundary/" class="md-tabs__link">
+          
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="gohtmxelm" class="md-nav__button md-logo" aria-label="gohtmxelm" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    gohtmxelm
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Concepts
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Concepts
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Networking foundations
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Networking foundations
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#11-tcp-a-reliable-ordered-byte-pipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.1 TCP: a reliable, ordered byte pipe
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-http11-framing-requests-and-responses-over-the-byte-stream" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.2 HTTP/1.1: framing requests and responses over the byte stream
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.2 HTTP&#x2f;1.1: framing requests and responses over the byte stream">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#answer-a-content-length" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Answer A: <code>Content-Length</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#answer-b-transfer-encoding-chunked" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Answer B: <code>Transfer-Encoding: chunked</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-server-sent-events-a-convention-not-a-new-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.3 Server-Sent Events: a convention, not a new protocol
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3 Server-Sent Events: a convention, not a new protocol">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-sse-and-not-websockets" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Why SSE and not WebSockets?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-flush-is-mandatory" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        The flush is mandatory
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-the-teaching-bug-err_incomplete_chunked_encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.4 The teaching bug: <code>ERR_INCOMPLETE_CHUNKED_ENCODING</code>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.4 The teaching bug: ERR_INCOMPLETE_CHUNKED_ENCODING">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-fix-and-why-its-exactly-right" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        The fix, and why it's exactly right
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-what-to-take-away" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.5 What to take away
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-go-backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Go backend patterns
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-htmx-hypermedia/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  HTMX hypermedia
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-datastar-signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Datastar signals
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-elm-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Elm islands
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-fusion-pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  The fusion pattern
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-react-and-the-spa-tax/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  React and the SPA tax
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-svelte-the-compiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Svelte and compiler-driven UI
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Contracts & Testing
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Contracts & Testing
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-testing-the-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Testing the contract
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Integration contracts
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14-interactions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Server-rendered interactions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guides
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Guides
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10-localization-boundary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Localization boundary
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11-edge-sse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Datastar over SSE through the edge
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12-local-sso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Local SSO login simulator
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#11-tcp-a-reliable-ordered-byte-pipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.1 TCP: a reliable, ordered byte pipe
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-http11-framing-requests-and-responses-over-the-byte-stream" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.2 HTTP/1.1: framing requests and responses over the byte stream
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.2 HTTP&#x2f;1.1: framing requests and responses over the byte stream">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#answer-a-content-length" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Answer A: <code>Content-Length</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#answer-b-transfer-encoding-chunked" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Answer B: <code>Transfer-Encoding: chunked</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-server-sent-events-a-convention-not-a-new-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.3 Server-Sent Events: a convention, not a new protocol
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3 Server-Sent Events: a convention, not a new protocol">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-sse-and-not-websockets" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Why SSE and not WebSockets?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-flush-is-mandatory" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        The flush is mandatory
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-the-teaching-bug-err_incomplete_chunked_encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.4 The teaching bug: <code>ERR_INCOMPLETE_CHUNKED_ENCODING</code>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.4 The teaching bug: ERR_INCOMPLETE_CHUNKED_ENCODING">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-fix-and-why-its-exactly-right" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        The fix, and why it's exactly right
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-what-to-take-away" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.5 What to take away
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+<h1 id="1-networking-foundations">1. Networking foundations<a class="headerlink" href="#1-networking-foundations" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>If you only learn one thing from this whole project, make it this: <strong>a web
+framework is a thin layer over bytes moving through a socket.</strong> Once you can
+see the bytes, frameworks stop being magic and start being tools.</p>
+</blockquote>
+<p>This document builds up from the bottom: a TCP connection, then HTTP/1.1 framing
+on top of it, then <em>chunked transfer encoding</em>, then <em>Server-Sent Events</em>. Every
+real-time feature in the reference demo rides on that stack, so we'll trace it concretely.</p>
+<hr />
+<h2 id="11-tcp-a-reliable-ordered-byte-pipe">1.1 TCP: a reliable, ordered byte pipe<a class="headerlink" href="#11-tcp-a-reliable-ordered-byte-pipe" title="Permanent link">&para;</a></h2>
+<p>When your browser talks to this server, the first thing that happens — below all
+the HTTP — is a <strong>TCP connection</strong>. TCP gives you four guarantees that everything
+above it depends on:</p>
+<ol>
+<li><strong>Reliable</strong> — bytes you send arrive, or you find out the connection broke.</li>
+<li><strong>Ordered</strong> — bytes arrive in the order you sent them.</li>
+<li><strong>Stream-oriented</strong> — there are <em>no messages</em>, only a continuous stream of
+   bytes. TCP does not know where one "thing" ends and the next begins. That
+   boundary problem is left to the layer above (HTTP), and it matters enormously
+   for streaming — keep it in mind.</li>
+<li><strong>Bidirectional</strong> — both ends can send at any time.</li>
+</ol>
+<p>TCP does <em>not</em> give you: message boundaries, encryption (that's TLS), or any
+notion of "request" and "response." Those are HTTP's inventions.</p>
+<p>A key consequence: because TCP is just a byte stream, the server can keep a
+connection <strong>open</strong> and keep writing to it for minutes or hours. The browser
+will keep receiving. This is the entire basis of "real-time" web — there is no
+special "push" protocol needed at the TCP level; you simply don't close the
+connection. SSE, which we use everywhere here, is exactly that idea dressed up
+in a tiny convention.</p>
+<hr />
+<h2 id="12-http11-framing-requests-and-responses-over-the-byte-stream">1.2 HTTP/1.1: framing requests and responses over the byte stream<a class="headerlink" href="#12-http11-framing-requests-and-responses-over-the-byte-stream" title="Permanent link">&para;</a></h2>
+<p>HTTP/1.1 is a <em>text protocol</em> layered on the TCP byte stream. A request is:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>GET /api/stream HTTP/1.1\r\n
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Host: localhost:8091\r\n
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Accept: text/event-stream\r\n
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>\r\n
+</span></code></pre></div>
+<p>Note the <code>\r\n</code> (carriage-return + line-feed) line endings and the <strong>blank line</strong>
+(<code>\r\n</code> on its own) that signals "headers are done." That blank line is a framing
+device: it tells the receiver where the headers stop and the body — if any —
+begins.</p>
+<p>A response looks similar:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>HTTP/1.1 200 OK\r\n
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>Content-Type: text/event-stream\r\n
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>\r\n
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>...body bytes...
+</span></code></pre></div>
+<p>Now the crucial question for any response: <strong>how does the receiver know when the
+body is finished?</strong> TCP won't tell it — TCP has no message boundaries. HTTP has
+exactly two answers:</p>
+<h3 id="answer-a-content-length">Answer A: <code>Content-Length</code><a class="headerlink" href="#answer-a-content-length" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Content-Type: text/html\r\n
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Content-Length: 1024\r\n
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>\r\n
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>&lt;exactly 1024 bytes&gt;
+</span></code></pre></div>
+<p>The server says "the body is 1024 bytes." The client reads 1024 bytes and knows
+it's done. Simple — but it requires the server to <strong>know the full size up front</strong>.
+For a streaming response that could go on forever, you can't. So <code>Content-Length</code>
+is useless for SSE.</p>
+<h3 id="answer-b-transfer-encoding-chunked">Answer B: <code>Transfer-Encoding: chunked</code><a class="headerlink" href="#answer-b-transfer-encoding-chunked" title="Permanent link">&para;</a></h3>
+<p>This is the one that matters for us. Instead of declaring a total size, the
+server sends the body as a sequence of <strong>chunks</strong>, each prefixed by its length in
+hexadecimal:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>HTTP/1.1 200 OK\r\n
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Content-Type: text/event-stream\r\n
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Transfer-Encoding: chunked\r\n
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>\r\n
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>1a\r\n
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>event: store-change\ndata: {}\n\n\r\n
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>0\r\n
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>\r\n
+</span></code></pre></div>
+<p>Read that carefully:</p>
+<ul>
+<li><code>1a\r\n</code> — the next chunk is <code>0x1a</code> = 26 bytes long.</li>
+<li>then 26 bytes of payload, then <code>\r\n</code>.</li>
+<li><code>0\r\n\r\n</code> — a chunk of length <strong>zero</strong>. This is the <strong>terminator</strong>. It means
+  "the body is complete; there are no more chunks."</li>
+</ul>
+<p>The chunked terminator (<code>0\r\n\r\n</code>) is the hero — and the villain — of this
+project's most instructive bug. Hold that thought.</p>
+<p>Chunked encoding is what lets a server stream an <em>unknown-length</em> response: it
+can keep emitting chunks for as long as it likes, and only sends the zero-chunk
+when it's genuinely done (or never, for an infinite stream that ends only when
+the connection closes).</p>
+<p>In Go, you almost never write chunk headers by hand. When you write to an
+<code>http.ResponseWriter</code> without setting <code>Content-Length</code> and then call
+<code>Flusher.Flush()</code>, the standard library switches to chunked encoding and writes
+the framing for you. You'll see exactly that in <a href="https://github.com/nkhine/gohtmxelm/blob/main/demo/main.go"><code>demo/main.go</code></a>.</p>
+<hr />
+<h2 id="13-server-sent-events-a-convention-not-a-new-protocol">1.3 Server-Sent Events: a convention, not a new protocol<a class="headerlink" href="#13-server-sent-events-a-convention-not-a-new-protocol" title="Permanent link">&para;</a></h2>
+<p>Here is the thing that surprises people: <strong>SSE is not a new protocol.</strong> It is an
+ordinary HTTP response with:</p>
+<ul>
+<li>the header <code>Content-Type: text/event-stream</code>,</li>
+<li>a body that is never finished (no <code>Content-Length</code>, so chunked encoding), and</li>
+<li>a tiny text format for the events.</li>
+</ul>
+<p>The format is almost insultingly simple. Each event is a few lines, terminated by
+a <strong>blank line</strong>:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>event: store-change
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>data: {&quot;key&quot;:&quot;message&quot;,&quot;value&quot;:&quot;hi&quot;,&quot;seq&quot;:7}
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>event: store-hydrate
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>data: {&quot;key&quot;:&quot;status&quot;,&quot;value&quot;:&quot;running&quot;}
+</span></code></pre></div>
+<p>Rules:
+- <code>event:</code> names the event type (optional; defaults to <code>message</code>).
+- <code>data:</code> is the payload. Multiple <code>data:</code> lines are concatenated with newlines.
+- A blank line dispatches the event to the browser.
+- Lines beginning with <code>:</code> are comments (often used as keep-alive "pings").</p>
+<p>That's the entire protocol. <code>gohtmxelm</code> wraps the formatting so handlers do not
+repeat it. From <a href="https://github.com/nkhine/gohtmxelm/blob/main/demo/main.go"><code>demo/main.go</code></a>:</p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">writeSSE</span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">ResponseWriter</span><span class="p">,</span><span class="w"> </span><span class="nx">event</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="kt">any</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="nx">_</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">gohtmxelm</span><span class="p">.</span><span class="nx">WriteSSE</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="nx">event</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">)</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>The browser side is equally simple. The <code>EventSource</code> API opens the connection
+and fires events as data arrives. The generic broker
+(<a href="https://github.com/nkhine/gohtmxelm/blob/main/runtime/gohtmxelm-broker.js"><code>runtime/gohtmxelm-broker.js</code></a>) opens
+every source listed in <code>data-sources</code> and forwards each named event to islands:</p>
+<div class="language-js highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">EventSource</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nx">url</span><span class="p">);</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nx">s</span><span class="p">.</span><span class="nx">names</span><span class="p">.</span><span class="nx">forEach</span><span class="p">((</span><span class="nx">name</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nx">source</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">event</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">forwardSSE</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="nx">event</span><span class="p">))</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="p">);</span>
+</span></code></pre></div>
+<h3 id="why-sse-and-not-websockets">Why SSE and not WebSockets?<a class="headerlink" href="#why-sse-and-not-websockets" title="Permanent link">&para;</a></h3>
+<p>WebSockets give you a <em>bidirectional</em> channel. SSE gives you <em>server → client
+only</em>. For the reference demo that's a perfect fit, and it's worth understanding why the
+weaker tool is the better choice:</p>
+<ul>
+<li><strong>Our writes go up via ordinary HTTP requests</strong> (form POSTs, <code>fetch</code>). We don't
+  need a second uplink channel. The browser already has the best uplink there is:
+  a normal request.</li>
+<li><strong>SSE is just HTTP.</strong> It works through every proxy, every CDN, every corporate
+  firewall that already passes HTTP. WebSockets use an <code>Upgrade</code> handshake that
+  many intermediaries mishandle.</li>
+<li><strong>SSE auto-reconnects for free.</strong> The <code>EventSource</code> API reconnects on drop and
+  can resume from a <code>Last-Event-ID</code>. With WebSockets you write reconnection logic
+  yourself.</li>
+<li><strong>SSE is trivial to produce.</strong> No framing library, no ping/pong frames — just
+  <code>fmt.Fprintf</code> and a <code>Flush()</code>.</li>
+</ul>
+<p>The lesson generalizes: <strong>pick the least-powerful tool that solves the problem.</strong>
+A bidirectional socket is more capability than a fan-out notification stream
+needs, and that extra capability is pure cost — more code, more failure modes,
+worse infrastructure compatibility.</p>
+<h3 id="the-flush-is-mandatory">The flush is mandatory<a class="headerlink" href="#the-flush-is-mandatory" title="Permanent link">&para;</a></h3>
+<p>A streaming handler must call <code>Flush()</code> after each event, or the event sits in a
+buffer and the client sees nothing until the buffer fills or the handler returns.
+In Go you assert the <code>http.Flusher</code> interface:</p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nx">flusher</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">w</span><span class="p">.(</span><span class="nx">http</span><span class="p">.</span><span class="nx">Flusher</span><span class="p">)</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">ok</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nx">http</span><span class="p">.</span><span class="nx">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;streaming unsupported&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusInternalServerError</span><span class="p">)</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="k">return</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">}</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1">// ... write an event ...</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="nx">flusher</span><span class="p">.</span><span class="nx">Flush</span><span class="p">()</span><span class="w"> </span><span class="c1">// push it to the client *now*</span>
+</span></code></pre></div>
+<p>We also set <code>X-Accel-Buffering: no</code> to tell reverse proxies (nginx) not to buffer
+the stream on their side. Buffering is the natural enemy of streaming: every
+layer wants to batch bytes for efficiency, and every layer must be told not to.</p>
+<hr />
+<h2 id="14-the-teaching-bug-err_incomplete_chunked_encoding">1.4 The teaching bug: <code>ERR_INCOMPLETE_CHUNKED_ENCODING</code><a class="headerlink" href="#14-the-teaching-bug-err_incomplete_chunked_encoding" title="Permanent link">&para;</a></h2>
+<p>This project hit a real bug that is the perfect capstone for everything above.
+The browser console showed, on all three SSE streams at once:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING
+</span></code></pre></div>
+<p>Now you have the vocabulary to understand it exactly. Recall:</p>
+<ul>
+<li>SSE responses use <strong>chunked transfer encoding</strong> (§1.2 Answer B).</li>
+<li>A chunked response is only <em>complete</em> when the server sends the <strong>zero-length
+  terminator chunk</strong> <code>0\r\n\r\n</code>.</li>
+<li><code>ERR_INCOMPLETE_CHUNKED_ENCODING</code> means precisely: <em>the connection closed while
+  the response was still using chunked encoding and the terminator chunk was
+  never received.</em> The browser was promised more chunks and the pipe died.</li>
+</ul>
+<p>So: what was killing the stream without a terminator?</p>
+<p>During development the server runs under a file-watcher (<code>air</code>) that <strong>restarts
+the process on every code change</strong>. To restart, it sends the process <code>SIGINT</code>,
+waits a short grace period, then <code>SIGKILL</code>s it. Our shutdown code looked correct:</p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nx">shutdownCtx</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">WithTimeout</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span><span class="w"> </span><span class="mi">30</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nx">server</span><span class="p">.</span><span class="nx">Shutdown</span><span class="p">(</span><span class="nx">shutdownCtx</span><span class="p">)</span>
+</span></code></pre></div>
+<p>But here's the subtlety that ties the whole stack together. <code>server.Shutdown()</code>
+<strong>waits for in-flight requests to finish</strong> — it does <em>not</em> forcibly cancel them.
+Our SSE handlers are infinite loops that only return when their <strong>request
+context</strong> is cancelled:</p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">for</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">    </span><span class="k">select</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nx">e</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ch</span><span class="p">:</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">        </span><span class="nx">writeSSE</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;store-change&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">e</span><span class="p">)</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">        </span><span class="nx">flusher</span><span class="p">.</span><span class="nx">Flush</span><span class="p">()</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">r</span><span class="p">.</span><span class="nx">Context</span><span class="p">().</span><span class="nx">Done</span><span class="p">():</span><span class="w"> </span><span class="c1">// when does THIS fire?</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">        </span><span class="k">return</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>By default, <code>r.Context()</code> is <em>not</em> cancelled by <code>Shutdown()</code>. So on SIGINT:</p>
+<ol>
+<li><code>Shutdown()</code> politely waits for the SSE handlers to return.</li>
+<li>The SSE handlers politely wait for <code>r.Context()</code> to be cancelled.</li>
+<li>Nobody cancels it. <code>Shutdown()</code> blocks for its full 30-second timeout.</li>
+<li>Meanwhile the watcher's grace period expires and it <code>SIGKILL</code>s the process.</li>
+<li><code>SIGKILL</code> is instant and uninterruptible. The kernel tears down the TCP
+   sockets. The chunked streams die <strong>mid-chunk, with no terminator</strong>.</li>
+<li>Three open SSE streams → three <code>ERR_INCOMPLETE_CHUNKED_ENCODING</code> errors.</li>
+</ol>
+<p>The streams were never broken. The <em>shutdown</em> was breaking them, abruptly.</p>
+<h3 id="the-fix-and-why-its-exactly-right">The fix, and why it's exactly right<a class="headerlink" href="#the-fix-and-why-its-exactly-right" title="Permanent link">&para;</a></h3>
+<p>We wire every request's context to the signal context, using <code>BaseContext</code>:</p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">stop</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">signal</span><span class="p">.</span><span class="nx">NotifyContext</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Interrupt</span><span class="p">,</span><span class="w"> </span><span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGTERM</span><span class="p">)</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1">// ...</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nx">server</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">http</span><span class="p">.</span><span class="nx">Server</span><span class="p">{</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="c1">// ...</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nx">BaseContext</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">net</span><span class="p">.</span><span class="nx">Listener</span><span class="p">)</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">ctx</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>BaseContext</code> makes the signal context the <strong>parent</strong> of every request context.
+Now on SIGINT:</p>
+<ol>
+<li><code>ctx</code> is cancelled.</li>
+<li>That cancellation propagates to every <code>r.Context()</code>.</li>
+<li>Every SSE handler's <code>case &lt;-r.Context().Done()</code> fires and the handler
+   <strong>returns normally</strong>.</li>
+<li>Because the handler returns normally, Go's HTTP stack <strong>finishes the chunked
+   response properly</strong> — it writes the <code>0\r\n\r\n</code> terminator and closes the
+   connection cleanly.</li>
+<li>The browser sees a <em>complete</em> response. <code>EventSource</code> treats a clean close as
+   "reconnect," not as an error. <strong>The console stays silent.</strong></li>
+<li><code>server.Shutdown()</code> returns in milliseconds because all handlers exited.</li>
+</ol>
+<p>Measured before and after: shutdown went from a 500 ms forced kill to a <strong>19 ms
+clean exit</strong>, and a held connection closed with a proper terminator instead of an
+abrupt reset.</p>
+<p><strong>The moral.</strong> The bug was invisible at the framework level — the SSE code was
+fine, the shutdown call looked fine. It only made sense when you understood that
+chunked encoding has a terminator, that a clean handler return writes that
+terminator, and that a <code>SIGKILL</code> skips it. <em>Networking knowledge debugged a
+problem that framework knowledge could not.</em> That is the entire thesis of these
+docs in one story.</p>
+<hr />
+<h2 id="15-what-to-take-away">1.5 What to take away<a class="headerlink" href="#15-what-to-take-away" title="Permanent link">&para;</a></h2>
+<ul>
+<li>TCP is an ordered byte stream with <strong>no message boundaries</strong>. Everything above
+  it has to invent its own framing.</li>
+<li>HTTP frames a response either by <code>Content-Length</code> (known size) or <strong>chunked
+  encoding</strong> (streaming, unknown size, terminated by a zero chunk).</li>
+<li><strong>SSE is not a protocol</strong> — it's chunked HTTP with a <code>text/event-stream</code>
+  content type and a three-line text convention. You can write it with
+  <code>fmt.Fprintf</code>.</li>
+<li>Streaming requires <strong>flushing</strong> at every layer and telling proxies <strong>not to
+  buffer</strong>.</li>
+<li>"Real-time" on the web is mostly just <em>not closing the connection</em>. The
+  exotic-sounding feature is built from the most ordinary parts.</li>
+<li>When something breaks "in the framework," drop a layer. The answer is often in
+  the framing.</li>
+</ul>
+<p>Next: <a href=".././02-go-backend/">how Go turns these primitives into a clean, concurrent backend →</a></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.tracking","navigation.instant","navigation.top","navigation.indexes","search.suggest","search.highlight","content.code.copy","toc.follow"],"search":"../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.6e5f0216.min.js"></script>
+      
+    
+  </body>
+</html>
