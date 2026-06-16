@@ -26,7 +26,7 @@ DATASTAR_SRC   ?=
 DATASTAR_JS    := demo/static/vendor/datastar.js
 GO_SRCS        := $(shell find . -name '*.go' -not -path './.git/*')
 
-.PHONY: local build clean test dev watch package-edge-lambda floci-preflight edge-infra-up edge-enable-streaming edge-infra-down edge-infra-output
+.PHONY: local build clean test test-browser check-generated dev watch package-edge-lambda floci-preflight edge-infra-up edge-enable-streaming edge-infra-down edge-infra-output
 
 ## local: build everything then start the server
 local: $(BINARY) $(HTMX_JS) $(DATASTAR_JS)
@@ -64,11 +64,26 @@ $(ELM_OUT): $(ELM_SRCS) demo/elm.json
 	cd demo && elm make elm/AppA.elm elm/AppB.elm elm/LapStats.elm elm/RangePicker.elm elm/Simulator.elm elm/LocaleEcho.elm elm/AuthPresence.elm --output=static/elm.js
 
 $(TEMPL_OUT): $(TEMPL_SRCS)
-	templ generate
+	go tool templ generate
 
 ## test: run Go tests
 test:
 	go test ./...
+
+## test-browser: run optional Playwright smoke tests against a running demo server
+test-browser:
+	@if ! command -v npm >/dev/null 2>&1; then \
+		echo "npm is required for browser tests"; \
+		exit 1; \
+	fi
+	npm install
+	npm exec -- playwright install chromium
+	npm exec -- playwright test tests/browser
+
+## check-generated: verify generated templ files are up to date
+check-generated:
+	go tool templ generate
+	git diff --exit-code -- '*_templ.go'
 
 ## dev: build generated files and run without compiling a binary
 dev: go.sum $(ELM_OUT) $(TEMPL_OUT) $(HTMX_JS) $(DATASTAR_JS)

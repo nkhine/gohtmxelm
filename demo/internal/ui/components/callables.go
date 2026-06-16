@@ -28,7 +28,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Ask before a destructive action and return a yes/no result.",
 			ButtonLabel: "Delete item",
 			Doc:         "Render the dialog as a server fragment into a shared overlay root. The caller passes only a status target; the fragment owns the buttons and closes itself with a typed result.",
-			Snippet:     "r.Get(\"/api/interactions/confirm\", renderConfirm)\n\n<button data-call-open=\"confirm-dialog\" data-status=\"#result\">\n  Delete item\n</button>\n<div id=\"call-layer\"></div>",
+			Snippet:     "r.Get(\"/api/interactions/confirm\", renderConfirm)\n\n<button data-gohtmxelm-open=\"/api/interactions/confirm\" data-gohtmxelm-status=\"#result\">\n  Delete item\n</button>\n<div data-gohtmxelm-interactions-root></div>",
 		},
 		{
 			Slug:        "alert-dialog",
@@ -38,7 +38,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Show a notice where acknowledgement is the whole result.",
 			ButtonLabel: "Show alert",
 			Doc:         "Use the same overlay root, but return only an acknowledgement string or status. This is useful when closing the panel is the value.",
-			Snippet:     "templ Alert(target string) {\n  <div role=\"alertdialog\" data-status-target={ target }>\n    <p>Build completed.</p>\n    <button data-call-result=\"acknowledged\">OK</button>\n  </div>\n}",
+			Snippet:     "templ Alert(target string) {\n  <div role=\"alertdialog\" data-gohtmxelm-status-target={ target }>\n    <p>Build completed.</p>\n    <button data-gohtmxelm-result=\"acknowledged\">OK</button>\n  </div>\n}",
 		},
 		{
 			Slug:        "prompt-input",
@@ -48,7 +48,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Collect text and return the submitted value or cancellation.",
 			ButtonLabel: "Rename project",
 			Doc:         "Keep transient input inside the fragment. On submit, read the input and close the overlay; no durable server state is required unless you post the result back.",
-			Snippet:     "<input data-call-prompt-input value=\"gohtmxelm demo\" />\n<button data-call-prompt-submit>Save</button>\n<button data-call-result=\"cancelled\">Cancel</button>",
+			Snippet:     "<input data-gohtmxelm-prompt-input value=\"gohtmxelm demo\" />\n<button data-gohtmxelm-prompt-submit>Save</button>\n<button data-gohtmxelm-result=\"cancelled\">Cancel</button>",
 		},
 		{
 			Slug:        "nested-dialog",
@@ -88,7 +88,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Use one confirmation UI for immediate or delayed resolution.",
 			ButtonLabel: "Open confirm",
 			Doc:         "The immediate button closes directly. The async button disables itself, performs work, then closes with the final result.",
-			Snippet:     "<button data-call-result=\"accepted\">Resolve now</button>\n<button data-call-async-result=\"accepted after work\">Run async</button>",
+			Snippet:     "<button data-gohtmxelm-result=\"accepted\">Resolve now</button>\n<button data-gohtmxelm-async-result=\"accepted after work\">Run async</button>",
 		},
 		{
 			Slug:        "progress-toast",
@@ -138,7 +138,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Show a list and return the selected item.",
 			ButtonLabel: "Pick item",
 			Doc:         "Render a simple list of server-known choices. Each row closes the overlay with the selected value; cancellation returns a separate result.",
-			Snippet:     "<button data-call-result=\"selected Invoice\">Invoice</button>\n<button data-call-result=\"selected Receipt\">Receipt</button>",
+			Snippet:     "<button data-gohtmxelm-result=\"selected Invoice\">Invoice</button>\n<button data-gohtmxelm-result=\"selected Receipt\">Receipt</button>",
 		},
 		{
 			Slug:        "color-picker",
@@ -148,7 +148,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Resolve a swatch grid with a selected hex value.",
 			ButtonLabel: "Pick color",
 			Doc:         "Pass the current color as a prop or query value when needed. Each swatch is a normal button with the chosen value in a data attribute.",
-			Snippet:     "<button style=\"background:#0ea5e9\" data-call-result=\"#0ea5e9\"></button>",
+			Snippet:     "<button style=\"background:#0ea5e9\" data-gohtmxelm-result=\"#0ea5e9\"></button>",
 		},
 		{
 			Slug:        "context-menu",
@@ -158,7 +158,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Open a positioned menu from a right-click target.",
 			ButtonLabel: "Right click",
 			Doc:         "Intercept the contextmenu event, forward client coordinates to Go, and render the menu with a fixed position.",
-			Snippet:     "zone.addEventListener('contextmenu', (e) => {\n  e.preventDefault()\n  htmx.ajax('GET', `/api/interactions/menu?x=${e.clientX}&y=${e.clientY}`, { target: '#call-layer', swap: 'beforeend' })\n})",
+			Snippet:     "zone.addEventListener('contextmenu', (e) => {\n  e.preventDefault()\n  GoHTMXElmInteractions.open(`/api/interactions/menu?x=${e.clientX}&y=${e.clientY}`, '#result')\n})",
 		},
 		{
 			Slug:        "command-palette",
@@ -168,7 +168,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Search commands and resolve with Enter.",
 			ButtonLabel: "Open palette",
 			Doc:         "Render commands from Go, then keep keyboard focus and filtering local. For app-wide shortcuts, open the same fragment from a keydown handler.",
-			Snippet:     "<input data-command-search />\n<button data-command-item data-call-result=\"ran Export data\">Export data</button>",
+			Snippet:     "<input data-gohtmxelm-command-search />\n<button data-gohtmxelm-command-item data-gohtmxelm-result=\"ran Export data\">Export data</button>",
 		},
 		{
 			Slug:        "bottom-sheet",
@@ -188,7 +188,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Edit local form state and return saved settings.",
 			ButtonLabel: "Open settings",
 			Doc:         "Render initial settings from Go. Let the drawer own edits until the user saves; then close with the selected values or post them to the server.",
-			Snippet:     "<select data-settings-email><option>daily</option><option>weekly</option></select>\n<button data-settings-save>Save</button>",
+			Snippet:     "<select data-gohtmxelm-settings-email><option>daily</option><option>weekly</option></select>\n<button data-gohtmxelm-settings-save>Save</button>",
 		},
 		{
 			Slug:        "image-lightbox",
@@ -198,7 +198,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Open media in a full-screen overlay.",
 			ButtonLabel: "Open lightbox",
 			Doc:         "Use a fragment for the overlay shell and close it via backdrop click, Escape, or a close button. Real apps can pass the image URL in the fragment request.",
-			Snippet:     "<button data-call-open=\"image-lightbox\" data-status=\"#result\">Open image</button>",
+			Snippet:     "<button data-gohtmxelm-open=\"image-lightbox\" data-gohtmxelm-status=\"#result\">Open image</button>",
 		},
 		{
 			Slug:        "wizard",
@@ -208,7 +208,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Keep a multi-step form inside one interaction.",
 			ButtonLabel: "Sign up",
 			Doc:         "Keep step state local to the opened panel. The caller only receives the final structured result or cancellation, so back/forward navigation stays inside the flow.",
-			Snippet:     "<div data-call-wizard data-step=\"0\">\n  <section data-wizard-step=\"0\">...</section>\n  <button data-wizard-next>Next</button>\n</div>",
+			Snippet:     "<div data-gohtmxelm-wizard data-step=\"0\">\n  <section data-gohtmxelm-wizard-step=\"0\">...</section>\n  <button data-gohtmxelm-wizard-next>Next</button>\n</div>",
 		},
 		{
 			Slug:        "permission-consent",
@@ -218,7 +218,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Return a tagged allow/deny response.",
 			ButtonLabel: "Ask permission",
 			Doc:         "Prefer a tagged result when deny and allow carry domain meaning. It is clearer than treating everything as a boolean.",
-			Snippet:     "<button data-call-result=\"deny:reportbot\">Deny</button>\n<button data-call-result=\"allow:reportbot\">Allow</button>",
+			Snippet:     "<button data-gohtmxelm-result=\"deny:reportbot\">Deny</button>\n<button data-gohtmxelm-result=\"allow:reportbot\">Allow</button>",
 		},
 		{
 			Slug:        "resolve-from-caller",
@@ -228,7 +228,7 @@ func InteractionExampleSpecs() []InteractionExampleSpec {
 			Description: "Settle a specific open interaction from outside.",
 			ButtonLabel: "Open approval",
 			Doc:         "Mark the opened panel with a call ID or data attribute. A timeout, SSE event, or parent workflow can find that panel and close it without an in-panel click.",
-			Snippet:     "setTimeout(() => {\n  const panel = document.querySelector('[data-auto-resolve]')\n  if (panel) closeCallable(panel, 'external timeout resolved false')\n}, 3000)",
+			Snippet:     "setTimeout(() => {\n  const panel = document.querySelector('[data-gohtmxelm-auto-resolve]')\n  if (panel) closeCallable(panel, 'external timeout resolved false')\n}, 3000)",
 		},
 	}
 }

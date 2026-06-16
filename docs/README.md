@@ -27,6 +27,8 @@ model.
 | 10 | [Localization boundary](./10-localization-boundary.md) | Where i18n/l10n policy lives, and what the library carries as neutral props. |
 | 11 | [Datastar over SSE through the edge](./11-edge-sse.md) | Lambda response streaming, API Gateway, Starbase `/api/*`, and Datastar rebinding. |
 | 12 | [Local SSO login simulator](./12-local-sso.md) | Browser redirects, callback validation, HttpOnly session cookies, HTMX rehydration, and shared auth presence. |
+| 13 | [Integration contracts](./13-contracts.md) | Explicit DOM, broker, SSE, Datastar, HTMX, and interaction result contracts. |
+| 14 | [Server-rendered interactions](./14-interactions.md) | Reusable overlay/result conventions for dialogs, pickers, menus, drawers, and flows. |
 
 ## Core Model
 

@@ -37,6 +37,7 @@ type exampleRoute struct {
 	Slug        string
 	Title       string
 	Description string
+	NeedsBroker bool
 	Render      func(stopwatch.Snapshot) templ.Component
 }
 
@@ -172,10 +173,16 @@ func main() {
 			Slug:        spec.Slug,
 			Title:       spec.Title,
 			Description: spec.Description,
+			NeedsBroker: false,
 			Render: func(stopwatch.Snapshot) templ.Component {
 				return components.InteractionExamplePage(spec)
 			},
 		})
+	}
+	for i := range exampleRoutes {
+		if !isInteractionSlug(exampleRoutes[i].Slug) {
+			exampleRoutes[i].NeedsBroker = true
+		}
 	}
 	exampleNav := navItems(exampleRoutes)
 
@@ -217,7 +224,7 @@ func main() {
 			http.NotFound(w, r)
 			return
 		}
-		if err := ui.ExamplePage(exampleNav, slug, example.Title, example.Render(sw.Snapshot())).Render(r.Context(), w); err != nil {
+		if err := ui.ExamplePage(exampleNav, slug, example.Title, example.Render(sw.Snapshot()), example.NeedsBroker).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
@@ -986,6 +993,15 @@ func findExample(routes []exampleRoute, slug string) (exampleRoute, bool) {
 		}
 	}
 	return exampleRoute{}, false
+}
+
+func isInteractionSlug(slug string) bool {
+	for _, spec := range components.InteractionExampleSpecs() {
+		if spec.Slug == slug {
+			return true
+		}
+	}
+	return false
 }
 
 func securityHeaders(next http.Handler) http.Handler {

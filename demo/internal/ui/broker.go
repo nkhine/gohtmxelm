@@ -23,3 +23,9 @@ var brokerScript = templ.Raw(gohtmxelm.BrowserScript(gohtmxelm.Options{
 		}},
 	},
 }))
+
+var interactionScript = templ.Raw(gohtmxelm.InteractionScript(gohtmxelm.Options{
+	AssetPath: "/gohtmxelm",
+}))
+
+var interactionRoot = templ.Raw(gohtmxelm.InteractionRoot(""))

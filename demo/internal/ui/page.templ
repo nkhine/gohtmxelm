@@ -15,7 +15,7 @@ type ExampleNav struct {
 	Description string
 }
 
-templ Shell(title string, active string, nav []ExampleNav, content templpkg.Component) {
+templ Shell(title string, active string, nav []ExampleNav, content templpkg.Component, useBroker bool) {
 	<!doctype html>
 	<html lang="en">
 		<head>
@@ -26,7 +26,10 @@ templ Shell(title string, active string, nav []ExampleNav, content templpkg.Comp
 			<script type="module" src="/static/vendor/datastar.js"></script>
 			<script src="/static/elm.js"></script>
 			<script defer src="/static/demo-ui.js"></script>
-			@brokerScript
+			if useBroker {
+				@brokerScript
+			}
+			@interactionScript
 			<style>
 				*, *::before, *::after { box-sizing: border-box; }
 				:root {
@@ -715,11 +718,14 @@ templ Shell(title string, active string, nav []ExampleNav, content templpkg.Comp
 				<span class="badge badge-elm">Elm</span>
 				<span class="badge badge-go">Go</span>
 				<span class="badge badge-sse">SSE</span>
-				<span id="sse-status" class="sse-status disconnected">
-					<span class="sse-dot"></span>
-					<span id="sse-status-text">SSE disconnected</span>
-				</span>
+				if useBroker {
+					<span id="sse-status" class="sse-status disconnected">
+						<span class="sse-dot"></span>
+						<span id="sse-status-text">SSE disconnected</span>
+					</span>
+				}
 			</header>
+			@interactionRoot
 			<nav class="example-nav">
 				<a href="/" class={ templpkg.KV("active", active == "") }>
 					<strong>All examples</strong>
@@ -738,7 +744,7 @@ templ Shell(title string, active string, nav []ExampleNav, content templpkg.Comp
 }
 
 templ IndexPage(nav []ExampleNav, stopwatchRunning bool, stopwatchCanLap bool, localization components.LocalizationVM) {
-	@Shell("HTMX + Datastar + Elm + Go Examples", "", nav, IndexContent(stopwatchRunning, stopwatchCanLap, localization))
+	@Shell("HTMX + Datastar + Elm + Go Examples", "", nav, IndexContent(stopwatchRunning, stopwatchCanLap, localization), true)
 }
 
 templ IndexContent(stopwatchRunning bool, stopwatchCanLap bool, localization components.LocalizationVM) {
@@ -754,8 +760,8 @@ templ IndexContent(stopwatchRunning bool, stopwatchCanLap bool, localization com
 	</main>
 }
 
-templ ExamplePage(nav []ExampleNav, active string, title string, content templpkg.Component) {
-	@Shell(title, active, nav, ExampleContent(content))
+templ ExamplePage(nav []ExampleNav, active string, title string, content templpkg.Component, useBroker bool) {
+	@Shell(title, active, nav, ExampleContent(content), useBroker)
 }
 
 templ ExampleContent(content templpkg.Component) {

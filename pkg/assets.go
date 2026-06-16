@@ -67,3 +67,9 @@ func (k *Kit) Assets() http.Handler {
 func (k *Kit) BrowserScript() string {
 	return BrowserScript(k.opts)
 }
+
+// InteractionScript renders the script tag needed by pages that use the
+// server-rendered interaction overlay convention.
+func (k *Kit) InteractionScript() string {
+	return InteractionScript(k.opts)
+}
