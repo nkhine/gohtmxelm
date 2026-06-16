@@ -12,7 +12,7 @@ import (
 	"testing"
 	"testing/synctest"
 
-	"github.com/nkhine/gohtmxelm/simnet"
+	"github.com/nkhine/gohtmxelm/internal/simnet"
 )
 
 // snapshot is the event payload used by these tests: the full authoritative

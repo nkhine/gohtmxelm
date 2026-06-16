@@ -211,7 +211,7 @@ Keep the DOM ownership boundaries physical:
 .                       public importable Go package (module root)
 elm/BrokerPort.elm      canonical Elm-side wire contract (embedded; vendor via ElmBrokerPort)
 runtime/                embedded browser broker runtime
-simnet/                 deterministic simulation harness for the convergence contract
+internal/simnet/        deterministic simulation harness (internal testing aid)
 cmd/gohtmxelm/          CLI for init and doctor workflows
 demo/internal/dynamo/   in-memory DynamoDB-style table (no external service)
 
@@ -371,7 +371,7 @@ invariants** (`simnet.CheckConvergence` / `simnet.CheckMonotonic`):
 
 ```sh
 go test ./... -race          # both layers
-go test ./simnet/            # the contract model only
+go test ./internal/simnet/   # the contract model only
 PLAYWRIGHT_BASE_URL=https://localhost:8091 make test-browser
 ```
 
