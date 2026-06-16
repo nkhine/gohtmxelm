@@ -14,6 +14,7 @@ TEMPL_OUT      := demo/internal/ui/page_templ.go \
                   demo/internal/ui/components/message_templ.go \
                   demo/internal/ui/components/stopwatch_templ.go \
                   demo/internal/ui/components/fragments_templ.go \
+                  demo/internal/ui/components/callables_templ.go \
                   demo/internal/ui/components/localization_templ.go \
                   demo/internal/ui/components/edge_datastar_templ.go
 HTMX_VERSION   ?= 2.0.4

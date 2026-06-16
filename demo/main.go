@@ -112,7 +112,7 @@ func main() {
 		{
 			Slug:        "stopwatch",
 			Title:       "Hello stopwatch",
-			Description: "HTMX controls a Go timer while Datastar and Elm react to SSE.",
+			Description: "HTMX controls a Go timer while Datastar and Elm respond to SSE.",
 			Render: func(snap stopwatch.Snapshot) templ.Component {
 				return components.StopwatchExample(snap.Running, snap.CanLap())
 			},
@@ -165,6 +165,17 @@ func main() {
 				return components.SimulatorExample()
 			},
 		},
+	}
+	for _, spec := range components.InteractionExampleSpecs() {
+		spec := spec
+		exampleRoutes = append(exampleRoutes, exampleRoute{
+			Slug:        spec.Slug,
+			Title:       spec.Title,
+			Description: spec.Description,
+			Render: func(stopwatch.Snapshot) templ.Component {
+				return components.InteractionExamplePage(spec)
+			},
+		})
 	}
 	exampleNav := navItems(exampleRoutes)
 
@@ -353,6 +364,60 @@ func main() {
 		tag := r.FormValue("locale")
 		if err := components.LocalizationExample(components.BuildLocalizationVM(locales, tag)).Render(r.Context(), w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+
+	r.Get("/api/callables/{kind}", func(w http.ResponseWriter, r *http.Request) {
+		kind := chi.URLParam(r, "kind")
+		target := components.CallableTarget(r.URL.Query().Get("target"))
+		x, _ := strconv.Atoi(r.URL.Query().Get("x"))
+		y, _ := strconv.Atoi(r.URL.Query().Get("y"))
+		depth, _ := strconv.Atoi(r.URL.Query().Get("depth"))
+		if depth < 1 {
+			depth = 1
+		}
+		account := "Taylor from Go"
+		if claims, ok := sso.Session(r); ok && claims.Name != "" {
+			account = claims.Name
+		}
+		if err := components.CallableFragment(kind, target, x, y, depth, account).Render(r.Context(), w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+	r.Post("/api/callables/save", func(w http.ResponseWriter, r *http.Request) {
+		target := components.CallableTarget(r.FormValue("target"))
+		name := strings.TrimSpace(r.FormValue("name"))
+		switch {
+		case len(name) < 3:
+			_ = components.SaveMutationPanel(target, name, "Use at least three characters.", false).Render(r.Context(), w)
+		case strings.Contains(strings.ToLower(name), "fail"):
+			_ = components.SaveMutationPanel(target, name, "Go rejected this value. Change it and retry without losing your input.", false).Render(r.Context(), w)
+		default:
+			_ = components.SaveMutationPanel(target, name, fmt.Sprintf("Saved %q on the server.", name), true).Render(r.Context(), w)
+		}
+	})
+	r.Get("/api/callables/progress-stream", func(w http.ResponseWriter, r *http.Request) {
+		stream, err := gohtmxelm.NewStream(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		for i := 0; i <= 100; i += 10 {
+			msg := "Starting download"
+			if i > 0 && i < 100 {
+				msg = fmt.Sprintf("Downloading... %d%%", i)
+			}
+			if i == 100 {
+				msg = "Download complete"
+			}
+			if stream.PatchElements(render(components.ProgressToast(msg, i, i == 100))) != nil {
+				return
+			}
+			select {
+			case <-time.After(140 * time.Millisecond):
+			case <-stream.Done():
+				return
+			}
 		}
 	})
 
