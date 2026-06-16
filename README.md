@@ -391,6 +391,14 @@ Datastar v1.0.2 compiles declarative expressions such as `data-signals`,
 your CSP needs to allow that evaluation path. The reference demo currently uses
 `script-src 'self' 'unsafe-eval'` for this reason.
 
+## Stability
+
+The exported Go API of `github.com/nkhine/gohtmxelm` follows semantic
+versioning — additive within a major version, breaking changes only on a major
+bump. The on-the-wire broker format is versioned separately by `ProtocolVersion`.
+The `gohtmxelm` CLI and everything under `internal/` (including the `simnet`
+harness) carry no compatibility promise. Full policy: [STABILITY.md](./STABILITY.md).
+
 ## License
 
 [MIT](./LICENSE) © Norman Khine.
