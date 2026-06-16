@@ -154,7 +154,7 @@ deterministically.
 
 ```sh
 go test ./... -race          # both layers, race detector on
-go test ./simnet/        # the contract model only
+go test ./internal/simnet/        # the contract model only
 ```
 
 ---
