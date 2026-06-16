@@ -10,6 +10,12 @@ bumps that constant rather than the module version.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-16
+
+A CLI release: `gohtmxelm init` becomes a real scaffolder, with optional deploy
+scaffolding and a polished terminal experience. The Go API and wire contract are
+unchanged from 0.1.0.
+
 ### Added
 
 - `gohtmxelm init` now scaffolds a complete, runnable project instead of writing
@@ -79,5 +85,6 @@ First tagged release. The Go API is now importable at the module root.
 - **`simnet`** is shipped as a testing aid and is not yet part of the stability
   promise.
 
-[Unreleased]: https://github.com/nkhine/gohtmxelm/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/nkhine/gohtmxelm/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/nkhine/gohtmxelm/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nkhine/gohtmxelm/releases/tag/v0.1.0
