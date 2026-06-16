@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/nkhine/gohtmxelm"
-	"github.com/nkhine/gohtmxelm/simnet"
+	"github.com/nkhine/gohtmxelm/internal/simnet"
 )
 
 const (
