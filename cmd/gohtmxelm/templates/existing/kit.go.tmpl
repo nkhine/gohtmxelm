@@ -1,0 +1,91 @@
+// Package gohtmxelmkit is a self-contained gohtmxelm integration you can mount
+// into an existing chi router. Everything it serves lives under one prefix, so
+// it never collides with your app's routes. Treat it as a starting point: a
+// server-owned counter pushed to an Elm island over SSE.
+package gohtmxelmkit
+
+import (
+	"net/http"
+	"sync"
+
+	"github.com/go-chi/chi/v5"
+
+	"github.com/nkhine/gohtmxelm"
+)
+
+// Kit owns a demo server-side count and its SSE fan-out.
+type Kit struct {
+	prefix string
+	broker *gohtmxelm.Kit
+	mu     sync.Mutex
+	value  int
+	events *gohtmxelm.Broadcaster[int]
+}
+
+// New builds a Kit whose routes and assets all live under prefix (for example
+// "/counter"). Pass "" to mount at the site root.
+func New(prefix string) *Kit {
+	return &Kit{
+		prefix: prefix,
+		broker: gohtmxelm.New(gohtmxelm.Options{
+			AssetPath: prefix + "/gohtmxelm",
+			Sources: []gohtmxelm.Source{
+				{URL: prefix + "/api/stream", Events: []string{"count"}},
+			},
+		}),
+		events: gohtmxelm.NewBroadcaster[int](16),
+	}
+}
+
+// Mount registers every route this kit needs on r, under its prefix.
+func (k *Kit) Mount(r chi.Router) {
+	r.Handle(k.prefix+"/gohtmxelm/*", http.StripPrefix(k.prefix+"/gohtmxelm/", k.broker.Assets()))
+	// The compiled Elm bundle is served from ./gohtmxelmkit/static relative to
+	// the process working directory. Swap this for a go:embed FS once you build
+	// the bundle into the binary.
+	r.Handle(k.prefix+"/static/*", http.StripPrefix(k.prefix+"/static/", http.FileServer(http.Dir("gohtmxelmkit/static"))))
+	r.Get(k.prefix+"/", k.page)
+	r.Get(k.prefix+"/api/stream", k.stream)
+	r.Post(k.prefix+"/api/bump", k.bump)
+}
+
+func (k *Kit) snapshot() int {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	return k.value
+}
+
+func (k *Kit) page(w http.ResponseWriter, r *http.Request) {
+	island, err := gohtmxelm.ElmIsland("counter", "Counter", map[string]any{})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_ = Page(k.prefix, k.broker.BrowserScript(), island).Render(r.Context(), w)
+}
+
+func (k *Kit) stream(w http.ResponseWriter, r *http.Request) {
+	stream, err := gohtmxelm.NewStream(w, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	_ = gohtmxelm.Serve(stream, k.events,
+		func(s *gohtmxelm.Stream) error {
+			return s.Send("count", map[string]int{"value": k.snapshot()})
+		},
+		func(s *gohtmxelm.Stream, v int) error {
+			return s.Send("count", map[string]int{"value": v})
+		},
+	)
+}
+
+func (k *Kit) bump(w http.ResponseWriter, r *http.Request) {
+	k.mu.Lock()
+	k.value++
+	v := k.value
+	k.mu.Unlock()
+	k.events.Publish(v)
+	gohtmxelm.NoContent(w)
+}

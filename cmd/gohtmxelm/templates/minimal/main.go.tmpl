@@ -1,0 +1,105 @@
+package main
+
+import (
+	"log"
+	"net/http"
+	"os"
+	"sync"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/nkhine/gohtmxelm"
+)
+
+// This minimal scaffold exercises the gohtmxelm server-side SSE helpers
+// (Broadcaster, NewStream, Serve) with a plain EventSource client — no Elm and
+// no build step. Run it with `go mod tidy && go run .`. Reach for the full
+// scaffold (`gohtmxelm init`) when you want the Elm-island broker runtime.
+
+const page = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>gohtmxelm (minimal)</title></head>
+<body style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 4rem auto;">
+<h1>gohtmxelm counter (SSE only)</h1>
+<p>Server-owned count, pushed over SSE:</p>
+<span id="count" style="font-size: 3rem; font-weight: 700;">…</span>
+<form method="post" action="/api/bump"><button type="submit">+1</button></form>
+<script>
+  const es = new EventSource("/api/stream");
+  es.addEventListener("count", (e) => {
+    document.getElementById("count").textContent = JSON.parse(e.data).value;
+  });
+</script>
+</body>
+</html>`
+
+type counter struct {
+	mu     sync.Mutex
+	value  int
+	events *gohtmxelm.Broadcaster[int]
+}
+
+func newCounter() *counter {
+	return &counter{events: gohtmxelm.NewBroadcaster[int](16)}
+}
+
+func (c *counter) snapshot() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.value
+}
+
+func (c *counter) bump() {
+	c.mu.Lock()
+	c.value++
+	v := c.value
+	c.mu.Unlock()
+	c.events.Publish(v)
+}
+
+func main() {
+	count := newCounter()
+
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+
+	r.Get("/", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(page))
+	})
+
+	r.Get("/api/stream", func(w http.ResponseWriter, req *http.Request) {
+		stream, err := gohtmxelm.NewStream(w, req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		_ = gohtmxelm.Serve(stream, count.events,
+			func(s *gohtmxelm.Stream) error {
+				return s.Send("count", map[string]int{"value": count.snapshot()})
+			},
+			func(s *gohtmxelm.Stream, v int) error {
+				return s.Send("count", map[string]int{"value": v})
+			},
+		)
+	})
+
+	r.Post("/api/bump", func(w http.ResponseWriter, req *http.Request) {
+		count.bump()
+		gohtmxelm.NoContent(w)
+	})
+
+	addr := ":" + port()
+	log.Printf("listening on http://localhost%s", addr)
+	if err := http.ListenAndServe(addr, r); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func port() string {
+	if p := os.Getenv("PORT"); p != "" {
+		return p
+	}
+	return "8080"
+}

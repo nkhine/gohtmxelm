@@ -20,11 +20,33 @@ Check local tooling:
 gohtmxelm doctor
 ```
 
-Create a starter config:
+## Scaffold a project
+
+`gohtmxelm init` generates a complete, runnable example — a server-owned counter
+pushed to an Elm island over SSE — and wires up the toolchain for you.
 
 ```sh
-gohtmxelm init
+# New project: scaffold + build into ./myapp, then run
+gohtmxelm init myapp
+cd myapp && make dev            # http://localhost:8080
+
+# SSE-only, no Elm and no build step (runs with `go run .`)
+gohtmxelm init myapp --minimal
 ```
+
+Run it inside a directory that **already has a `go.mod`** and `init` instead drops
+a self-contained, mountable `gohtmxelmkit/` package and prints the exact snippet
+to wire it into your existing chi router — it never touches your `main.go`:
+
+```sh
+cd my-existing-app
+gohtmxelm init
+# then: kit := gohtmxelmkit.New("/counter"); kit.Mount(r)
+```
+
+Flags: `--module <path>` (module path for a new project), `--minimal`,
+`--no-build` (write files only), `--force` (overwrite). After upgrading the
+library, re-sync the Elm contract with `gohtmxelm vendor-elm`.
 
 ## Use In A Go App
 

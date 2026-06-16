@@ -10,6 +10,21 @@ bumps that constant rather than the module version.
 
 ## [Unreleased]
 
+### Added
+
+- `gohtmxelm init` now scaffolds a complete, runnable project instead of writing
+  an unused config file. In an empty directory it generates a chi + templ server,
+  an SSE-backed `Broadcaster`, and a sample Elm island wired through the vendored
+  `BrokerPort` contract, then runs `go get` / `templ generate` / `elm make` to
+  leave a buildable app. Flags: `--minimal` (SSE-only, no Elm/build step),
+  `--module`, `--no-build`, `--force`.
+- Run inside an existing Go module and `init` adds a self-contained, mountable
+  `gohtmxelmkit/` package (and prints the chi wiring snippet) without touching
+  the host `main.go`.
+- `gohtmxelm vendor-elm [dir]` (re)writes `BrokerPort.elm` to re-sync the Elm
+  contract after a library upgrade.
+- `gohtmxelm doctor` now distinguishes required (`go`) from optional tools.
+
 ## [0.1.0] - 2026-06-16
 
 First tagged release. The Go API is now importable at the module root.

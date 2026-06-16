@@ -1,0 +1,31 @@
+package main
+
+import templpkg "github.com/a-h/templ"
+
+// Page is the host shell. The broker <script> tag and the Elm island mount
+// point are produced by the gohtmxelm package and injected verbatim with
+// templ.Raw — the library owns those conventions, the page just places them.
+templ Page(brokerScript string, island string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>gohtmxelm app</title>
+			<!-- The compiled Elm bundle must load before the broker mounts islands. -->
+			<script defer src="/static/elm.js"></script>
+			@templpkg.Raw(brokerScript)
+		</head>
+		<body>
+			<main style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 4rem auto;">
+				<h1>gohtmxelm counter</h1>
+				@templpkg.Raw(island)
+				<!-- /api/bump returns 204, so the browser stays put and the SSE
+				stream delivers the new count to the Elm island — no JS needed. -->
+				<form method="post" action="/api/bump">
+					<button type="submit">+1</button>
+				</form>
+			</main>
+		</body>
+	</html>
+}

@@ -1,0 +1,26 @@
+ELM_SRCS   := $(shell find elm -name '*.elm')
+TEMPL_SRCS := $(shell find . -name '*.templ')
+
+.PHONY: dev build generate elm tidy clean
+
+## dev: build assets, then run the server on :8080 (override with PORT=...)
+dev: build
+	go run .
+
+## build: tidy deps, generate templ Go, compile the Elm bundle
+build: tidy generate elm
+
+tidy:
+	go mod tidy
+
+generate: $(TEMPL_SRCS)
+	go tool templ generate
+
+elm: static/elm.js
+
+static/elm.js: $(ELM_SRCS) elm.json
+	mkdir -p static
+	elm make elm/Counter.elm --output=static/elm.js
+
+clean:
+	rm -f static/elm.js $(shell find . -name '*_templ.go')

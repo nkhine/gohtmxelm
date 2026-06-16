@@ -1,0 +1,8 @@
+.PHONY: dev tidy
+
+## dev: tidy deps and run the server on :8080 (override with PORT=...)
+dev: tidy
+	go run .
+
+tidy:
+	go mod tidy
