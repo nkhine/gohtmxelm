@@ -39,6 +39,8 @@ func run(args []string) error {
 		return nil
 	case "init":
 		return initCmd(args[1:])
+	case "deploy":
+		return deployCmd(args[1:])
 	case "vendor-elm":
 		return vendorElmCmd(args[1:])
 	case "doctor":
@@ -52,7 +54,7 @@ func helpFor(cmd string) error {
 	switch cmd {
 	case "init":
 		helpInit()
-	case "vendor-elm", "doctor", "help":
+	case "deploy", "vendor-elm", "doctor", "help":
 		usage()
 	default:
 		return fmt.Errorf("unknown command %q", cmd)
@@ -70,6 +72,7 @@ func usage() {
 
   %s
     %s   scaffold a runnable project, or integrate into an existing module
+    %s   add a Dockerfile + GitHub Actions (GHCR) deploy scaffold
     %s   (re)write BrokerPort.elm to keep the Elm contract in sync
     %s   check the local toolchain
     %s   show help for a command (e.g. gohtmxelm help init)
@@ -77,19 +80,21 @@ func usage() {
   %s
     --module <path>   module path for a new project (default: directory name)
     --minimal         SSE-only example: no Elm, no build step
+    --deploy          also emit deploy scaffolding (Dockerfile, CI, DEPLOY.md)
     --no-build        write files only; skip go get / templ generate / elm make
     --force           overwrite existing files
 
   %s
     gohtmxelm init myapp              new Elm-island app in ./myapp
     gohtmxelm init myapp --minimal    SSE-only, runs with `+"`go run .`"+`
-    gohtmxelm init                    add gohtmxelmkit/ to the current module
+    gohtmxelm init myapp --deploy     scaffold + Dockerfile + GHCR CI
+    gohtmxelm deploy                  add deploy scaffolding to an existing app
     gohtmxelm vendor-elm elm          refresh elm/BrokerPort.elm
 
 `,
 		cyan(bold("◆ gohtmxelm")),
 		h("USAGE"), h("COMMANDS"),
-		bold("init      "), bold("vendor-elm"), bold("doctor    "), bold("help      "),
+		bold("init      "), bold("deploy    "), bold("vendor-elm"), bold("doctor    "), bold("help      "),
 		h("INIT FLAGS"), h("EXAMPLES"),
 	)
 }
@@ -127,6 +132,7 @@ func helpInit() {
 type initOptions struct {
 	module  string
 	minimal bool
+	deploy  bool
 	noBuild bool
 	force   bool
 }
@@ -137,6 +143,7 @@ func initCmd(args []string) error {
 	var opts initOptions
 	fset.StringVar(&opts.module, "module", "", "module path for a new project")
 	fset.BoolVar(&opts.minimal, "minimal", false, "scaffold an SSE-only example")
+	fset.BoolVar(&opts.deploy, "deploy", false, "also emit deploy scaffolding")
 	fset.BoolVar(&opts.noBuild, "no-build", false, "only write files")
 	fset.BoolVar(&opts.force, "force", false, "overwrite existing files")
 	// Parse twice so flags may appear before or after the positional dir: the
@@ -207,6 +214,16 @@ func initNew(dir string, opts initOptions) error {
 		return err
 	}
 
+	if opts.deploy {
+		fmt.Println()
+		phase("Adding deploy scaffolding")
+		if err := step("Dockerfile, compose, CI, DEPLOY.md", func() (string, error) {
+			return "", emitDeploy(dir, opts.minimal, opts.force)
+		}); err != nil {
+			return err
+		}
+	}
+
 	if opts.noBuild {
 		printNextSteps(dir, opts.minimal, true)
 		return nil
@@ -216,6 +233,9 @@ func initNew(dir string, opts initOptions) error {
 	// (commonly: offline) is reported and the equivalent manual command printed.
 	failed := runTasks(dir, buildTasks(dir, opts.minimal))
 	printNextSteps(dir, opts.minimal, failed)
+	if opts.deploy {
+		printDeploySteps()
+	}
 	return nil
 }
 
@@ -255,6 +275,9 @@ func initExisting(dir string, opts initOptions) error {
 	fmt.Printf("    go run .   %s\n\n", dim("# then open /counter"))
 	fmt.Printf("  %s the Elm bundle is served from ./gohtmxelmkit/static relative to the\n", dim("note:"))
 	fmt.Printf("        working directory — run from your module root.\n\n")
+	if opts.deploy {
+		fmt.Printf("  %s --deploy is skipped: your existing app owns its own build & deploy.\n\n", amber("note:"))
+	}
 	return nil
 }
 
@@ -270,6 +293,89 @@ func vendorElmCmd(args []string) error {
 	}
 	ok(fmt.Sprintf("wrote %s", filepath.Join(dir, "BrokerPort.elm")))
 	return nil
+}
+
+// ---- deploy ----
+
+func deployCmd(args []string) error {
+	fset := flag.NewFlagSet("deploy", flag.ContinueOnError)
+	force := fset.Bool("force", false, "overwrite existing files")
+	if err := fset.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return nil
+		}
+		return err
+	}
+	dir := "."
+	if rest := fset.Args(); len(rest) > 0 {
+		dir = rest[0]
+		if err := fset.Parse(rest[1:]); err != nil {
+			if err == flag.ErrHelp {
+				return nil
+			}
+			return err
+		}
+	}
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return err
+	}
+
+	// A minimal scaffold has main.go but no templ page; the full scaffold has
+	// page.templ. Anything else is not a scaffolded app we can containerise.
+	full := fileExists(filepath.Join(abs, "page.templ"))
+	if !full && !fileExists(filepath.Join(abs, "main.go")) {
+		return fmt.Errorf("no scaffolded app in %s (run `gohtmxelm init` first)", relOrDir(abs))
+	}
+
+	banner(fmt.Sprintf("add deploy scaffolding  %s  %s", cyan("→"), bold(relOrDir(abs))))
+	phase("Creating files")
+	if err := step("Dockerfile, compose, CI, DEPLOY.md", func() (string, error) {
+		return "", emitDeploy(abs, !full, *force)
+	}); err != nil {
+		return err
+	}
+	printDeploySteps()
+	return nil
+}
+
+// emitDeploy writes the deploy scaffolding (Dockerfile, .dockerignore,
+// docker-compose.yml, the GitHub Actions workflow, and DEPLOY.md) into dir,
+// choosing the full or minimal variants.
+func emitDeploy(dir string, minimal, force bool) error {
+	variant := "full"
+	if minimal {
+		variant = "minimal"
+	}
+	files := []struct{ src, dst string }{
+		{"Dockerfile." + variant + ".tmpl", "Dockerfile"},
+		{"dockerignore.tmpl", ".dockerignore"},
+		{"compose.tmpl", "docker-compose.yml"},
+		{"workflow." + variant + ".tmpl", filepath.Join(".github", "workflows", "deploy.yml")},
+		{"DEPLOY." + variant + ".tmpl", "DEPLOY.md"},
+	}
+	for _, f := range files {
+		data, err := templatesFS.ReadFile(filepath.Join("templates", "deploy", f.src))
+		if err != nil {
+			return err
+		}
+		out := filepath.Join(dir, f.dst)
+		if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+			return err
+		}
+		if err := writeFile(out, string(data), force); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printDeploySteps() {
+	fmt.Println()
+	phase("Deploy")
+	fmt.Printf("    %s docker compose up --build   %s\n", cyan("→"), dim("# run locally"))
+	fmt.Printf("    %s push to GitHub             %s\n", cyan("→"), dim("# Actions builds + pushes to ghcr.io/<owner>/<repo>"))
+	fmt.Printf("    %s see DEPLOY.md for SSE/proxy notes\n\n", cyan("→"))
 }
 
 // vendorElm writes the canonical BrokerPort.elm contract into dir.
