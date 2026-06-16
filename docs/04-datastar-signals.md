@@ -30,7 +30,7 @@ wire any of it.**
 ## 4.2 Signals, declared in markup
 
 Here's the Datastar write form from the reference demo
-([`demo/internal/ui/page.templ`](../demo/internal/ui/page.templ)):
+([`demo/internal/ui/page.templ`](https://github.com/nkhine/gohtmxelm/blob/main/demo/internal/ui/page.templ)):
 
 ```html
 <div class="control-group" data-signals="{messageDraft: ''}">
@@ -68,7 +68,7 @@ not a re-rendered component subtree that a diff then reconciles.
 
 This is the part that distinguishes Datastar from a pure client reactivity
 library. The server holds a long-lived SSE connection and pushes two event types.
-From [`demo/main.go`](../demo/main.go):
+From [`demo/main.go`](https://github.com/nkhine/gohtmxelm/blob/main/demo/main.go):
 
 ```go
 func writeDatastarPatchElements(w http.ResponseWriter, elements string) {
