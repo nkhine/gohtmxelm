@@ -49,6 +49,25 @@ Render the broker script on pages that mount Elm islands:
 template.HTML(kit.BrowserScript())
 ```
 
+Render the interaction runtime on pages that open server-rendered dialogs,
+pickers, menus, drawers, or transient toasts:
+
+```go
+template.HTML(kit.InteractionScript())
+template.HTML(gohtmxelm.InteractionRoot(""))
+```
+
+Open a server-rendered interaction fragment with normal HTML attributes:
+
+```html
+<button
+  data-gohtmxelm-open="/api/interactions/confirm"
+  data-gohtmxelm-status="#delete-result">
+  Delete item
+</button>
+<span id="delete-result">awaiting click</span>
+```
+
 Render an Elm island mount point:
 
 ```go
@@ -240,6 +259,7 @@ Routes:
 /examples/edge-datastar Datastar SSE through the edge only
 /examples/sso-local local SSO redirect/session demo only
 /examples/simulator contract simulator only
+/examples/confirm-dialog and other interaction examples
 ```
 
 Run the local floci/API Gateway Lambda streaming stack:
@@ -295,6 +315,7 @@ invariants** (`simnet.CheckConvergence` / `simnet.CheckMonotonic`):
 ```sh
 go test ./... -race          # both layers
 go test ./pkg/simnet/        # the contract model only
+PLAYWRIGHT_BASE_URL=https://localhost:8091 make test-browser
 ```
 
 The **Contract simulator** card (`/examples/simulator`) runs the `simnet`

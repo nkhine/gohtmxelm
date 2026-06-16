@@ -56,16 +56,16 @@ templ InteractionDemoControl(ex InteractionExampleSpec) {
 		</div>
 		<span id={ StatusID(ex.Kind) } class="callable-status">ready</span>
 	} else if ex.Kind == "context-menu" {
-		<div class="call-menu-zone" data-call-context-zone data-status={ StatusSelector(ex.Kind) }>Right click here</div>
+		<div class="call-menu-zone" data-gohtmxelm-context-zone data-gohtmxelm-status={ StatusSelector(ex.Kind) }>Right click here</div>
 		<span id={ StatusID(ex.Kind) } class="callable-status">awaiting context menu</span>
 	} else if ex.Kind == "image-lightbox" {
 		<div class="callable-actions">
-			<button class="call-thumb" type="button" aria-label="Open lightbox" data-call-open={ ex.Kind } data-status={ StatusSelector(ex.Kind) }></button>
+			<button class="call-thumb" type="button" aria-label="Open lightbox" data-gohtmxelm-open={ ex.Kind } data-gohtmxelm-status={ StatusSelector(ex.Kind) }></button>
 		</div>
 		<span id={ StatusID(ex.Kind) } class="callable-status">thumbnail ready</span>
 	} else {
 		<div class="callable-actions">
-			<button class="call-btn" type="button" data-call-open={ ex.Kind } data-status={ StatusSelector(ex.Kind) }>{ ex.ButtonLabel }</button>
+			<button class="call-btn" type="button" data-gohtmxelm-open={ ex.Kind } data-gohtmxelm-status={ StatusSelector(ex.Kind) }>{ ex.ButtonLabel }</button>
 		</div>
 		<span id={ StatusID(ex.Kind) } class="callable-status">awaiting click</span>
 	}
@@ -192,74 +192,74 @@ templ CallableFragment(kind string, target string, x int, y int, depth int, acco
 }
 
 templ ConfirmDialog(target string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<h3>Delete this item?</h3>
 			<p>This action cannot be undone. Go rendered the dialog; the caller receives only a yes/no result.</p>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="cancelled">Cancel</button>
-				<button class="danger" type="button" data-call-result="deleted">Continue</button>
+				<button class="plain" type="button" data-gohtmxelm-result="cancelled">Cancel</button>
+				<button class="danger" type="button" data-gohtmxelm-result="deleted">Continue</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ AlertDialog(target string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel" role="alertdialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel" role="alertdialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<h3>Build completed</h3>
 			<p>The caller only waits for acknowledgement, so closing the alert is the response.</p>
 			<div class="call-panel-actions">
-				<button class="primary" type="button" data-call-result="acknowledged">OK</button>
+				<button class="primary" type="button" data-gohtmxelm-result="acknowledged">OK</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ PromptDialog(target string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<h3>Rename project</h3>
 			<p>Submit returns the input value; cancelling returns null.</p>
-			<label>Project name <input data-call-prompt-input type="text" value="gohtmxelm demo"/></label>
+			<label>Project name <input data-gohtmxelm-prompt-input type="text" value="gohtmxelm demo"/></label>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="cancelled">Cancel</button>
-				<button class="primary" type="button" data-call-prompt-submit>Save</button>
+				<button class="plain" type="button" data-gohtmxelm-result="cancelled">Cancel</button>
+				<button class="primary" type="button" data-gohtmxelm-prompt-submit>Save</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ NestedDialog(target string, depth int) {
-	<div class={ "call-backdrop", templ.KV("stack-2", depth > 1) } data-call-backdrop>
-		<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class={ "call-backdrop", templ.KV("stack-2", depth > 1) } data-gohtmxelm-backdrop>
+		<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<h3>Nested dialog #{ depth }</h3>
 			<p>This instance can spawn the same server-rendered fragment. Each panel closes independently.</p>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result={ NestedClosed(depth) }>Close this one</button>
-				<button class="primary" type="button" data-call-open-url={ NextNestedRoute(target, depth) }>Open another</button>
+				<button class="plain" type="button" data-gohtmxelm-result={ NestedClosed(depth) }>Close this one</button>
+				<button class="primary" type="button" data-gohtmxelm-open-url={ NextNestedRoute(target, depth) }>Open another</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ SaveMutationDialog(target string, name string, message string, ok bool) {
-	<div class="call-backdrop" data-call-backdrop>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
 		@SaveMutationPanel(target, name, message, ok)
 	</div>
 }
 
 templ SaveMutationPanel(target string, name string, message string, ok bool) {
-	<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 		<h3>Save form with mutation flow</h3>
 		<p>HTMX posts the form to Go. Validation errors replace this panel and keep the call open.</p>
 		<form hx-post="/api/callables/save" hx-target="closest .call-panel" hx-swap="outerHTML">
 			<input type="hidden" name="target" value={ target }/>
 			<label>Display name <input name="name" type="text" value={ name } placeholder="Ada Lovelace"/></label>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="cancelled">Cancel</button>
+				<button class="plain" type="button" data-gohtmxelm-result="cancelled">Cancel</button>
 				if ok {
-					<button class="primary" type="button" data-call-result={ "saved " + name }>Done</button>
+					<button class="primary" type="button" data-gohtmxelm-result={ "saved " + name }>Done</button>
 				} else {
 					<button class="primary" type="submit">Save</button>
 				}
@@ -276,170 +276,170 @@ templ SaveMutationPanel(target string, name string, message string, ok bool) {
 }
 
 templ AccountDialog(target string, account string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<h3>Account-aware dialog</h3>
 			<p>Hello, { account }. The caller did not pass your name; Go read it from root/session-style context.</p>
 			<div class="call-panel-actions">
-				<button class="primary" type="button" data-call-result={ "greeted " + account }>Close</button>
+				<button class="primary" type="button" data-gohtmxelm-result={ "greeted " + account }>Close</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ OptionalAsyncDialog(target string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<h3>Confirm with optional async</h3>
 			<p>One fragment supports immediate close or a simulated async path that decides when to resolve.</p>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="fallback accepted">Resolve now</button>
-				<button class="primary" type="button" data-call-async-result="async accepted">Run async</button>
+				<button class="plain" type="button" data-gohtmxelm-result="fallback accepted">Resolve now</button>
+				<button class="primary" type="button" data-gohtmxelm-async-result="async accepted">Run async</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ ItemPicker(target string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<h3>Pick an item</h3>
 			<div class="call-picker-list">
-				<button type="button" data-call-result="selected Invoice">Invoice</button>
-				<button type="button" data-call-result="selected Receipt">Receipt</button>
-				<button type="button" data-call-result="selected Transfer">Transfer</button>
+				<button type="button" data-gohtmxelm-result="selected Invoice">Invoice</button>
+				<button type="button" data-gohtmxelm-result="selected Receipt">Receipt</button>
+				<button type="button" data-gohtmxelm-result="selected Transfer">Transfer</button>
 			</div>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="cancelled">Cancel</button>
+				<button class="plain" type="button" data-gohtmxelm-result="cancelled">Cancel</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ ColorPicker(target string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<h3>Pick a color</h3>
 			<div class="call-color-grid">
 				for _, color := range []string{"#0ea5e9", "#22c55e", "#f97316", "#8b5cf6", "#ef4444", "#14b8a6", "#eab308", "#64748b", "#ec4899", "#111827"} {
-					<button type="button" style={ "background:" + color } aria-label={ color } data-call-result={ color }></button>
+					<button type="button" style={ "background:" + color } aria-label={ color } data-gohtmxelm-result={ color }></button>
 				}
 			</div>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="cancelled">Cancel</button>
+				<button class="plain" type="button" data-gohtmxelm-result="cancelled">Cancel</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ ContextMenu(target string, x int, y int) {
-	<div class="call-context-menu" style={ CallableStyle(x, y) } data-status-target={ target }>
-		<button type="button" data-call-result="opened">Open</button>
-		<button type="button" data-call-result="duplicated">Duplicate</button>
-		<button type="button" data-call-result="archived">Archive</button>
+	<div class="call-context-menu" style={ CallableStyle(x, y) } data-gohtmxelm-status-target={ target }>
+		<button type="button" data-gohtmxelm-result="opened">Open</button>
+		<button type="button" data-gohtmxelm-result="duplicated">Duplicate</button>
+		<button type="button" data-gohtmxelm-result="archived">Archive</button>
 	</div>
 }
 
 templ CommandPalette(target string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target } data-command-palette>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target } data-gohtmxelm-command-palette>
 			<h3>Command palette</h3>
-			<input data-command-search type="text" placeholder="Search actions" autocomplete="off"/>
+			<input data-gohtmxelm-command-search type="text" placeholder="Search actions" autocomplete="off"/>
 			<div class="call-command-list">
-				<button type="button" data-command-item data-call-result="ran Create invoice">Create invoice</button>
-				<button type="button" data-command-item data-call-result="ran Invite teammate">Invite teammate</button>
-				<button type="button" data-command-item data-call-result="ran Open settings">Open settings</button>
-				<button type="button" data-command-item data-call-result="ran Export data">Export data</button>
+				<button type="button" data-gohtmxelm-command-item data-gohtmxelm-result="ran Create invoice">Create invoice</button>
+				<button type="button" data-gohtmxelm-command-item data-gohtmxelm-result="ran Invite teammate">Invite teammate</button>
+				<button type="button" data-gohtmxelm-command-item data-gohtmxelm-result="ran Open settings">Open settings</button>
+				<button type="button" data-gohtmxelm-command-item data-gohtmxelm-result="ran Export data">Export data</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ BottomSheet(target string) {
-	<div class="call-backdrop sheet" data-call-backdrop>
-		<div class="call-panel call-sheet-panel" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-backdrop sheet" data-gohtmxelm-backdrop>
+		<div class="call-panel call-sheet-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<h3>Choose action</h3>
 			<p>The same fragment is positioned as a bottom sheet with CSS.</p>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="cancelled">Cancel</button>
-				<button class="primary" type="button" data-call-result="shared">Share</button>
-				<button class="primary" type="button" data-call-result="downloaded">Download</button>
+				<button class="plain" type="button" data-gohtmxelm-result="cancelled">Cancel</button>
+				<button class="primary" type="button" data-gohtmxelm-result="shared">Share</button>
+				<button class="primary" type="button" data-gohtmxelm-result="downloaded">Download</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ SettingsDrawer(target string) {
-	<div class="call-backdrop drawer" data-call-backdrop>
-		<div class="call-panel call-drawer-panel" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-backdrop drawer" data-gohtmxelm-backdrop>
+		<div class="call-panel call-drawer-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<h3>Settings</h3>
-			<label>Email updates <select data-settings-email><option>daily</option><option>weekly</option><option>never</option></select></label>
-			<label>Theme <select data-settings-theme><option>system</option><option>light</option><option>dark</option></select></label>
+			<label>Email updates <select data-gohtmxelm-settings-email><option>daily</option><option>weekly</option><option>never</option></select></label>
+			<label>Theme <select data-gohtmxelm-settings-theme><option>system</option><option>light</option><option>dark</option></select></label>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="cancelled">Cancel</button>
-				<button class="primary" type="button" data-settings-save>Save</button>
+				<button class="plain" type="button" data-gohtmxelm-result="cancelled">Cancel</button>
+				<button class="primary" type="button" data-gohtmxelm-settings-save>Save</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ ImageLightbox(target string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel call-lightbox" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel call-lightbox" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<div class="call-lightbox-image"></div>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="lightbox closed">Close</button>
+				<button class="plain" type="button" data-gohtmxelm-result="lightbox closed">Close</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ WizardDialog(target string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target } data-call-wizard data-step="0">
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target } data-gohtmxelm-wizard data-step="0">
 			<div class="call-wizard-bars"><span class="active"></span><span></span><span></span></div>
-			<div class="call-wizard-step" data-wizard-step="0">
+			<div class="call-wizard-step" data-gohtmxelm-wizard-step="0">
 				<h3>Your name</h3>
-				<label>Name <input data-wizard-name type="text" placeholder="Ada Lovelace"/></label>
+				<label>Name <input data-gohtmxelm-wizard-name type="text" placeholder="Ada Lovelace"/></label>
 			</div>
-			<div class="call-wizard-step" data-wizard-step="1" hidden>
+			<div class="call-wizard-step" data-gohtmxelm-wizard-step="1" hidden>
 				<h3>Your email</h3>
-				<label>Email <input data-wizard-email type="email" placeholder="ada@example.com"/></label>
+				<label>Email <input data-gohtmxelm-wizard-email type="email" placeholder="ada@example.com"/></label>
 			</div>
-			<div class="call-wizard-step" data-wizard-step="2" hidden>
+			<div class="call-wizard-step" data-gohtmxelm-wizard-step="2" hidden>
 				<h3>Pick a plan</h3>
-				<label>Plan <select data-wizard-plan><option>free</option><option>pro</option><option>team</option></select></label>
+				<label>Plan <select data-gohtmxelm-wizard-plan><option>free</option><option>pro</option><option>team</option></select></label>
 			</div>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="cancelled">Cancel</button>
-				<button class="plain" type="button" data-wizard-back hidden>Back</button>
-				<button class="primary" type="button" data-wizard-next>Next</button>
-				<button class="primary" type="button" data-wizard-finish hidden>Finish</button>
+				<button class="plain" type="button" data-gohtmxelm-result="cancelled">Cancel</button>
+				<button class="plain" type="button" data-gohtmxelm-wizard-back hidden>Back</button>
+				<button class="primary" type="button" data-gohtmxelm-wizard-next>Next</button>
+				<button class="primary" type="button" data-gohtmxelm-wizard-finish hidden>Finish</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ PermissionConsent(target string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target }>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target }>
 			<h3>Allow ReportBot?</h3>
 			<p>ReportBot wants permission to read invoices and create draft exports.</p>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="deny:reportbot">Deny</button>
-				<button class="primary" type="button" data-call-result="allow:reportbot">Allow</button>
+				<button class="plain" type="button" data-gohtmxelm-result="deny:reportbot">Deny</button>
+				<button class="primary" type="button" data-gohtmxelm-result="allow:reportbot">Allow</button>
 			</div>
 		</div>
 	</div>
 }
 
 templ ResolveFromCaller(target string) {
-	<div class="call-backdrop" data-call-backdrop>
-		<div class="call-panel" role="dialog" aria-modal="true" data-status-target={ target } data-auto-resolve>
+	<div class="call-backdrop" data-gohtmxelm-backdrop>
+		<div class="call-panel" role="dialog" aria-modal="true" data-gohtmxelm-status-target={ target } data-gohtmxelm-auto-resolve>
 			<h3>Waiting for external approval</h3>
 			<p>The caller owns this call ID and will resolve it from outside in three seconds.</p>
 			<div class="call-panel-actions">
-				<button class="plain" type="button" data-call-result="manual cancel">Cancel now</button>
+				<button class="plain" type="button" data-gohtmxelm-result="manual cancel">Cancel now</button>
 			</div>
 		</div>
 	</div>

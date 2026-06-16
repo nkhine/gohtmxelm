@@ -18,6 +18,9 @@ demo/elm-stuff/
 # Air live-reload build directory
 .air/
 
+# Browser test dependencies
+node_modules/
+
 # Cached self-signed dev TLS cert (GOHTMXELM_TLS=1)
 .devtls/
 
