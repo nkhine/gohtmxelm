@@ -24,6 +24,11 @@ bumps that constant rather than the module version.
 - `gohtmxelm vendor-elm [dir]` (re)writes `BrokerPort.elm` to re-sync the Elm
   contract after a library upgrade.
 - `gohtmxelm doctor` now distinguishes required (`go`) from optional tools.
+- The CLI now has structured help (`gohtmxelm help`, `gohtmxelm help init`,
+  `init -h`) and a polished init experience: a banner, grouped phases (Creating
+  files / Installing dependencies / Building assets), and an animated spinner
+  with ✓/✗ status per step. Output degrades to plain, ANSI-free lines when
+  stdout is not a terminal or `NO_COLOR` is set, so logs and CI stay clean.
 
 ## [0.1.0] - 2026-06-16
 
