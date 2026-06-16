@@ -1,0 +1,72 @@
+module Counter exposing (main)
+
+import BrokerPort exposing (Inbound(..), brokerIn, decode, ready)
+import Browser
+import Html exposing (Html, div, p, span, text)
+import Html.Attributes exposing (class, style)
+import Json.Decode as Decode
+
+
+type alias Model =
+    { count : Int
+    , brokerReady : Bool
+    }
+
+
+type Msg
+    = BrokerIn Decode.Value
+
+
+main : Program Decode.Value Model Msg
+main =
+    Browser.element
+        { init = init
+        , update = update
+        , view = view
+        , subscriptions = \_ -> brokerIn BrokerIn
+        }
+
+
+init : Decode.Value -> ( Model, Cmd Msg )
+init _ =
+    -- `ready` completes the broker handshake; until then no events arrive.
+    ( { count = 0, brokerReady = False }, ready )
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        BrokerIn value ->
+            case decode value of
+                BrokerReady ->
+                    ( { model | brokerReady = True }, Cmd.none )
+
+                Sse "count" data ->
+                    ( { model | count = decodeCount data }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+
+decodeCount : Decode.Value -> Int
+decodeCount value =
+    Decode.decodeValue (Decode.field "value" Decode.int) value
+        |> Result.withDefault 0
+
+
+view : Model -> Html Msg
+view model =
+    div [ class "counter-island" ]
+        [ p [] [ text "Server-owned count, pushed over SSE and rendered by Elm:" ]
+        , span [ style "font-size" "3rem", style "font-weight" "700" ]
+            [ text (String.fromInt model.count) ]
+        , p []
+            [ text
+                (if model.brokerReady then
+                    "broker connected"
+
+                 else
+                    "connecting…"
+                )
+            ]
+        ]

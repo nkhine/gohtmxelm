@@ -1,0 +1,21 @@
+# Build the gohtmxelmkit assets. Run from the gohtmxelmkit/ directory, or via
+# `make -C gohtmxelmkit build` from your project root.
+ELM_SRCS   := $(shell find elm -name '*.elm')
+TEMPL_SRCS := $(shell find . -name '*.templ')
+
+.PHONY: build generate elm clean
+
+## build: generate templ Go and compile the Elm bundle
+build: generate elm
+
+generate: $(TEMPL_SRCS)
+	go tool templ generate
+
+elm: static/elm.js
+
+static/elm.js: $(ELM_SRCS) elm.json
+	mkdir -p static
+	elm make elm/Counter.elm --output=static/elm.js
+
+clean:
+	rm -f static/elm.js $(shell find . -name '*_templ.go')

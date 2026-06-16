@@ -1,0 +1,31 @@
+package gohtmxelmkit
+
+import templpkg "github.com/a-h/templ"
+
+// Page is the host shell. The broker <script> tag and the Elm island mount
+// point come from the gohtmxelm package and are injected verbatim. All URLs are
+// built from prefix so the page works wherever the kit is mounted.
+templ Page(prefix string, brokerScript string, island string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>gohtmxelm</title>
+			<!-- The compiled Elm bundle must load before the broker mounts islands. -->
+			<script defer src={ prefix + "/static/elm.js" }></script>
+			@templpkg.Raw(brokerScript)
+		</head>
+		<body>
+			<main style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 4rem auto;">
+				<h1>gohtmxelm counter</h1>
+				@templpkg.Raw(island)
+				<!-- /api/bump returns 204, so the browser stays put and the SSE
+				stream delivers the new count to the Elm island — no JS needed. -->
+				<form method="post" action={ prefix + "/api/bump" }>
+					<button type="submit">+1</button>
+				</form>
+			</main>
+		</body>
+	</html>
+}
