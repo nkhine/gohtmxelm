@@ -10,8 +10,31 @@ bumps that constant rather than the module version.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-16
+
+First stable release. The exported API of the `github.com/nkhine/gohtmxelm`
+package is now committed under semantic versioning (see
+[STABILITY.md](STABILITY.md)): additive within the 1.x line, breaking changes
+only on a future 2.0. The wire format remains versioned independently by
+`ProtocolVersion`.
+
+### Changed
+
+- **Breaking:** the `simnet` simulation harness moved to `internal/simnet` and
+  is no longer importable. It is a testing/demonstration aid, not part of the
+  integration API; keeping it out of the public surface keeps the 1.0 promise
+  minimal. (It may return as a public, versioned package later — that would be
+  additive.) The integration API is otherwise unchanged from 0.2.0.
+
 ### Added
 
+- A written stability policy ([STABILITY.md](STABILITY.md)) defining the three
+  tracks: the Go API (semver), the wire format (`ProtocolVersion`), and the
+  no-promise surfaces (the `gohtmxelm` CLI, `internal/`, and the `demo/`).
+- A Go CI workflow (`.github/workflows/ci.yml`): `templ generate`, gofmt, `go
+  vet`, and `go test ./... -race` on every push and pull request.
+- Runnable examples for the remaining public helpers (`LocalizedProps`,
+  `InteractionOpenAttrs`, `WriteDatastarPatchSignals`, `ElmBrokerPort`).
 - MIT `LICENSE` (© Norman Khine) and a License section in the README.
 - The `docs/` notes are now published as a site built with
   [Zensical](https://zensical.org) and deployed to GitHub Pages by
@@ -100,6 +123,7 @@ First tagged release. The Go API is now importable at the module root.
 - **`simnet`** is shipped as a testing aid and is not yet part of the stability
   promise.
 
-[Unreleased]: https://github.com/nkhine/gohtmxelm/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/nkhine/gohtmxelm/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/nkhine/gohtmxelm/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/nkhine/gohtmxelm/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nkhine/gohtmxelm/releases/tag/v0.1.0
