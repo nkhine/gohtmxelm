@@ -19,6 +19,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/nkhine/gohtmxelm"
 	"github.com/nkhine/gohtmxelm/demo/internal/localize"
 	"github.com/nkhine/gohtmxelm/demo/internal/localsso"
 	"github.com/nkhine/gohtmxelm/demo/internal/presence"
@@ -29,8 +30,7 @@ import (
 	"github.com/nkhine/gohtmxelm/demo/internal/ui"
 	"github.com/nkhine/gohtmxelm/demo/internal/ui/components"
 	"github.com/nkhine/gohtmxelm/internal/edgedatastar"
-	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
-	"github.com/nkhine/gohtmxelm/pkg/simnet"
+	"github.com/nkhine/gohtmxelm/simnet"
 )
 
 type exampleRoute struct {

@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
+	"github.com/nkhine/gohtmxelm"
 )
 
 // State is the demo-wide authentication presence shown on every card.

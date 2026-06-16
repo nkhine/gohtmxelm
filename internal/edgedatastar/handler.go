@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
+	"github.com/nkhine/gohtmxelm"
 )
 
 // ErrComplete is returned internally to stop the finite demo stream cleanly.

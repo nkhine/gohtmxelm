@@ -3,7 +3,7 @@ package ui
 import (
 	"github.com/a-h/templ"
 
-	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
+	"github.com/nkhine/gohtmxelm"
 )
 
 // brokerScript is the configured gohtmxelm broker <script> tag, rendered from

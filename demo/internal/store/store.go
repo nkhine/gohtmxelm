@@ -4,7 +4,7 @@ import (
 	"sort"
 	"sync"
 
-	gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
+	"github.com/nkhine/gohtmxelm"
 )
 
 // Event is emitted to subscribers whenever a key is written or deleted.

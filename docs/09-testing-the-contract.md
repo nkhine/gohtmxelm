@@ -18,7 +18,7 @@ Two properties, checked together:
   newer one; its view of the version only moves forward.
 
 These are the two invariants the whole test strategy is built around, and they
-live in one place — `pkg/simnet/invariants.go` — as pure functions:
+live in one place — `simnet/invariants.go` — as pure functions:
 
 ```go
 simnet.CheckConvergence(auth, views) // every view == authoritative, or error
@@ -81,7 +81,7 @@ makes visible.
 
 | Layer | What it exercises | Tool |
 |-------|-------------------|------|
-| `pkg/simnet` | a deterministic *model* of the contract under faults | a custom single-threaded kernel |
+| `simnet` | a deterministic *model* of the contract under faults | a custom single-threaded kernel |
 | `pkg/*_test.go` | the *shipped* `Broadcaster` / `Stream` / `Serve` code | `testing/synctest` + `httptest` + `-race` |
 
 The model proves the *design* is sound under adversarial conditions; the
@@ -91,9 +91,9 @@ hundreds of fault schedules cheaply.
 
 ---
 
-## 9.4 `pkg/simnet` — deterministic simulation
+## 9.4 `simnet` — deterministic simulation
 
-`pkg/simnet` is a small harness in the spirit of **PADST** (protocol-aware
+`simnet` is a small harness in the spirit of **PADST** (protocol-aware
 deterministic simulation testing): a single-threaded, seed-reproducible kernel
 that routes explicit messages and checks invariants after every step. It carries
 no external dependencies and is scoped to this one pattern.
@@ -122,7 +122,7 @@ and dropped when full; a surface that misses an event (drop, full buffer, gap, o
 partition) only recovers if `Resync` is on; `Snapshot` events are idempotent
 last-write-wins while `Delta` events must apply strictly in order.
 
-The headline tests (`pkg/simnet/sim_test.go`):
+The headline tests (`simnet/sim_test.go`):
 
 - **converges under chaos** — with `Resync: true`, every surface converges
   across 200 seeds, for both snapshot and delta semantics;
@@ -144,17 +144,17 @@ a channel-handling bug in the actual code. Go 1.25's `testing/synctest` fills th
 gap: it runs the *real* goroutines, channels, and timers in a controlled bubble,
 deterministically.
 
-- `pkg/broadcaster_synctest_test.go` drives the real `Broadcaster`: fan-out
+- `broadcaster_synctest_test.go` drives the real `Broadcaster`: fan-out
   ordering, the non-blocking drop-on-full behaviour, unsubscribe-closes, and a
   concurrent subscribe/publish/unsubscribe hammer (whose value is under `-race`).
-- `pkg/serve_contract_test.go` drives `Stream` / `Serve`: the
+- `serve_contract_test.go` drives `Stream` / `Serve`: the
   subscribe→hydrate→fan-out lifecycle, an end-to-end check over a real
   `httptest.Server` socket, and a reconnect-rehydrate convergence test that
   asserts the same `simnet.CheckConvergence` the model uses.
 
 ```sh
 go test ./... -race          # both layers, race detector on
-go test ./pkg/simnet/        # the contract model only
+go test ./simnet/        # the contract model only
 ```
 
 ---
@@ -219,7 +219,7 @@ API), and should be kept distinct so the two are never conflated.
 - Convergence is **not** a consequence of delivery — the `Broadcaster` is lossy
   on purpose. It depends on **reconnect-and-rehydrate** (and/or snapshot
   idempotence).
-- `pkg/simnet` proves the *design* holds under drop/delay/duplicate/reorder/
+- `simnet` proves the *design* holds under drop/delay/duplicate/reorder/
   partition, seed-reproducibly; `synctest`/`httptest`/`-race` tests prove the
   *shipped code* holds, against the same invariants.
 - The simulator card runs that harness live, visualises every transport's real

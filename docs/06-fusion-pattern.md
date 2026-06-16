@@ -88,7 +88,7 @@ the architecture in one click.
 The broker is split in two so the reusable transport is never entangled with
 one app's policy:
 
-- [`pkg/runtime/gohtmxelm-broker.js`](../pkg/runtime/gohtmxelm-broker.js) — the
+- [`runtime/gohtmxelm-broker.js`](../runtime/gohtmxelm-broker.js) — the
   **generic** broker shipped by the package. It knows envelopes, routing,
   shared state, island mounting, and how to bridge *any* SSE source. It contains
   no store endpoints, no optimistic locking, no activity log. It exposes its

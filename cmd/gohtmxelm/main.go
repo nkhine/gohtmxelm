@@ -66,7 +66,7 @@ func initProject() error {
 		return err
 	}
 	fmt.Println("created gohtmxelm.toml")
-	fmt.Println("import pkg as: gohtmxelm \"github.com/nkhine/gohtmxelm/pkg\"")
+	fmt.Println("import the package: \"github.com/nkhine/gohtmxelm\"")
 	fmt.Println("mount assets with: http.StripPrefix(\"/gohtmxelm/\", gohtmxelm.Assets())")
 	return nil
 }

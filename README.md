@@ -10,7 +10,7 @@ helpers, Elm island HTML conventions, and an embedded browser broker runtime.
 ## Install
 
 ```sh
-go get github.com/nkhine/gohtmxelm/pkg
+go get github.com/nkhine/gohtmxelm
 go install github.com/nkhine/gohtmxelm/cmd/gohtmxelm@latest
 ```
 
@@ -31,7 +31,7 @@ gohtmxelm init
 Mount the embedded browser runtime:
 
 ```go
-import gohtmxelm "github.com/nkhine/gohtmxelm/pkg"
+import "github.com/nkhine/gohtmxelm"
 
 kit := gohtmxelm.New(gohtmxelm.Options{
 	AssetPath: "/gohtmxelm",
@@ -75,6 +75,23 @@ html, err := gohtmxelm.ElmIsland("counter", "Counter", map[string]any{
 	"initial": 0,
 })
 ```
+
+The browser broker looks `Counter` up on `window.Elm` by name and hydrates it
+with the JSON-encoded props. To build the island, vendor the canonical
+`BrokerPort` contract into your Elm source directory and `import BrokerPort`:
+
+```go
+// e.g. a go:generate step or small build helper
+os.WriteFile("elm/BrokerPort.elm", []byte(gohtmxelm.ElmBrokerPort()), 0o644)
+```
+
+`BrokerPort.elm` is the Elm peer of the wire contract — it stamps and validates
+the same `ProtocolVersion` as `Envelope` (Go) and the broker runtime
+(JavaScript), and a test in the package fails if the three drift. Re-vendoring
+after a library upgrade is how you stay in sync. Each island is a normal
+`Browser.element` that subscribes to `brokerIn`, classifies envelopes with
+`decode`, and sends with `ready` / `sendStateSet` / `sendMessage` /
+`sendHtmxSwap`.
 
 Pass locale metadata and a scoped message bundle into an island without making
 the library own your translation system:
@@ -152,18 +169,19 @@ Keep the DOM ownership boundaries physical:
 ## Repository Layout
 
 ```text
+.                       public importable Go package (module root)
+elm/BrokerPort.elm      canonical Elm-side wire contract (embedded; vendor via ElmBrokerPort)
+runtime/                embedded browser broker runtime
+simnet/                 deterministic simulation harness for the convergence contract
 cmd/gohtmxelm/          CLI for init and doctor workflows
-pkg/                    public importable Go package
-pkg/runtime/            embedded browser broker runtime
-pkg/simnet/             deterministic simulation harness for the convergence contract
 demo/internal/dynamo/   in-memory DynamoDB-style table (no external service)
 
 demo/                   reference app users can copy from
 demo/main.go            demo server and routes
-demo/elm/               demo Elm source and elm.json
+demo/elm/               demo Elm islands and elm.json (also sources ../elm/BrokerPort.elm)
 demo/static/            demo browser assets
 demo/internal/store/    demo state store
-demo/internal/simviz/   drives pkg/simnet live for the contract simulator card
+demo/internal/simviz/   drives simnet live for the contract simulator card
 demo/internal/ui/       demo templ shell/page composition
 demo/internal/ui/components/
                         demo templ components
@@ -207,7 +225,7 @@ library pattern in a real Go app. It includes:
   login/logout also drives a demo-wide auth presence signal: every card header
   shows red logged-out, green online, or orange idle, while the SSO card renders
   the same state through HTMX, Datastar signal patches, and an Elm island.
-- a **Contract simulator** that runs the `pkg/simnet` harness live: it replays a
+- a **Contract simulator** that runs the `simnet` harness live: it replays a
   deterministic run over the library's own `Broadcaster` and visualises the full
   request path (Go → Broadcaster → SSE → `bridge.js` → Elm/HTMX/Datastar) under
   an adversarial network — dropping, delaying, and partitioning SSE while the
@@ -301,20 +319,20 @@ misses an event reconnects and `Serve` re-sends the current snapshot.
 Two layers verify this, holding the model and the implementation to the **same
 invariants** (`simnet.CheckConvergence` / `simnet.CheckMonotonic`):
 
-- **`pkg/simnet`** — a self-contained, dependency-free deterministic simulation
+- **`simnet`** — a self-contained, dependency-free deterministic simulation
   kernel (PADST in spirit: single-threaded, seed-reproducible, invariant-checked
   after every step). It models the broadcast→SSE→converge contract under a fault
   profile (drop / delay / duplicate / reorder / partition) for both snapshot and
   delta event semantics, and proves convergence holds with resync and diverges
   without it. A failing run is reproducible from its `Seed`.
-- **Real-code tests** — `pkg/broadcaster_synctest_test.go` and
-  `pkg/serve_contract_test.go` drive the shipped `Broadcaster` / `Stream` /
+- **Real-code tests** — `broadcaster_synctest_test.go` and
+  `serve_contract_test.go` drive the shipped `Broadcaster` / `Stream` /
   `Serve` with Go's `testing/synctest` and `httptest`, asserting the same
   invariants against the actual goroutines and SSE wire.
 
 ```sh
 go test ./... -race          # both layers
-go test ./pkg/simnet/        # the contract model only
+go test ./simnet/            # the contract model only
 PLAYWRIGHT_BASE_URL=https://localhost:8091 make test-browser
 ```
 

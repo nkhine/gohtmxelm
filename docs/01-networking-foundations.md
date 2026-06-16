@@ -156,7 +156,7 @@ func writeSSE(w http.ResponseWriter, event string, data any) {
 
 The browser side is equally simple. The `EventSource` API opens the connection
 and fires events as data arrives. The generic broker
-([`pkg/runtime/gohtmxelm-broker.js`](../pkg/runtime/gohtmxelm-broker.js)) opens
+([`runtime/gohtmxelm-broker.js`](../runtime/gohtmxelm-broker.js)) opens
 every source listed in `data-sources` and forwards each named event to islands:
 
 ```js
