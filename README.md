@@ -107,6 +107,25 @@ Open a server-rendered interaction fragment with normal HTML attributes:
 <span id="delete-result">awaiting click</span>
 ```
 
+Render the IMUI runtime on pages that mount immediate-mode canvas tooling
+surfaces:
+
+```go
+template.HTML(kit.IMUIScript())
+html, err := gohtmxelm.CanvasIsland("lattice", "LatticeTool", map[string]any{
+	"snap": true,
+}, gohtmxelm.CanvasOptions{
+	CommandURL: "/api/lattice/commands",
+	Events:     []string{"lattice-snapshot"},
+	Label:      "Lattice construction canvas",
+})
+```
+
+The browser resolves `LatticeTool` from
+`window.GoHTMXElmIMUI.register("LatticeTool", module)`. The runtime handles
+canvas lifecycle, resizing, pointer/keyboard input, redraw scheduling, SSE event
+delivery, and command posting; the module owns drawing and local tool state.
+
 Render an Elm island mount point:
 
 ```go

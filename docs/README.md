@@ -40,6 +40,7 @@ install, scaffold, run, and deploy.
 | 12 | [Local SSO login simulator](./12-local-sso.md) | Browser redirects, callback validation, HttpOnly session cookies, HTMX rehydration, and shared auth presence. |
 | 13 | [Integration contracts](./13-contracts.md) | Explicit DOM, broker, SSE, Datastar, HTMX, and interaction result contracts. |
 | 14 | [Server-rendered interactions](./14-interactions.md) | Reusable overlay/result conventions for dialogs, pickers, menus, drawers, and flows. |
+| 15 | [Immediate-mode canvas islands](./15-immediate-ui.md) | Canvas tooling surfaces for high-frequency interaction under the same ownership model. |
 
 ## Core Model
 
@@ -48,6 +49,7 @@ Go owns shared truth.
 HTMX requests server-rendered fragments.
 Datastar receives server-pushed patches/signals.
 Elm owns typed client-side islands.
+IMUI owns canvas-backed tooling islands.
 SSE carries convergence events.
 ```
 
@@ -56,6 +58,7 @@ The most important rule is physical DOM ownership:
 - HTMX swaps its own fragments.
 - Datastar patches its own regions.
 - Elm owns its own island roots.
+- IMUI owns its own canvas roots.
 - Go coordinates shared state and broadcasts changes.
 
 Convergence — every surface ending up agreeing with Go — is the contract the

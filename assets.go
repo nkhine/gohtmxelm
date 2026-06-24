@@ -73,3 +73,9 @@ func (k *Kit) BrowserScript() string {
 func (k *Kit) InteractionScript() string {
 	return InteractionScript(k.opts)
 }
+
+// IMUIScript renders the script tag needed by pages that use immediate-mode
+// canvas islands.
+func (k *Kit) IMUIScript() string {
+	return IMUIScript(k.opts)
+}
