@@ -19,8 +19,15 @@ var brokerScript = templ.Raw(gohtmxelm.BrowserScript(gohtmxelm.Options{
 	Sources: []gohtmxelm.Source{
 		{URL: "/api/stream", Events: []string{
 			"store-hydrate", "store-change", "stopwatch-state", "statement-range-change",
-			"sim-frame", "auth-presence",
+			"sim-frame", "auth-presence", "lattice-state",
 		}},
+	},
+}))
+
+var imuiScript = templ.Raw(gohtmxelm.IMUIScript(gohtmxelm.Options{
+	AssetPath: "/gohtmxelm",
+	Sources: []gohtmxelm.Source{
+		{URL: "/api/stream", Events: []string{"lattice-state"}},
 	},
 }))
 

@@ -20,6 +20,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/nkhine/gohtmxelm"
+	"github.com/nkhine/gohtmxelm/demo/internal/lattice"
 	"github.com/nkhine/gohtmxelm/demo/internal/localize"
 	"github.com/nkhine/gohtmxelm/demo/internal/localsso"
 	"github.com/nkhine/gohtmxelm/demo/internal/presence"
@@ -56,6 +57,7 @@ func main() {
 	sw := stopwatch.New()
 	go sw.Run(ctx)
 
+	lat := lattice.New()
 	stmt := statement.New(time.Now)
 	locales := localize.MustStore()
 	sso := localsso.New()
@@ -164,6 +166,14 @@ func main() {
 			Description: "Watch simnet drop, delay & partition SSE while invariants hold.",
 			Render: func(stopwatch.Snapshot) templ.Component {
 				return components.SimulatorExample()
+			},
+		},
+		{
+			Slug:        "fiveway",
+			Title:       "Five-way lattice",
+			Description: "Go, HTMX, Datastar, Elm, and IMUI command one lattice.",
+			Render: func(stopwatch.Snapshot) templ.Component {
+				return components.FiveWayExample(lat.Snapshot())
 			},
 		},
 	}
@@ -470,6 +480,38 @@ func main() {
 		)
 	})
 
+	// ── Five-way lattice example ───────────────────────────────────────────
+	// HTMX, Elm, and IMUI all post the same command shape. Go validates and
+	// mutates the canonical lattice, then SSE fans the snapshot to every surface.
+	r.Get("/api/lattice/fragment", func(w http.ResponseWriter, r *http.Request) {
+		if err := components.LatticeFragment(lat.Snapshot()).Render(r.Context(), w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+	r.Post("/api/lattice/command", func(w http.ResponseWriter, r *http.Request) {
+		cmd, err := parseLatticeCommand(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		lat.Apply(cmd)
+		w.WriteHeader(http.StatusNoContent)
+	})
+	r.Get("/api/lattice/stream", func(w http.ResponseWriter, r *http.Request) {
+		stream, err := gohtmxelm.NewStream(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		patch := func(s *gohtmxelm.Stream, state lattice.State) error {
+			return s.PatchSignals(latticeSignals(state))
+		}
+		_ = gohtmxelm.Serve(stream, lat.Events(),
+			func(s *gohtmxelm.Stream) error { return patch(s, lat.Snapshot()) },
+			func(s *gohtmxelm.Stream, state lattice.State) error { return patch(s, state) },
+		)
+	})
+
 	// Single multiplexed broker stream. The browser broker holds one EventSource
 	// open per source; carrying every domain's events on one connection keeps
 	// the page well under the ~6-connection HTTP/1.1 limit even when several
@@ -495,6 +537,8 @@ func main() {
 		defer sim.Events().Unsubscribe(simCh)
 		presenceCh := authPresence.Events().Subscribe()
 		defer authPresence.Events().Unsubscribe(presenceCh)
+		latticeCh := lat.Events().Subscribe()
+		defer lat.Events().Unsubscribe(latticeCh)
 
 		// Hydrate every domain on connect.
 		for _, state := range kv.AllStates() {
@@ -507,6 +551,7 @@ func main() {
 		_ = stream.Send("statement-range-change", rangePayload(rng, stmt.Summary(rng)))
 		_ = stream.Send("sim-frame", sim.Current())
 		_ = stream.Send("auth-presence", authPresence.Snapshot())
+		_ = stream.Send("lattice-state", lat.Snapshot())
 
 		for {
 			select {
@@ -543,6 +588,13 @@ func main() {
 					return
 				}
 				if stream.Send("auth-presence", snapshot) != nil {
+					return
+				}
+			case state, ok := <-latticeCh:
+				if !ok {
+					return
+				}
+				if stream.Send("lattice-state", state) != nil {
 					return
 				}
 			case <-stream.Done():
@@ -933,6 +985,49 @@ func presenceSignals(snapshot presence.Snapshot) map[string]any {
 		"authPresence": string(state),
 		"authEmail":    snapshot.Email,
 	}
+}
+
+func latticeSignals(state lattice.State) map[string]any {
+	return map[string]any{
+		"latticeSeq":      state.Seq,
+		"latticeNodes":    len(state.Nodes),
+		"latticeEdges":    len(state.Edges),
+		"latticeSelected": state.Selected,
+		"latticeSource":   state.LastSource,
+		"latticeAction":   state.LastAction,
+	}
+}
+
+func parseLatticeCommand(r *http.Request) (lattice.Command, error) {
+	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		var body struct {
+			Command lattice.Command `json:"command"`
+			Action  string          `json:"action"`
+			Node    string          `json:"node"`
+			Source  string          `json:"source"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			return lattice.Command{}, err
+		}
+		if body.Command.Action != "" {
+			return body.Command, nil
+		}
+		return lattice.Command{Action: body.Action, Node: body.Node, Source: body.Source}, nil
+	}
+	cmd := lattice.Command{
+		Action: r.URL.Query().Get("action"),
+		Node:   r.URL.Query().Get("node"),
+		Source: r.URL.Query().Get("source"),
+	}
+	if cmd.Action == "" {
+		cmd.Action = r.FormValue("action")
+		cmd.Node = r.FormValue("node")
+		cmd.Source = r.FormValue("source")
+	}
+	if cmd.Action == "" {
+		return lattice.Command{}, fmt.Errorf("action required")
+	}
+	return cmd, nil
 }
 
 // parseStoreBody reads key, value, source, and optional version from either a
