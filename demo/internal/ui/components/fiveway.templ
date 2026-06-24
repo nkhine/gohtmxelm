@@ -1,0 +1,115 @@
+package components
+
+import "github.com/nkhine/gohtmxelm/demo/internal/lattice"
+
+templ FiveWayExample(state lattice.State) {
+	<section class="workbench fiveway-card" id="example-fiveway">
+		<div class="workbench-header">
+			<h2 class="workbench-title">Five-way lattice construction</h2>
+			<div class="flow-line">
+				<span class="flow-tag flow-go">Go state</span>
+				<span>-></span>
+				<span class="flow-tag flow-htmx">HTMX controls</span>
+				<span class="flow-tag flow-datastar">Datastar stats</span>
+				<span class="flow-tag flow-elm">Elm command panel</span>
+				<span class="flow-tag flow-imui">IMUI canvas</span>
+			</div>
+		</div>
+
+		<div class="fiveway-grid">
+			<div class="fiveway-main">
+				<div class="fiveway-canvas-shell">
+					@fiveWayCanvas()
+				</div>
+				<div id="lattice-fragment" hx-get="/api/lattice/fragment" hx-trigger="load, lattice-change from:body" hx-swap="outerHTML">
+					@LatticeFragment(state)
+				</div>
+			</div>
+
+			<div class="fiveway-side">
+				<div
+					id="lattice-datastar"
+					class="datastar-live fiveway-datastar"
+					data-signals="{latticeSeq: 0, latticeNodes: 0, latticeEdges: 0, latticeSelected: '', latticeSource: 'go', latticeAction: 'opening stream'}"
+					data-init="@get('/api/lattice/stream')">
+					<p class="datastar-note">Datastar live panel</p>
+					<div class="datastar-stats">
+						<span class="datastar-stat" data-text="'seq ' + $latticeSeq">seq 0</span>
+						<span class="datastar-stat" data-text="$latticeNodes + ' nodes'">0 nodes</span>
+						<span class="datastar-stat" data-text="$latticeEdges + ' edges'">0 edges</span>
+					</div>
+					<p class="fiveway-line" data-text="'selected: ' + ($latticeSelected || '-')">selected: -</p>
+					<p class="fiveway-line" data-text="'last: ' + $latticeAction + ' via ' + $latticeSource">last: opening stream</p>
+				</div>
+
+				<div class="elm-island fiveway-elm" data-elm-module="FiveWay" data-island-id="fiveway-elm" data-props="{}"></div>
+
+				<div class="fiveway-doc">
+					<h3>Why this belongs in gohtmxelm</h3>
+					<p>
+						This example is a compact version of the library's core idea: several UI
+						runtimes can share one page safely when each owns a physical region and Go
+						owns the durable state.
+					</p>
+					<p>
+						The lattice is intentionally visual and gesture-heavy. That makes the canvas
+						a better construction surface than DOM fragments, but the canvas is not the
+						source of truth. It keeps only local interaction state such as hover, focus,
+						and click position.
+					</p>
+					<ol>
+						<li><strong>Go</strong> stores the canonical lattice, validates commands, increments <code>seq</code>, and broadcasts <code>lattice-state</code>.</li>
+						<li><strong>HTMX</strong> owns the command buttons and node table. It posts ordinary form-like commands and refreshes the fragment after SSE.</li>
+						<li><strong>Datastar</strong> owns the live stats panel. Go patches signals over SSE without custom app wiring in that panel.</li>
+						<li><strong>Elm</strong> owns a typed command island. It receives the same brokered snapshot and emits structured commands through the broker.</li>
+						<li><strong>IMUI</strong> owns only the canvas. It redraws from the latest snapshot and posts pointer/keyboard commands back to Go.</li>
+					</ol>
+					<p>
+						Click a node in the canvas, use <code>h</code>/<code>j</code>/<code>k</code>/<code>l</code>
+						to select left/down/up/right, press <code>a</code> to add a node, or use
+						the HTMX and Elm buttons. Every path converges through the same Go model
+						and returns over the same SSE event.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+}
+
+templ LatticeFragment(state lattice.State) {
+	<div id="lattice-fragment" class="fiveway-fragment">
+		<div class="fiveway-controls">
+			<button class="btn-htmx" hx-post="/api/lattice/command?action=add-node&source=htmx" hx-swap="none">HTMX add node</button>
+			<button class="btn-htmx" hx-post="/api/lattice/command?action=promote&source=htmx" hx-swap="none">HTMX promote selected</button>
+			<button class="btn-htmx secondary" hx-post="/api/lattice/command?action=reset&source=htmx" hx-swap="none">HTMX reset</button>
+		</div>
+		<table class="fiveway-table">
+			<thead>
+				<tr><th>node</th><th>level</th><th>owner</th><th></th></tr>
+			</thead>
+			<tbody>
+				for _, n := range state.Nodes {
+					<tr class={ templ.KV("selected", n.Selected) }>
+						<td>{ n.Label }</td>
+						<td>{ levelName(n.Level) }</td>
+						<td>{ state.LastSource }</td>
+						<td class="row-actions">
+							<button class="btn-row-delete" hx-post={ "/api/lattice/command?action=select-node&node=" + n.ID + "&source=htmx" } hx-swap="none">select</button>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+func levelName(level int) string {
+	switch level {
+	case 0:
+		return "down"
+	case 2:
+		return "up"
+	default:
+		return "middle"
+	}
+}
