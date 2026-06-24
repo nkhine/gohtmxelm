@@ -9,10 +9,6 @@
       
       
       
-        <link rel="prev" href="../13-contracts/">
-      
-      
-        <link rel="next" href="../10-localization-boundary/">
       
       
         
@@ -23,7 +19,7 @@
     
     
       
-        <title>Server-Rendered Interactions - gohtmxelm</title>
+        <title>15. Immediate-mode canvas islands - gohtmxelm</title>
       
     
     
@@ -79,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#server-rendered-interactions" class="md-skip">
+        <a href="#15-immediate-mode-canvas-islands" class="md-skip">
           Skip to content
         </a>
       
@@ -115,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Server-Rendered Interactions
+              15. Immediate-mode canvas islands
             
           </span>
         </div>
@@ -253,8 +249,6 @@
   
   
   
-    
-  
   
     
       
@@ -269,7 +263,7 @@
     
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../09-testing-the-contract/" class="md-tabs__link">
           
   
@@ -695,10 +689,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -712,20 +704,17 @@
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
@@ -742,7 +731,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -810,36 +799,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Server-rendered interactions
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="././" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../14-interactions/" class="md-nav__link">
         
   
   
@@ -854,104 +817,6 @@
   
 
       </a>
-      
-        
-
-
-<nav class="md-nav md-nav--secondary" aria-label="On this page">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#mount-assets" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Mount Assets
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#open-a-fragment" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Open A Fragment
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#render-a-fragment" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Render A Fragment
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#result-event" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Result Event
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#programmatic-api" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Programmatic API
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-flow" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Validation Flow
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#streamed-progress" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Streamed Progress
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1149,10 +1014,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#mount-assets" class="md-nav__link">
+  <a href="#mount-the-runtime" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Mount Assets
+        Mount the runtime
       </span>
     </span>
   </a>
@@ -1160,10 +1025,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#open-a-fragment" class="md-nav__link">
+  <a href="#render-a-canvas-island" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Open A Fragment
+        Render a canvas island
       </span>
     </span>
   </a>
@@ -1171,54 +1036,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#render-a-fragment" class="md-nav__link">
+  <a href="#register-a-drawing-module" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Render A Fragment
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#result-event" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Result Event
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#programmatic-api" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Programmatic API
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-flow" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Validation Flow
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#streamed-progress" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Streamed Progress
+        Register a drawing module
       </span>
     </span>
   </a>
@@ -1240,84 +1061,105 @@
                 
                   
 
-<h1 id="server-rendered-interactions">Server-Rendered Interactions<a class="headerlink" href="#server-rendered-interactions" title="Permanent link">&para;</a></h1>
-<p>Interactions are temporary UI surfaces: confirms, prompts, pickers, drawers,
-menus, lightboxes, and wizards. The reusable package provides a small browser
-runtime and HTML conventions for these without owning application state.</p>
-<h2 id="mount-assets">Mount Assets<a class="headerlink" href="#mount-assets" title="Permanent link">&para;</a></h2>
-<p>Mount the embedded runtime once:</p>
-<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nx">kit</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">gohtmxelm</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">gohtmxelm</span><span class="p">.</span><span class="nx">Options</span><span class="p">{</span><span class="nx">AssetPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/gohtmxelm&quot;</span><span class="p">})</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nx">mux</span><span class="p">.</span><span class="nx">Handle</span><span class="p">(</span><span class="s">&quot;/gohtmxelm/&quot;</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nx">http</span><span class="p">.</span><span class="nx">StripPrefix</span><span class="p">(</span><span class="s">&quot;/gohtmxelm/&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">kit</span><span class="p">.</span><span class="nx">Assets</span><span class="p">()))</span>
+<h1 id="15-immediate-mode-canvas-islands">15. Immediate-mode canvas islands<a class="headerlink" href="#15-immediate-mode-canvas-islands" title="Permanent link">&para;</a></h1>
+<p>Immediate-mode UI is for canvas-backed tooling surfaces: construction planes,
+network diagrams, timelines, graph editors, simulation playback, and other
+high-frequency views where DOM patching is the wrong unit of work.</p>
+<p>It does not replace the rest of the pattern. It adds one more bounded owner:</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Owns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Go</td>
+<td>durable state, validation, commands, SSE fan-out</td>
+</tr>
+<tr>
+<td>HTMX</td>
+<td>server-rendered request/response fragments</td>
+</tr>
+<tr>
+<td>Datastar</td>
+<td>declarative local signals and server-pushed DOM/signal patches</td>
+</tr>
+<tr>
+<td>Elm</td>
+<td>typed client-side islands and local state machines</td>
+</tr>
+<tr>
+<td>IMUI</td>
+<td>canvas drawing, viewport state, pointer/keyboard state, drag previews</td>
+</tr>
+</tbody>
+</table>
+<p>The same ownership rule applies: no library patches another library's DOM. An
+IMUI island owns one <code>&lt;canvas&gt;</code> element and redraws that canvas from local state.
+It may keep ephemeral interaction state locally, but durable domain state should
+still converge through Go.</p>
+<h2 id="mount-the-runtime">Mount the runtime<a class="headerlink" href="#mount-the-runtime" title="Permanent link">&para;</a></h2>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nx">kit</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">gohtmxelm</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">gohtmxelm</span><span class="p">.</span><span class="nx">Options</span><span class="p">{</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="nx">AssetPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/gohtmxelm&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nx">Sources</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="nx">gohtmxelm</span><span class="p">.</span><span class="nx">Source</span><span class="p">{</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">        </span><span class="p">{</span><span class="nx">URL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/api/events&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">Events</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&quot;lattice-snapshot&quot;</span><span class="p">}},</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">})</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nx">template</span><span class="p">.</span><span class="nx">HTML</span><span class="p">(</span><span class="nx">kit</span><span class="p">.</span><span class="nx">IMUIScript</span><span class="p">())</span>
 </span></code></pre></div>
-<p>Render the script and root on pages that open interactions:</p>
-<div class="language-go highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nx">template</span><span class="p">.</span><span class="nx">HTML</span><span class="p">(</span><span class="nx">kit</span><span class="p">.</span><span class="nx">InteractionScript</span><span class="p">())</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nx">template</span><span class="p">.</span><span class="nx">HTML</span><span class="p">(</span><span class="nx">gohtmxelm</span><span class="p">.</span><span class="nx">InteractionRoot</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">))</span>
+<p>If the broker runtime is already present, IMUI listens to <code>gohtmxelm:sse</code> events
+from it. If no broker is present, the IMUI runtime opens the configured SSE
+sources itself.</p>
+<h2 id="render-a-canvas-island">Render a canvas island<a class="headerlink" href="#render-a-canvas-island" title="Permanent link">&para;</a></h2>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nx">html</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">gohtmxelm</span><span class="p">.</span><span class="nx">CanvasIsland</span><span class="p">(</span><span class="s">&quot;lattice&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;LatticeTool&quot;</span><span class="p">,</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">{</span><span class="s">&quot;snap&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">},</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nx">gohtmxelm</span><span class="p">.</span><span class="nx">CanvasOptions</span><span class="p">{</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">        </span><span class="nx">CommandURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/api/lattice/commands&quot;</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">        </span><span class="nx">Events</span><span class="p">:</span><span class="w">     </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&quot;lattice-snapshot&quot;</span><span class="p">},</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">        </span><span class="nx">Label</span><span class="p">:</span><span class="w">      </span><span class="s">&quot;Lattice construction canvas&quot;</span><span class="p">,</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
 </span></code></pre></div>
-<h2 id="open-a-fragment">Open A Fragment<a class="headerlink" href="#open-a-fragment" title="Permanent link">&para;</a></h2>
-<p>The runtime listens for <code>data-gohtmxelm-open</code>. The value may be a full URL:</p>
-<div class="language-html highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">&lt;</span><span class="nt">button</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  <span class="na">data-gohtmxelm-open</span><span class="o">=</span><span class="s">&quot;/api/interactions/confirm&quot;</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  <span class="na">data-gohtmxelm-status</span><span class="o">=</span><span class="s">&quot;#delete-result&quot;</span><span class="p">&gt;</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  Delete
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">&lt;/</span><span class="nt">button</span><span class="p">&gt;</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">&lt;</span><span class="nt">span</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;delete-result&quot;</span><span class="p">&gt;</span>awaiting click<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+<h2 id="register-a-drawing-module">Register a drawing module<a class="headerlink" href="#register-a-drawing-module" title="Permanent link">&para;</a></h2>
+<div class="language-js highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">window</span><span class="p">.</span><span class="nx">GoHTMXElmIMUI</span><span class="p">.</span><span class="nx">register</span><span class="p">(</span><span class="s2">&quot;LatticeTool&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nx">init</span><span class="p">(</span><span class="nx">api</span><span class="p">,</span><span class="w"> </span><span class="nx">props</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">snapshot</span><span class="o">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="nx">hover</span><span class="o">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="nx">viewport</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">x</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">scale</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nx">event</span><span class="p">(</span><span class="nx">model</span><span class="p">,</span><span class="w"> </span><span class="nx">event</span><span class="p">,</span><span class="w"> </span><span class="nx">api</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">name</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;lattice-snapshot&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">      </span><span class="nx">model</span><span class="p">.</span><span class="nx">snapshot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">event</span><span class="p">.</span><span class="nx">data</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">      </span><span class="nx">api</span><span class="p">.</span><span class="nx">invalidate</span><span class="p">()</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">  </span><span class="nx">input</span><span class="p">(</span><span class="nx">model</span><span class="p">,</span><span class="w"> </span><span class="nx">input</span><span class="p">,</span><span class="w"> </span><span class="nx">api</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">input</span><span class="p">.</span><span class="nx">type</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;pointermove&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">      </span><span class="nx">model</span><span class="p">.</span><span class="nx">hover</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">input</span><span class="p">.</span><span class="nx">position</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">      </span><span class="nx">api</span><span class="p">.</span><span class="nx">invalidate</span><span class="p">()</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">input</span><span class="p">.</span><span class="nx">type</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;pointerup&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">hover</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">      </span><span class="nx">api</span><span class="p">.</span><span class="nx">command</span><span class="p">({</span><span class="w"> </span><span class="nx">type</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;select&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">at</span><span class="o">:</span><span class="w"> </span><span class="nx">model</span><span class="p">.</span><span class="nx">hover</span><span class="w"> </span><span class="p">})</span>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">  </span><span class="nx">draw</span><span class="p">(</span><span class="nx">model</span><span class="p">,</span><span class="w"> </span><span class="nx">api</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">canvas</span><span class="p">,</span><span class="w"> </span><span class="nx">dpr</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">api</span>
+</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">    </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">clearRect</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">canvas</span><span class="p">.</span><span class="nx">width</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nx">dpr</span><span class="p">,</span><span class="w"> </span><span class="nx">canvas</span><span class="p">.</span><span class="nx">height</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nx">dpr</span><span class="p">)</span>
+</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">    </span><span class="c1">// Draw from model.snapshot plus ephemeral local state.</span>
+</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="p">})</span>
 </span></code></pre></div>
-<p>The runtime loads the fragment with HTMX and appends it to
-<code>[data-gohtmxelm-interactions-root]</code>.</p>
-<h2 id="render-a-fragment">Render A Fragment<a class="headerlink" href="#render-a-fragment" title="Permanent link">&para;</a></h2>
-<p>Fragments carry their result target:</p>
-<div class="language-html highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">&lt;</span><span class="nt">div</span> <span class="na">data-gohtmxelm-fragment</span> <span class="na">data-gohtmxelm-backdrop</span><span class="p">&gt;</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  <span class="p">&lt;</span><span class="nt">section</span> <span class="na">role</span><span class="o">=</span><span class="s">&quot;dialog&quot;</span> <span class="na">aria-modal</span><span class="o">=</span><span class="s">&quot;true&quot;</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="na">data-gohtmxelm-status-target</span><span class="o">=</span><span class="s">&quot;#delete-result&quot;</span><span class="p">&gt;</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;</span>Delete this item?<span class="p">&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="p">&lt;</span><span class="nt">button</span> <span class="na">data-gohtmxelm-result</span><span class="o">=</span><span class="s">&quot;cancelled&quot;</span><span class="p">&gt;</span>Cancel<span class="p">&lt;/</span><span class="nt">button</span><span class="p">&gt;</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="p">&lt;</span><span class="nt">button</span> <span class="na">data-gohtmxelm-result</span><span class="o">=</span><span class="s">&quot;deleted&quot;</span><span class="p">&gt;</span>Continue<span class="p">&lt;/</span><span class="nt">button</span><span class="p">&gt;</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  <span class="p">&lt;/</span><span class="nt">section</span><span class="p">&gt;</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
+<p><code>api.command(payload)</code> posts JSON to the island's <code>CommandURL</code>:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span><span class="nt">&quot;islandId&quot;</span><span class="p">:</span><span class="s2">&quot;lattice&quot;</span><span class="p">,</span><span class="nt">&quot;command&quot;</span><span class="p">:{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;select&quot;</span><span class="p">,</span><span class="nt">&quot;at&quot;</span><span class="p">:{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="mi">100</span><span class="p">,</span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="mi">80</span><span class="p">}}}</span>
 </span></code></pre></div>
-<p>Clicking a result button:</p>
-<ul>
-<li>updates the target status element,</li>
-<li>emits <code>gohtmxelm:interaction-result</code>,</li>
-<li>removes the closest fragment/backdrop.</li>
-</ul>
-<h2 id="result-event">Result Event<a class="headerlink" href="#result-event" title="Permanent link">&para;</a></h2>
-<p>Host pages can observe results:</p>
-<div class="language-js highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">document</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="s2">&quot;gohtmxelm:interaction-result&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">target</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">e</span><span class="p">.</span><span class="nx">detail</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">target</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="p">)</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">})</span>
-</span></code></pre></div>
-<p>Treat this as local UI feedback. Post to Go for durable writes.</p>
-<h2 id="programmatic-api">Programmatic API<a class="headerlink" href="#programmatic-api" title="Permanent link">&para;</a></h2>
-<p>The runtime exposes:</p>
-<div class="language-js highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">window</span><span class="p">.</span><span class="nx">GoHTMXElmInteractions</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="s2">&quot;/api/interactions/picker&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;#result&quot;</span><span class="p">)</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">window</span><span class="p">.</span><span class="nx">GoHTMXElmInteractions</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="nx">element</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;selected Invoice&quot;</span><span class="p">)</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nb">window</span><span class="p">.</span><span class="nx">GoHTMXElmInteractions</span><span class="p">.</span><span class="nx">setStatus</span><span class="p">(</span><span class="s2">&quot;#result&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;selected Invoice&quot;</span><span class="p">)</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nb">window</span><span class="p">.</span><span class="nx">GoHTMXElmInteractions</span><span class="p">.</span><span class="nx">top</span><span class="p">()</span>
-</span></code></pre></div>
-<p>This is useful for keyboard shortcuts, caller-side timeouts, and SSE-driven
-resolution.</p>
-<h2 id="validation-flow">Validation Flow<a class="headerlink" href="#validation-flow" title="Permanent link">&para;</a></h2>
-<p>For server-side form validation, target the panel:</p>
-<div class="language-html highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">&lt;</span><span class="nt">form</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>  <span class="na">hx-post</span><span class="o">=</span><span class="s">&quot;/api/interactions/save&quot;</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>  <span class="na">hx-target</span><span class="o">=</span><span class="s">&quot;closest [data-gohtmxelm-status-target]&quot;</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>  <span class="na">hx-swap</span><span class="o">=</span><span class="s">&quot;outerHTML&quot;</span><span class="p">&gt;</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>  <span class="p">&lt;</span><span class="nt">input</span> <span class="na">name</span><span class="o">=</span><span class="s">&quot;name&quot;</span><span class="p">&gt;</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>  <span class="p">&lt;</span><span class="nt">button</span> <span class="na">type</span><span class="o">=</span><span class="s">&quot;submit&quot;</span><span class="p">&gt;</span>Save<span class="p">&lt;/</span><span class="nt">button</span><span class="p">&gt;</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">&lt;/</span><span class="nt">form</span><span class="p">&gt;</span>
-</span></code></pre></div>
-<p>On failure, return the same panel with submitted values and errors. On success,
-return a panel with a result button or send <code>204</code> and emit a separate event.</p>
-<h2 id="streamed-progress">Streamed Progress<a class="headerlink" href="#streamed-progress" title="Permanent link">&para;</a></h2>
-<p>For singleton toasts, give the target a stable id and patch it from Go:</p>
-<div class="language-go highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nx">stream</span><span class="p">.</span><span class="nx">PatchElements</span><span class="p">(</span><span class="nx">render</span><span class="p">(</span><span class="nx">ProgressToast</span><span class="p">(</span><span class="s">&quot;Downloading...&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">40</span><span class="p">)))</span>
-</span></code></pre></div>
-<p>Every update replaces the same element instead of opening a new toast.</p>
+<p>For lattice construction, the canvas should preview gestures immediately, then
+send commands such as <code>add-node</code>, <code>add-cover</code>, <code>move-node</code>, or <code>select</code>. Go
+validates the partial order/lattice rules, mutates the canonical model, and
+broadcasts the next authoritative snapshot over SSE.</p>
 
 
 
