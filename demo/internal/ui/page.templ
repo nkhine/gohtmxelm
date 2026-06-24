@@ -28,6 +28,7 @@ templ Shell(title string, active string, nav []ExampleNav, content templpkg.Comp
 			<script defer src="/static/demo-ui.js"></script>
 			if useBroker {
 				@brokerScript
+				@imuiScript
 			}
 			@interactionScript
 			<style>
@@ -113,6 +114,7 @@ templ Shell(title string, active string, nav []ExampleNav, content templpkg.Comp
 				.flow-datastar { background: #ffedd5; color: var(--datastar-dark); }
 				.flow-elm { background: #ede9fe; color: var(--elm-dark); }
 				.flow-sse { background: #d1fae5; color: #065f46; }
+				.flow-imui { background: #cffafe; color: #155e75; }
 
 				.live-state, .stopwatch-grid {
 					display: grid; grid-template-columns: minmax(0, 1fr) minmax(20rem, 1fr); gap: 1rem;
@@ -240,6 +242,39 @@ templ Shell(title string, active string, nav []ExampleNav, content templpkg.Comp
 				.log-from-elm { color: #a78bfa; } .log-from-htmx { color: #38bdf8; }
 				.log-from-sse { color: #34d399; } .log-from-go { color: #fb923c; }
 				.log-from-datastar { color: #fdba74; }
+				.log-from-imui { color: #67e8f9; }
+
+				.fiveway-card { background: #fff; }
+				.fiveway-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(19rem, .85fr); gap: 1rem; padding: 1rem; }
+				@media (max-width: 980px) { .fiveway-grid { grid-template-columns: 1fr; } }
+				.fiveway-main, .fiveway-side { display: grid; gap: .85rem; align-content: start; }
+				.fiveway-canvas-shell {
+					border: 1px solid #a5f3fc; border-radius: var(--radius); background: #ecfeff;
+					min-height: 24rem; overflow: hidden;
+				}
+				.fiveway-canvas {
+					display: block; width: 100%; height: clamp(22rem, 46vh, 34rem);
+					background: #f8fafc; outline: none;
+				}
+				.fiveway-canvas:focus { box-shadow: inset 0 0 0 3px #22d3ee; }
+				.fiveway-fragment, .fiveway-datastar, .fiveway-elm, .fiveway-doc {
+					border: 1px solid var(--border); border-radius: var(--radius); background: #fff; padding: .75rem;
+				}
+				.fiveway-controls { display: flex; gap: .45rem; flex-wrap: wrap; margin-bottom: .65rem; }
+				.fiveway-controls .secondary { background: #475569; }
+				.fiveway-table tr.selected td { background: #ecfeff; color: #155e75; font-weight: 850; }
+				.fiveway-line { margin: .35rem 0 0; color: #7c2d12; font-size: .82rem; font-weight: 750; }
+				.fiveway-elm { background: #faf5ff; border-color: #ddd6fe; min-height: 12rem; }
+				.fiveway-elm h3 { margin: 0 0 .5rem; color: var(--elm-dark); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+				.fiveway-elm p { margin: .3rem 0; font-size: .82rem; }
+				.fiveway-elm .elm-actions { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .6rem; }
+				.fiveway-doc { background: #f8fafc; }
+				.fiveway-doc h3 { margin: 0 0 .55rem; color: #0f172a; font-size: .9rem; }
+				.fiveway-doc p, .fiveway-doc li { color: #475569; font-size: .82rem; line-height: 1.45; }
+				.fiveway-doc p { margin: .45rem 0; }
+				.fiveway-doc ol { margin: .55rem 0; padding-left: 1.2rem; }
+				.fiveway-doc li { margin: .35rem 0; }
+				.fiveway-doc code { font-family: Menlo, Consolas, monospace; font-size: .76rem; background: #e2e8f0; border-radius: 4px; padding: .05rem .25rem; color: #0f172a; }
 				.seed-card { background: linear-gradient(135deg, #f8fafc, #e0f7fb 70%); }
 				.seed-body { padding: 1rem; }
 				.seed-form { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: .8rem; }

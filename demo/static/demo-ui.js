@@ -18,6 +18,7 @@
   document.addEventListener("gohtmxelm:state-set", (e) => {
     const { key, value, source } = e.detail;
     if (key === "statementRange") return postRange(value);
+    if (key === "latticeCommand") return postLatticeCommand(value, source);
     const body = typeof value === "string" ? value : JSON.stringify(value);
     const version = storeVersions.get(key) || 0;
     log("elm", "go", `STATE_SET ${key} from ${source}`);
@@ -51,6 +52,22 @@
     }).catch((err) => console.warn("range post failed", err));
   }
 
+  function postLatticeCommand(value, source) {
+    let command;
+    try {
+      command = typeof value === "string" ? JSON.parse(value) : value;
+    } catch (err) {
+      return console.warn("invalid latticeCommand payload", value, err);
+    }
+    command.source = "elm";
+    log("elm", "go", `lattice ${command.action || "command"} from ${source}`);
+    fetch("/api/lattice/command", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command }),
+    }).catch((err) => console.warn("lattice command failed", err));
+  }
+
   // ── React to forwarded SSE ────────────────────────────────────────────────
   document.addEventListener("gohtmxelm:sse", (e) => {
     const { event, data } = e.detail;
@@ -59,7 +76,14 @@
     if (event === "stopwatch-state") return applyStopwatch(data);
     if (event === "statement-range-change") return applyStatementRange(data);
     if (event === "auth-presence") return applyAuthPresence(data);
+    if (event === "lattice-state") return applyLattice(data);
   });
+
+  function applyLattice(data) {
+    if (!data || typeof data !== "object") return;
+    log("sse", "htmx", `LATTICE seq=${data.seq} via=${data.lastSource || "?"}`);
+    if (window.htmx) window.htmx.trigger(document.body, "lattice-change");
+  }
 
   function applyAuthPresence(data) {
     const state = data && data.state ? data.state : "offline";
@@ -114,6 +138,9 @@
   );
   document.addEventListener("gohtmxelm:htmx-after-swap", (e) =>
     log("htmx", "elm", `afterSwap → #${e.detail.targetId} from ${e.detail.url}`)
+  );
+  document.addEventListener("gohtmxelm:imui-command", (e) =>
+    log("imui", "go", `canvas ${e.detail.command?.action || "command"}`)
   );
 
   // Datastar owns its own island; these only narrate its activity in the log.
@@ -229,6 +256,117 @@
       { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]
     ));
   }
+
+  function registerFiveWayIMUI() {
+    if (!window.GoHTMXElmIMUI) {
+      setTimeout(registerFiveWayIMUI, 50);
+      return;
+    }
+    window.GoHTMXElmIMUI.register("FiveWayLattice", {
+      init() {
+        return { state: null, hover: null };
+      },
+      event(model, event, api) {
+        if (event.name !== "lattice-state") return;
+        model.state = event.data;
+        api.invalidate();
+      },
+      input(model, input, api) {
+        if (!model.state) return;
+        if (input.type === "pointermove") {
+          model.hover = nearestNode(model.state, input.position, api.canvas);
+          api.invalidate();
+        }
+        if (input.type === "pointerup") {
+          const hit = nearestNode(model.state, input.position, api.canvas);
+          if (hit) api.command({ action: "select-node", node: hit.id, source: "imui" });
+        }
+        if (input.type === "keydown" && input.key === "a") {
+          api.command({ action: "add-node", source: "imui" });
+        }
+        if (input.type === "keydown" && ["h", "j", "k", "l"].includes(input.key)) {
+          api.command({ action: "select-node", node: input.key, source: "imui" });
+        }
+      },
+      draw(model, api) {
+        drawLattice(model, api);
+      },
+    });
+  }
+
+  function nearestNode(state, position, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const radius = 28;
+    let best = null;
+    let bestDist = radius * radius;
+    for (const node of state.nodes || []) {
+      const x = node.x * rect.width;
+      const y = node.y * rect.height;
+      const dx = position.x - x;
+      const dy = position.y - y;
+      const d = dx * dx + dy * dy;
+      if (d <= bestDist) {
+        bestDist = d;
+        best = node;
+      }
+    }
+    return best;
+  }
+
+  function drawLattice(model, api) {
+    const { ctx, canvas, dpr } = api;
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#f8fafc";
+    ctx.fillRect(0, 0, w, h);
+
+    if (!model.state) {
+      ctx.fillStyle = "#64748b";
+      ctx.font = "14px system-ui, sans-serif";
+      ctx.fillText("Waiting for lattice-state over SSE", 24, 36);
+      return;
+    }
+
+    const nodes = new Map((model.state.nodes || []).map((n) => [n.id, n]));
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#94a3b8";
+    for (const edge of model.state.edges || []) {
+      const from = nodes.get(edge.from);
+      const to = nodes.get(edge.to);
+      if (!from || !to) continue;
+      ctx.beginPath();
+      ctx.moveTo(from.x * w, from.y * h);
+      ctx.lineTo(to.x * w, to.y * h);
+      ctx.stroke();
+    }
+
+    for (const node of model.state.nodes || []) {
+      const x = node.x * w;
+      const y = node.y * h;
+      const hot = model.hover && model.hover.id === node.id;
+      ctx.beginPath();
+      ctx.arc(x, y, hot ? 25 : 21, 0, Math.PI * 2);
+      ctx.fillStyle = node.selected ? "#0ea5e9" : "#ffffff";
+      ctx.strokeStyle = hot ? "#155e75" : "#0ea5e9";
+      ctx.lineWidth = hot ? 4 : 2;
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = node.selected ? "#ffffff" : "#0f172a";
+      ctx.font = "700 12px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(node.label, x, y);
+    }
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "#475569";
+    ctx.font = "12px system-ui, sans-serif";
+    ctx.fillText(`IMUI canvas: h/j/k/l select, "a" adds. seq ${model.state.seq}`, 18, h - 18);
+  }
+
+  document.addEventListener("DOMContentLoaded", registerFiveWayIMUI);
 
   // ── Visual helpers ────────────────────────────────────────────────────────
   function setSseStatus(connected) {
