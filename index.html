@@ -414,6 +414,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#audience" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Audience
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adoption-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Adoption Paths
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reading-order" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1087,6 +1109,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#audience" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Audience
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adoption-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Adoption Paths
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reading-order" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1124,9 +1168,15 @@
                   
 
 <h1 id="gohtmxelm-architecture-notes">gohtmxelm Architecture Notes<a class="headerlink" href="#gohtmxelm-architecture-notes" title="Permanent link">&para;</a></h1>
-<p>These notes explain the architecture behind <code>gohtmxelm</code>: a Go-first way to use
-HTMX, Datastar, Elm islands, and Server-Sent Events together without letting
-multiple runtimes fight over the same DOM.</p>
+<p>These notes explain the architecture behind <code>gohtmxelm</code>: a Go-first integration
+kit for server-owned, real-time hypermedia apps. It lets a Go application use
+HTMX, Datastar, Elm islands, immediate-mode canvas islands, and Server-Sent
+Events together without letting multiple runtimes fight over the same DOM.</p>
+<p>The project is deliberately a library, not an application framework. Your app
+still owns routing, persistence, auth, sessions, templates, validation,
+localization policy, and deployment. <code>gohtmxelm</code> supplies the bridge contracts
+and runtime conventions that let independent UI surfaces converge on Go-owned
+state.</p>
 <p>The <code>demo/</code> app is the reference implementation used throughout the docs. It is
 not the library API; it is a concrete example of the ownership rules and bridge
 patterns that the <code>github.com/nkhine/gohtmxelm</code> package supports.</p>
@@ -1139,6 +1189,56 @@ model. These pages are also published as a site (built with
 <code>.github/workflows/docs.yml</code>).</p>
 <p>New to the project? Start with <strong><a href="./getting-started/">Getting Started</a></strong> —
 install, scaffold, run, and deploy.</p>
+<h2 id="audience">Audience<a class="headerlink" href="#audience" title="Permanent link">&para;</a></h2>
+<p>These docs are for Go teams that want server-rendered workflows with selective
+client-side richness:</p>
+<ul>
+<li>backend-heavy apps that want live updates without a full SPA rewrite,</li>
+<li>admin/internal tools where server-owned state and validation matter,</li>
+<li>products that need a few typed islands or canvas tooling surfaces,</li>
+<li>teams that prefer explicit integration contracts over a large framework.</li>
+</ul>
+<p>If you want a batteries-included framework, start with a framework. If you want
+React/Vue/Svelte to own routing and most state, this library can still inspire
+patterns, but it is not trying to be that stack.</p>
+<h2 id="adoption-paths">Adoption Paths<a class="headerlink" href="#adoption-paths" title="Permanent link">&para;</a></h2>
+<p>You can adopt the library in layers:</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SSE only</td>
+<td>You need Go-owned snapshots pushed to open tabs.</td>
+</tr>
+<tr>
+<td>HTMX plus SSE</td>
+<td>You want server-rendered fragments and live updates.</td>
+</tr>
+<tr>
+<td>Datastar patches</td>
+<td>You need small declarative signals or streamed DOM patches.</td>
+</tr>
+<tr>
+<td>Elm islands</td>
+<td>You need a typed local state machine inside a bounded root.</td>
+</tr>
+<tr>
+<td>Interactions</td>
+<td>You need reusable server-rendered overlays and result handling.</td>
+</tr>
+<tr>
+<td>IMUI islands</td>
+<td>You need a canvas surface with local frame-rate interaction.</td>
+</tr>
+</tbody>
+</table>
+<p>The layers are optional. The core rule is not "use everything"; it is "each
+surface owns a physical region, and Go coordinates durable state."</p>
 <h2 id="reading-order">Reading Order<a class="headerlink" href="#reading-order" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

@@ -442,6 +442,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#mental-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Mental model
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#install" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1167,6 +1178,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#mental-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Mental model
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#install" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1285,6 +1307,46 @@
 <p>This page covers installing the CLI, scaffolding a project, running it, and
 deploying. For the <em>why</em> behind the integration model, read the chapters from
 <a href="../01-networking-foundations/">Networking foundations</a> onward.</p>
+<h2 id="mental-model">Mental model<a class="headerlink" href="#mental-model" title="Permanent link">&para;</a></h2>
+<p><code>gohtmxelm</code> is an integration kit, not a framework. A generated project is a
+working reference app, not a required architecture. In an existing application,
+you can take only the pieces that solve the current problem:</p>
+<table>
+<thead>
+<tr>
+<th>If you need...</th>
+<th>Use...</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A long-lived stream of Go-owned state</td>
+<td><code>Stream</code>, <code>Broadcaster</code>, <code>Serve</code></td>
+</tr>
+<tr>
+<td>Server-rendered request/response fragments</td>
+<td>HTMX plus your existing templates</td>
+</tr>
+<tr>
+<td>Server-pushed signal or DOM patches</td>
+<td>Datastar patch helpers</td>
+</tr>
+<tr>
+<td>A typed local browser state machine</td>
+<td>Elm islands</td>
+</tr>
+<tr>
+<td>Server-rendered overlays</td>
+<td>interaction helpers</td>
+</tr>
+<tr>
+<td>A canvas tool or simulation view</td>
+<td>IMUI canvas islands</td>
+</tr>
+</tbody>
+</table>
+<p>The durable state and validation stay in Go. Browser surfaces can keep local
+interaction state, but shared truth should return through Go and SSE.</p>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>go<span class="w"> </span>get<span class="w"> </span>github.com/nkhine/gohtmxelm<span class="w">                          </span><span class="c1"># the library</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>go<span class="w"> </span>install<span class="w"> </span>github.com/nkhine/gohtmxelm/cmd/gohtmxelm@latest<span class="w"> </span><span class="c1"># the CLI</span>
@@ -1301,6 +1363,11 @@ leaving an app you can run immediately.</p>
 </span></code></pre></div>
 <p>Click <strong>+1</strong>: Go owns the count, broadcasts it over SSE, and every open tab
 re-renders from the stream.</p>
+<p>Use the scaffold to learn the contract before copying pieces into a real app.
+The generated code intentionally keeps the moving parts visible: the HTTP
+handler mutates Go state, the broadcaster publishes a snapshot, the SSE stream
+hydrates new subscribers, and the browser runtime delivers that state to the
+island.</p>
 <h3 id="flavours">Flavours<a class="headerlink" href="#flavours" title="Permanent link">&para;</a></h3>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>gohtmxelm<span class="w"> </span>init<span class="w"> </span>myapp<span class="w"> </span>--minimal<span class="w">   </span><span class="c1"># SSE-only, no Elm and no build step (go run .)</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>gohtmxelm<span class="w"> </span>init<span class="w"> </span>myapp<span class="w"> </span>--deploy<span class="w">    </span><span class="c1"># also emit deploy scaffolding (see below)</span>
@@ -1326,6 +1393,10 @@ it never touches your existing <code>main.go</code>:</p>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nx">kit</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">gohtmxelmkit</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;/counter&quot;</span><span class="p">)</span><span class="w"> </span><span class="c1">// any prefix, or &quot;&quot; for root</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nx">kit</span><span class="p">.</span><span class="nx">Mount</span><span class="p">(</span><span class="nx">r</span><span class="p">)</span><span class="w">                        </span><span class="c1">// r is your chi.Router</span>
 </span></code></pre></div>
+<p>For production code, you do not need to keep the generated kit shape. Treat it
+as a reference implementation: keep your existing router, middleware, auth,
+template system, database transactions, and validation rules. Pull in the
+library helpers where they clarify the boundary.</p>
 <h2 id="keep-the-elm-contract-in-sync">Keep the Elm contract in sync<a class="headerlink" href="#keep-the-elm-contract-in-sync" title="Permanent link">&para;</a></h2>
 <p><code>BrokerPort.elm</code> is the Elm peer of the wire contract and stamps the same
 <code>ProtocolVersion</code> as the Go <code>Envelope</code> and the broker runtime. After upgrading
