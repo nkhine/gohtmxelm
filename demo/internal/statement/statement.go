@@ -25,7 +25,7 @@ import (
 const dateTimeLocal = "2006-01-02T15:04"
 
 // Transfer is one funds movement on the statement. The shape mirrors a generic
-// treasury payment row (direction DEBIT/CREDIT, amount, currency, reference,
+// treasury transfer row (direction DEBIT/CREDIT, amount, currency, reference,
 // method, status, name on account, end-to-end id).
 type Transfer struct {
 	ID           string    `json:"id"`

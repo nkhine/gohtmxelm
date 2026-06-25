@@ -1,11 +1,13 @@
 # gohtmxelm
 
 `gohtmxelm` is a small Go-first integration library for combining HTMX,
-Datastar, Elm islands, and Server-Sent Events in existing Go applications.
+Datastar, Elm islands, immediate-mode canvas islands, and Server-Sent Events in
+existing Go applications.
 
 The package does not impose an application framework. It provides the reusable
 bridge pieces: SSE response helpers, Datastar patch helpers, HTMX response
-helpers, Elm island HTML conventions, and an embedded browser broker runtime.
+helpers, Elm island HTML conventions, immediate-mode canvas conventions, and
+embedded browser runtimes.
 
 ## Install
 
@@ -108,7 +110,10 @@ Open a server-rendered interaction fragment with normal HTML attributes:
 ```
 
 Render the IMUI runtime on pages that mount immediate-mode canvas tooling
-surfaces:
+surfaces. IMUI is the library's answer for UI that needs a fast redraw loop
+rather than DOM ownership: graph editors, timelines, simulation views, topology
+diagrams, construction tools, drawing previews, and other high-frequency
+surfaces where replacing HTML fragments would be the wrong unit of work.
 
 ```go
 template.HTML(kit.IMUIScript())
@@ -125,6 +130,75 @@ The browser resolves `LatticeTool` from
 `window.GoHTMXElmIMUI.register("LatticeTool", module)`. The runtime handles
 canvas lifecycle, resizing, pointer/keyboard input, redraw scheduling, SSE event
 delivery, and command posting; the module owns drawing and local tool state.
+This keeps the same library philosophy intact: the browser can respond
+immediately to pointer movement, hover, pan, zoom, drag, or keyboard input, but
+durable domain changes still flow through Go, are validated once, and return to
+every surface as SSE snapshots or patches.
+
+Register the browser-side module with the lifecycle hooks the runtime calls:
+
+```js
+window.GoHTMXElmIMUI.register("LatticeTool", {
+  init(api, props) {
+    return {
+      snapshot: null,
+      hover: null,
+      drag: null,
+      viewport: { x: 0, y: 0, scale: 1 },
+      snap: props.snap === true,
+    }
+  },
+
+  event(model, event, api) {
+    if (event.name !== "lattice-snapshot") return
+    model.snapshot = event.data
+    api.invalidate()
+  },
+
+  input(model, input, api) {
+    if (input.type === "pointermove") {
+      model.hover = input.position
+      api.invalidate()
+    }
+    if (input.type === "pointerdown") {
+      model.drag = { from: input.position, to: input.position }
+      api.invalidate()
+    }
+    if (input.type === "pointerup" && model.drag) {
+      api.command({ type: "add-cover", from: model.drag.from, to: input.position })
+      model.drag = null
+      api.invalidate()
+    }
+  },
+
+  draw(model, api) {
+    const { ctx, canvas, dpr } = api
+    const width = canvas.width / dpr
+    const height = canvas.height / dpr
+    ctx.clearRect(0, 0, width, height)
+
+    // Draw the authoritative snapshot plus ephemeral hover/drag previews.
+  },
+})
+```
+
+Commands are posted as JSON to the island's `CommandURL`:
+
+```json
+{
+  "islandId": "lattice",
+  "command": {
+    "type": "add-cover",
+    "from": { "x": 100, "y": 80 },
+    "to": { "x": 180, "y": 120 }
+  }
+}
+```
+
+The user-facing result is a canvas tool that feels local while remaining
+server-coordinated. A drag preview can update at animation-frame speed, the Go
+handler can reject invalid commands, and HTMX, Datastar, Elm, and other IMUI
+islands can all converge on the accepted state.
 
 Render an Elm island mount point:
 
@@ -216,12 +290,15 @@ The intended ownership model is:
 | HTMX | server-rendered request/response fragments |
 | Datastar | declarative local signals and server-pushed DOM/signal patches |
 | Elm | typed client-side islands and local state machines |
+| IMUI | canvas drawing, viewport state, pointer/keyboard state, drag previews |
 
 Keep the DOM ownership boundaries physical:
 
 - HTMX should not swap inside an Elm root.
 - Datastar should not patch inside an Elm root.
 - Elm should not render inside a Datastar-owned region.
+- IMUI should own one canvas root and should not ask DOM patchers to redraw
+  inside it.
 - Go is the convergence point for shared state.
 
 ## Repository Layout
@@ -229,7 +306,7 @@ Keep the DOM ownership boundaries physical:
 ```text
 .                       public importable Go package (module root)
 elm/BrokerPort.elm      canonical Elm-side wire contract (embedded; vendor via ElmBrokerPort)
-runtime/                embedded browser broker runtime
+runtime/                embedded browser broker, interaction, and IMUI runtimes
 internal/simnet/        deterministic simulation harness (internal testing aid)
 cmd/gohtmxelm/          CLI for init and doctor workflows
 demo/internal/dynamo/   in-memory DynamoDB-style table (no external service)
@@ -258,9 +335,9 @@ library pattern in a real Go app. It includes:
 - a bank-statement view: an Elm range picker filters Go-owned transfers while
   HTMX renders the table and Datastar pushes the summary
 - a **Seed** card that fakes account transfers (the
-  demo treasury transfer-row model treasury payment-row model,
-  with [gofakeit](https://github.com/brianvoe/gofakeit) counterparty names) into
-  the statement's **in-memory DynamoDB-style table** (`demo/internal/dynamo`, no
+  demo treasury transfer-row model, with
+  [gofakeit](https://github.com/brianvoe/gofakeit) counterparty names) into the
+  statement's **in-memory DynamoDB-style table** (`demo/internal/dynamo`, no
   Docker/AWS). Submitting the form writes the rows and broadcasts the change, so
   the statement's HTMX table, Datastar summary, and Elm picker all update — the
   statement data is generated at runtime, not hard-coded.
@@ -289,6 +366,10 @@ library pattern in a real Go app. It includes:
   an adversarial network — dropping, delaying, and partitioning SSE while the
   convergence invariant holds (or, with recovery off, fails reproducibly). See
   [Testing the pattern](#testing-the-pattern).
+- a **Five-way lattice** card where Go, HTMX, Datastar, Elm, and IMUI all post
+  the same command shape. The IMUI canvas owns immediate drawing, hover, and
+  keyboard/pointer input; Go validates lattice commands and broadcasts the
+  canonical snapshot back to every surface.
 - local Elm source under `demo/elm`
 - demo-only browser assets under `demo/static`
 
