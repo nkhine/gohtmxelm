@@ -4,6 +4,24 @@ This page covers installing the CLI, scaffolding a project, running it, and
 deploying. For the *why* behind the integration model, read the chapters from
 [Networking foundations](01-networking-foundations.md) onward.
 
+## Mental model
+
+`gohtmxelm` is an integration kit, not a framework. A generated project is a
+working reference app, not a required architecture. In an existing application,
+you can take only the pieces that solve the current problem:
+
+| If you need... | Use... |
+|---|---|
+| A long-lived stream of Go-owned state | `Stream`, `Broadcaster`, `Serve` |
+| Server-rendered request/response fragments | HTMX plus your existing templates |
+| Server-pushed signal or DOM patches | Datastar patch helpers |
+| A typed local browser state machine | Elm islands |
+| Server-rendered overlays | interaction helpers |
+| A canvas tool or simulation view | IMUI canvas islands |
+
+The durable state and validation stay in Go. Browser surfaces can keep local
+interaction state, but shared truth should return through Go and SSE.
+
 ## Install
 
 ```sh
@@ -28,6 +46,12 @@ cd myapp && make dev          # http://localhost:8080
 
 Click **+1**: Go owns the count, broadcasts it over SSE, and every open tab
 re-renders from the stream.
+
+Use the scaffold to learn the contract before copying pieces into a real app.
+The generated code intentionally keeps the moving parts visible: the HTTP
+handler mutates Go state, the broadcaster publishes a snapshot, the SSE stream
+hydrates new subscribers, and the browser runtime delivers that state to the
+island.
 
 ### Flavours
 
@@ -66,6 +90,11 @@ import "your.module/gohtmxelmkit"
 kit := gohtmxelmkit.New("/counter") // any prefix, or "" for root
 kit.Mount(r)                        // r is your chi.Router
 ```
+
+For production code, you do not need to keep the generated kit shape. Treat it
+as a reference implementation: keep your existing router, middleware, auth,
+template system, database transactions, and validation rules. Pull in the
+library helpers where they clarify the boundary.
 
 ## Keep the Elm contract in sync
 

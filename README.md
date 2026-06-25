@@ -1,13 +1,55 @@
 # gohtmxelm
 
-`gohtmxelm` is a small Go-first integration library for combining HTMX,
-Datastar, Elm islands, immediate-mode canvas islands, and Server-Sent Events in
-existing Go applications.
+`gohtmxelm` is a Go-first integration kit for server-owned, real-time
+hypermedia apps. It helps existing Go applications combine HTMX, Datastar, Elm
+islands, immediate-mode canvas islands, and Server-Sent Events without letting
+multiple browser runtimes fight over the same DOM.
 
-The package does not impose an application framework. It provides the reusable
-bridge pieces: SSE response helpers, Datastar patch helpers, HTMX response
-helpers, Elm island HTML conventions, immediate-mode canvas conventions, and
-embedded browser runtimes.
+It is not a web framework. It does not own your router, database, templates,
+auth, validation, i18n policy, deployment platform, or application structure.
+The package provides reusable bridge pieces: SSE response helpers, Datastar
+patch helpers, HTMX response helpers, Elm island HTML conventions,
+immediate-mode canvas conventions, and embedded browser runtimes.
+
+Use the pieces you need. A small app can use only `Stream` and `Broadcaster`.
+An admin workflow might use HTMX plus server-rendered interactions. A richer
+screen can add Datastar signals, one Elm island, or one IMUI canvas without
+turning the whole app into a single-page application.
+
+## What It Is For
+
+`gohtmxelm` is a good fit when:
+
+- You want Go to remain the source of truth for durable state and validation.
+- You want server-rendered HTML for most workflows, with real-time updates over
+  SSE.
+- You need a few richer islands without adopting a full frontend framework.
+- You care about explicit ownership boundaries between HTMX, Datastar, Elm, and
+  canvas tooling.
+- You want reconnect-and-rehydrate semantics instead of pretending every SSE
+  event is guaranteed to arrive.
+
+It is probably not the right fit when:
+
+- You want a batteries-included framework with routing, ORM, migrations, auth,
+  sessions, and component libraries.
+- Your product is already a deeply client-routed React/Vue/Svelte SPA.
+- You need bidirectional low-latency transport for every interaction; WebSocket
+  frameworks may be a better starting point.
+- Your team does not want to carry any custom browser runtime code.
+
+## Pick A Starting Point
+
+You do not need to adopt every layer.
+
+| Need | Start with |
+| --- | --- |
+| Push Go-owned snapshots to browsers | `Stream`, `Broadcaster`, `Serve` |
+| Return server-rendered fragments from normal requests | HTMX helpers and your templates |
+| Push small DOM/signal changes over SSE | Datastar patch helpers |
+| Mount a typed local state machine | `ElmIsland` and `BrowserScript` |
+| Open dialogs, menus, pickers, drawers, or toasts | `InteractionScript` and `InteractionRoot` |
+| Build a canvas-heavy tool or simulator | `CanvasIsland` and `IMUIScript` |
 
 ## Install
 
@@ -300,6 +342,37 @@ Keep the DOM ownership boundaries physical:
 - IMUI should own one canvas root and should not ask DOM patchers to redraw
   inside it.
 - Go is the convergence point for shared state.
+
+## Tradeoffs
+
+This library chooses explicit composition over a single full-stack runtime.
+
+What you gain:
+
+- Go keeps durable state, validation, and fan-out in one place.
+- Most UI can stay server-rendered HTML.
+- Richer surfaces can be added as bounded islands instead of a full SPA rewrite.
+- SSE reconnect-and-rehydrate is treated as part of the contract.
+- The demo and tests exercise the same convergence model the package exposes.
+
+What you still own:
+
+- Routing, persistence, auth, sessions, authorization, and validation policy.
+- Template/component organization in your application.
+- Localization catalogues, fallback rules, and formatting policy.
+- Deployment details for long-lived SSE streams, including proxy buffering and
+  idle timeouts.
+- Accessibility and fallback UI for canvas-heavy or highly dynamic surfaces.
+
+What to watch:
+
+- Do not mix ownership inside the same DOM region.
+- Do not assume every SSE event is delivered; publish idempotent snapshots or
+  rehydrate on reconnect.
+- Do not add Elm or IMUI just because they exist. Use them when a screen needs a
+  typed local state machine or a canvas frame loop.
+- Keep custom browser modules small and bounded; shared business rules belong
+  in Go.
 
 ## Repository Layout
 

@@ -1,8 +1,15 @@
 # gohtmxelm Architecture Notes
 
-These notes explain the architecture behind `gohtmxelm`: a Go-first way to use
-HTMX, Datastar, Elm islands, and Server-Sent Events together without letting
-multiple runtimes fight over the same DOM.
+These notes explain the architecture behind `gohtmxelm`: a Go-first integration
+kit for server-owned, real-time hypermedia apps. It lets a Go application use
+HTMX, Datastar, Elm islands, immediate-mode canvas islands, and Server-Sent
+Events together without letting multiple runtimes fight over the same DOM.
+
+The project is deliberately a library, not an application framework. Your app
+still owns routing, persistence, auth, sessions, templates, validation,
+localization policy, and deployment. `gohtmxelm` supplies the bridge contracts
+and runtime conventions that let independent UI surfaces converge on Go-owned
+state.
 
 The `demo/` app is the reference implementation used throughout the docs. It is
 not the library API; it is a concrete example of the ownership rules and bridge
@@ -20,6 +27,36 @@ model. These pages are also published as a site (built with
 
 New to the project? Start with **[Getting Started](./getting-started.md)** —
 install, scaffold, run, and deploy.
+
+## Audience
+
+These docs are for Go teams that want server-rendered workflows with selective
+client-side richness:
+
+- backend-heavy apps that want live updates without a full SPA rewrite,
+- admin/internal tools where server-owned state and validation matter,
+- products that need a few typed islands or canvas tooling surfaces,
+- teams that prefer explicit integration contracts over a large framework.
+
+If you want a batteries-included framework, start with a framework. If you want
+React/Vue/Svelte to own routing and most state, this library can still inspire
+patterns, but it is not trying to be that stack.
+
+## Adoption Paths
+
+You can adopt the library in layers:
+
+| Path | Use when |
+|---|---|
+| SSE only | You need Go-owned snapshots pushed to open tabs. |
+| HTMX plus SSE | You want server-rendered fragments and live updates. |
+| Datastar patches | You need small declarative signals or streamed DOM patches. |
+| Elm islands | You need a typed local state machine inside a bounded root. |
+| Interactions | You need reusable server-rendered overlays and result handling. |
+| IMUI islands | You need a canvas surface with local frame-rate interaction. |
+
+The layers are optional. The core rule is not "use everything"; it is "each
+surface owns a physical region, and Go coordinates durable state."
 
 ## Reading Order
 
